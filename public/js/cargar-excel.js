@@ -37,6 +37,21 @@ function closeModal(modal) {
     modal.classList.add("hidden");
 }
 
+function resolverFlagsGastoPorCategoria(nombreCategoria) {
+    const nombre = String(nombreCategoria || "").trim().toLowerCase();
+
+    const esTransf = nombre.includes("transf");
+    const esAhorro = nombre.includes("ahorro");
+    const esBalanceSplit = nombre.includes("balance split");
+
+    const excluir = esTransf || esAhorro || esBalanceSplit;
+
+    return {
+        incluirEnGastoBancario: !excluir,
+        incluirEnGastoReal: !excluir
+    };
+}
+
 document.querySelectorAll(".close-modal").forEach((btn) => {
     btn.addEventListener("click", () => {
         const modalId = btn.dataset.close;
@@ -209,6 +224,7 @@ async function procesarArchivo(file) {
             const economiaReal = flujoBancario
                 ? Number((flujoBancario * 1).toFixed(2))
                 : 0;
+            const flags = resolverFlagsGastoPorCategoria(categoriaNombre)
 
             return {
                 localId: `row-${Date.now()}-${index}`,
@@ -221,7 +237,9 @@ async function procesarArchivo(file) {
                 cuenta: "",
                 selected: true,
                 isEditing: false,
-                created: false
+                created: false,
+                incluirEnGastoBancario: flags.incluirEnGastoBancario,
+                incluirEnGastoReal: flags.incluirEnGastoReal,
             };
         })
         .filter(Boolean);
@@ -321,6 +339,14 @@ function renderPreview() {
           </td>
 
           <td>
+  <input type="checkbox" class="row-incluir-bancario" ${row.incluirEnGastoBancario ? "checked" : ""}>
+</td>
+
+<td>
+  <input type="checkbox" class="row-incluir-real" ${row.incluirEnGastoReal ? "checked" : ""}>
+</td>
+
+          <td>
             <div class="inline-group">
   <button type="button"
     class="edit-row-btn"
@@ -400,6 +426,13 @@ function attachRowEvents() {
 
         rowElement.querySelector(".row-cuenta")?.addEventListener("change", (e) => {
             updateRow(localId, "cuenta", e.target.value);
+        });
+        rowElement.querySelector(".row-incluir-bancario")?.addEventListener("change", (e) => {
+            updateRow(localId, "incluirEnGastoBancario", e.target.checked);
+        });
+
+        rowElement.querySelector(".row-incluir-real")?.addEventListener("change", (e) => {
+            updateRow(localId, "incluirEnGastoReal", e.target.checked);
         });
     });
 }
@@ -484,7 +517,9 @@ async function handleConfirmRow(event) {
         row.created = true;
         row.isEditing = false;
         row.selected = false;
-        renderPreview();
+        incluirEnGastoBancario: row.incluirEnGastoBancario,
+            incluirEnGastoReal: row.incluirEnGastoReal,
+                renderPreview();
     } catch (error) {
         if (errorEl) {
             errorEl.textContent = error.message || "Error al crear el gasto.";
@@ -720,14 +755,12 @@ function vaciarTabla() {
     importError.textContent = "";
     importSuccess.textContent = "";
 
-    const pendientes = importedRows.filter(row => !row.created);
-
-    if (!pendientes.length) {
+    if (!importedRows.length) {
         bulkError.textContent = "No hay filas para vaciar.";
         return;
     }
 
-    const confirmado = confirm("¿Seguro que querés vaciar toda la tabla importada?");
+    const confirmado = confirm("¿Seguro que querés vaciar toda la tabla?");
     if (!confirmado) return;
 
     importedRows = [];

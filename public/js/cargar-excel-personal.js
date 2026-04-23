@@ -98,6 +98,21 @@ editarSeleccionadosButton.addEventListener("click", editarSeleccionados);
 bloquearSeleccionadosButton.addEventListener("click", bloquearSeleccionados);
 limpiarBulkButton.addEventListener("click", limpiarBulk);
 
+function resolverFlagsGastoPorCategoria(nombreCategoria) {
+    const nombre = String(nombreCategoria || "").trim().toLowerCase();
+
+    const esTransf = nombre.includes("transf");
+    const esAhorro = nombre.includes("ahorro");
+    const esBalanceSplit = nombre.includes("balance split");
+
+    const excluir = esTransf || esAhorro || esBalanceSplit;
+
+    return {
+        incluirEnGastoBancario: !excluir,
+        incluirEnGastoReal: !excluir
+    };
+}
+
 function limpiarBulk() {
     bulkCategoria.value = "";
     bulkCuenta.value = "";
@@ -316,6 +331,7 @@ async function procesarArchivo(file) {
                 porcentajeEconomiaReal = 0;
                 economiaFinal = economiaReal ?? 0;
             }
+            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
 
             return {
                 localId: `row-${Date.now()}-${index}`,
@@ -327,6 +343,8 @@ async function procesarArchivo(file) {
                 categoria: categoriaEncontrada?._id || "",
                 categoriaNombreOriginal: categoriaNombre,
                 cuenta: "",
+                incluirEnGastoBancario: flags.incluirEnGastoBancario,
+                incluirEnGastoReal: flags.incluirEnGastoReal,
                 selected: true,
                 isEditing: false,
                 created: false
@@ -504,6 +522,14 @@ function renderPreview() {
               ${cuentasOptions(row.cuenta)}
             </select>
           </td>
+
+          <td>
+  <input type="checkbox" class="row-incluir-bancario" ${row.incluirEnGastoBancario ? "checked" : ""}>
+</td>
+
+<td>
+  <input type="checkbox" class="row-incluir-real" ${row.incluirEnGastoReal ? "checked" : ""}>
+</td>
 
           <td>
             <div class="inline-group">
@@ -958,14 +984,12 @@ function vaciarTabla() {
     importError.textContent = "";
     importSuccess.textContent = "";
 
-    const pendientes = importedRows.filter(row => !row.created);
-
-    if (!pendientes.length) {
+    if (!importedRows.length) {
         bulkError.textContent = "No hay filas para vaciar.";
         return;
     }
 
-    const confirmado = confirm("¿Seguro que querés vaciar toda la tabla importada?");
+    const confirmado = confirm("¿Seguro que querés vaciar toda la tabla?");
     if (!confirmado) return;
 
     importedRows = [];

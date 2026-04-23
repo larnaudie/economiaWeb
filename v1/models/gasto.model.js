@@ -35,6 +35,14 @@ const gastoSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
         required: true
+    },
+    incluirEnGastoBancario: {
+        type: Boolean,
+        default: true
+    },
+    incluirEnGastoReal: {
+        type: Boolean,
+        default: true
     }
 });
 

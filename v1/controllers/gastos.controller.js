@@ -30,15 +30,63 @@ export const obtenerGastoPorId = async (req, res) => {
 
 export const actualizarGasto = async (req, res) => {
     const { id } = req.params;
-    const gastoActualizado = await actualizarGastoService(id, req.body);
-    res.json({ message: `Gasto ${gastoActualizado.id} actualizado exitosamente`, ...gastoActualizado });
-}
+    const {
+        fecha,
+        descripcion,
+        flujoBancario,
+        economiaReal,
+        porcentajeEconomiaReal,
+        categoria,
+        cuenta,
+        incluirEnGastoBancario,
+        incluirEnGastoReal
+    } = req.body;
+
+    const gastoActualizado = await actualizarGastoService(
+        id,
+        req.user.id,
+        fecha,
+        descripcion,
+        flujoBancario,
+        economiaReal,
+        porcentajeEconomiaReal,
+        categoria,
+        cuenta,
+        incluirEnGastoBancario,
+        incluirEnGastoReal
+    );
+
+    res.json({ message: "Gasto actualizado", gasto: gastoActualizado });
+};
 
 export const crearGasto = async (req, res) => {
-    const nuevoGasto = await crearGastoService(req.body, req.user.id);
-    res.json({ message: "Gasto creado exitosamente", gasto: nuevoGasto });
-}
+    const {
+        fecha,
+        descripcion,
+        flujoBancario,
+        economiaReal,
+        porcentajeEconomiaReal,
+        categoria,
+        cuenta,
+        incluirEnGastoBancario,
+        incluirEnGastoReal
+    } = req.body;
 
+    const gastoCreado = await crearGastoService(
+        req.user.id,
+        fecha,
+        descripcion,
+        flujoBancario,
+        economiaReal,
+        porcentajeEconomiaReal,
+        categoria,
+        cuenta,
+        incluirEnGastoBancario,
+        incluirEnGastoReal
+    );
+
+    res.status(201).json({ message: "Gasto creado", gasto: gastoCreado });
+};
 export const eliminarGasto = async (req, res) => {
     const { id } = req.params;
     const gastoEliminado = await eliminarGastoService(id);

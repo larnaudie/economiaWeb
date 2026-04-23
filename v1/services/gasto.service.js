@@ -100,30 +100,43 @@ export const obtenerGastoPorIdService = async (id) => {
     return gasto;
 };
 
-export const actualizarGastoService = async (id, data) => {
-    const flujoBancario = Number(data.flujoBancario);
-    const porcentajeEconomiaReal = Number(data.porcentajeEconomiaReal);
-    const economiaRealIngresada = Number(data.economiaReal);
+export const actualizarGastoService = async (
+  id,
+  usuarioId,
+  fecha,
+  descripcion,
+  flujoBancario,
+  economiaReal,
+  porcentajeEconomiaReal,
+  categoria,
+  cuenta,
+  incluirEnGastoBancario,
+  incluirEnGastoReal
+) => {
+  const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
 
-    let economiaFinal = 0;
-    let porcentajeFinal = porcentajeEconomiaReal;
+  if (!gasto) {
+    throw new Error("Gasto no encontrado");
+  }
 
-    if (flujoBancario === 0) {
-        economiaFinal = Number.isNaN(economiaRealIngresada) ? 0 : economiaRealIngresada;
-        porcentajeFinal = 0;
-    } else {
-        economiaFinal = Number((flujoBancario * (porcentajeEconomiaReal / 100)).toFixed(2));
-    }
+  gasto.fecha = fecha;
+  gasto.descripcion = descripcion;
+  gasto.flujoBancario = flujoBancario;
+  gasto.economiaReal = economiaReal;
+  gasto.porcentajeEconomiaReal = porcentajeEconomiaReal;
+  gasto.categoria = categoria;
+  gasto.cuenta = cuenta;
 
-    const dataActualizada = {
-        ...data,
-        flujoBancario,
-        porcentajeEconomiaReal: porcentajeFinal,
-        economiaReal: economiaFinal
-    };
+  if (incluirEnGastoBancario !== undefined) {
+    gasto.incluirEnGastoBancario = incluirEnGastoBancario;
+  }
 
-    const gastoActualizado = await Gasto.findByIdAndUpdate(id, dataActualizada, { returnDocument: "after" });
-    return gastoActualizado;
+  if (incluirEnGastoReal !== undefined) {
+    gasto.incluirEnGastoReal = incluirEnGastoReal;
+  }
+
+  await gasto.save();
+  return gasto;
 };
 
 export const eliminarGastoService = async (id) => {
@@ -131,31 +144,32 @@ export const eliminarGastoService = async (id) => {
     return gastoEliminado;
 };
 
-export const crearGastoService = async (data, usuarioId) => {
-    const flujoBancario = Number(data.flujoBancario);
-    const porcentajeEconomiaReal = Number(data.porcentajeEconomiaReal);
-    const economiaRealIngresada = Number(data.economiaReal);
+export const crearGastoService = async (
+  usuarioId,
+  fecha,
+  descripcion,
+  flujoBancario,
+  economiaReal,
+  porcentajeEconomiaReal,
+  categoria,
+  cuenta,
+  incluirEnGastoBancario,
+  incluirEnGastoReal
+) => {
+  const nuevoGasto = await Gasto.create({
+    usuario: usuarioId,
+    fecha,
+    descripcion,
+    flujoBancario,
+    economiaReal,
+    porcentajeEconomiaReal,
+    categoria,
+    cuenta,
+    incluirEnGastoBancario: incluirEnGastoBancario ?? true,
+    incluirEnGastoReal: incluirEnGastoReal ?? true
+  });
 
-    let economiaFinal = 0;
-    let porcentajeFinal = porcentajeEconomiaReal;
-
-    if (flujoBancario === 0) {
-        economiaFinal = Number.isNaN(economiaRealIngresada) ? 0 : economiaRealIngresada;
-        porcentajeFinal = 0;
-    } else {
-        economiaFinal = Number((flujoBancario * (porcentajeEconomiaReal / 100)).toFixed(2));
-    }
-
-    const nuevoGasto = new Gasto({
-        ...data,
-        flujoBancario,
-        porcentajeEconomiaReal: porcentajeFinal,
-        economiaReal: economiaFinal,
-        usuario: usuarioId
-    });
-
-    await nuevoGasto.save();
-    return nuevoGasto;
+  return nuevoGasto;
 };
 
 export const obtenerGastosPorUsuarioService = async (usuarioId, mes, pagina, fechaDesde, fechaHasta, categoria, cuenta) => {

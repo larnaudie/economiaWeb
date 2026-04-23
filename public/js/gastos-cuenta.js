@@ -145,11 +145,11 @@ function renderResumenTotalesCuenta(gastos) {
     const flujo = Number(gasto.flujoBancario) || 0;
     const economia = Number(gasto.economiaReal) || 0;
 
-    if (flujo < 0) {
+    if (gasto.incluirEnGastoBancario === true) {
       gastoBancario += flujo;
     }
 
-    if (economia < 0) {
+    if (gasto.incluirEnGastoReal === true) {
       gastoReal += economia;
     }
 
@@ -160,11 +160,11 @@ function renderResumenTotalesCuenta(gastos) {
   body.innerHTML = `
     <tr>
       <td>Gasto Bancario:</td>
-      <td>${Math.abs(gastoBancario).toFixed(2)}</td>
+      <td>${gastoBancario.toFixed(2)}</td>
     </tr>
     <tr>
       <td>Gasto Real:</td>
-      <td>${Math.abs(gastoReal).toFixed(2)}</td>
+      <td>${gastoReal.toFixed(2)}</td>
     </tr>
     <tr>
       <td>Balance Bancario:</td>
@@ -180,14 +180,11 @@ function renderResumenTotalesCuenta(gastos) {
 function renderTotalesCategoriasCuenta(gastos) {
   const body = document.getElementById("totalesCategoriasCuentaBody");
 
-  if (!gastos.length) {
-    body.innerHTML = `<tr><td colspan="2">No hay datos</td></tr>`;
-    return;
-  }
-
   const acumulado = {};
 
   for (const g of gastos) {
+    if (g.incluirEnGastoReal !== true) continue;
+
     const nombre = g.categoria?.nombre || "Sin categoría";
     const valor = Number(g.economiaReal) || 0;
 
@@ -201,6 +198,11 @@ function renderTotalesCategoriasCuenta(gastos) {
   const filas = Object.entries(acumulado)
     .map(([nombre, total]) => ({ nombre, total }))
     .sort((a, b) => b.total - a.total);
+
+  if (!filas.length) {
+    body.innerHTML = `<tr><td colspan="2">No hay datos</td></tr>`;
+    return;
+  }
 
   body.innerHTML = filas.map(f => `
     <tr>
@@ -253,6 +255,12 @@ function bloquearSeleccionadosGastosCuenta() {
 
   renderGastosCuenta(gastosCuentaCache);
 }
+
+/*
+function esMovimientoInterno(gasto) {
+  const nombreCategoria = String(gasto?.categoria?.nombre || "").toLowerCase();
+  return nombreCategoria.includes("transf") || nombreCategoria.includes("ahorro");
+}*/
 
 function formatearFecha(fecha) {
   const d = new Date(fecha);

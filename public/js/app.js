@@ -19,24 +19,34 @@ function toggleMenu() {
 
 async function cargarBancos() {
   const token = getToken();
-  if (!token || !bancoSeleccionado) return;
+  if (!token || !bancoSeleccionado) return null;
 
   try {
-    const data = await apiRequest("/bancos", "GET", null, token);
+    const data = await apiRequest("/usuarios/me/bancos", "GET", null, token);
     const bancos = data.bancos || [];
 
     bancoSeleccionado.innerHTML = `
-      <option value="">Seleccionar banco</option>
       ${bancos.map((banco) => `
         <option value="${banco._id}">${banco.nombre}</option>
       `).join("")}
     `;
+
+    if (!bancos.length) {
+      if (cuentasContainer) {
+        cuentasContainer.innerHTML = "<p>No hay bancos creados.</p>";
+      }
+      return null;
+    }
+
+    return bancos[0]._id;
   } catch (error) {
     console.error("Error al cargar bancos:", error);
 
     if (cuentasContainer) {
       cuentasContainer.innerHTML = "<p>Error al cargar bancos.</p>";
     }
+
+    return null;
   }
 }
 
@@ -50,7 +60,7 @@ async function cargarCuentasPorBanco(bancoId) {
   }
 
   try {
-    const data = await apiRequest(`/cuentas?banco=${bancoId}`, "GET", null, token);
+    const data = await apiRequest(`/usuarios/me/cuentas?banco=${bancoId}`, "GET", null, token);
     const cuentas = data.cuentas || [];
 
     if (!cuentas.length) {
@@ -85,5 +95,10 @@ window.toggleMenu = toggleMenu;
 window.irAGastosCuenta = irAGastosCuenta;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await cargarBancos();
+  const primerBancoId = await cargarBancos();
+
+  if (primerBancoId) {
+    bancoSeleccionado.value = primerBancoId;
+    await cargarCuentasPorBanco(primerBancoId);
+  }
 });
