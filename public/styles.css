@@ -1,0 +1,387 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #222;
+}
+
+header {
+    background-color: #2f2f2f;
+    color: white;
+    padding: 20px 40px 20px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-content h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#userName {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.hamburger {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.hamburger:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+}
+
+.nav-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 1rem;
+    background-color: #2f2f2f;
+    padding: 10px;
+    min-width: 220px;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+}
+
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background-color 0.2s ease;
+}
+
+.nav-menu a:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.nav-menu a:last-child {
+    border-bottom: none;
+}
+
+.nav-menu.show {
+    display: flex;
+}
+
+main {
+    padding: 1.25rem;
+}
+
+section {
+    margin-bottom: 2rem;
+    background: white;
+    padding: 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+section h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background: white;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+#paginacion {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+button {
+    padding: 0.65rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+label {
+    font-weight: bold;
+}
+
+input,
+select {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.error {
+    color: red;
+    margin-top: 0.5rem;
+}
+
+.inline-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.inline-group button {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.95rem;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    width: min(500px, 95%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #333;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+}
+
+.modal-content form {
+    gap: 0.75rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.modal-content .inline-group {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.modal-content button[type="submit"],
+.modal-content .secondary {
+    width: 100%;
+    padding: 0.75rem;
+}
+
+.modal-content .secondary {
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.modal-content button[type="submit"] {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .hamburger {
+        display: block;
+    }
+
+    .nav-menu {
+        display: none;
+    }
+
+    .nav-menu.show {
+        display: flex;
+    }
+
+    .header-content h1 {
+        font-size: 1.8rem;
+    }
+
+    section h2 {
+        font-size: 1.6rem;
+    }
+
+    table {
+        font-size: 0.9rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .nav-menu {
+        display: flex;
+        position: static;
+        width: auto;
+        background: none;
+        flex-direction: row;
+        justify-content: flex-end;
+        min-width: unset;
+        box-shadow: none;
+    }
+
+    .nav-menu a {
+        border: none;
+        padding: 0 1rem;
+    }
+
+    .nav-menu a:hover {
+        background: none;
+        text-decoration: underline;
+    }
+
+    .hamburger {
+        display: none;
+    }
+}
+
+a {
+    padding: 10px;
+    margin: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.crear-sticky-bar {
+    background: #fff;
+    padding: 0.75rem 0;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid #ddd;
+    margin-top: 1rem;
+}
+
+textarea {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+    min-height: 100px;
+}
+
+
+.cuentas-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem 0;
+    scroll-behavior: smooth;
+}
+
+.cuenta-card {
+    min-width: 220px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex-shrink: 0;
+}
+
+.cuenta-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+}
+
+.cuenta-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.cuenta-card p {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+}

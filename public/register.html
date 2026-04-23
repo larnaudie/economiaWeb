@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro - Economía Web</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Registro</h1>
+
+  <form id="registerForm">
+    <input type="text" id="username" placeholder="Nombre de usuario" required>
+    <input type="password" id="password" placeholder="Contraseña" required>
+    <input type="password" id="confirmPassword" placeholder="Repetir contraseña" required>
+    <button type="submit">Registrarse</button>
+  </form>
+
+  <p id="message"></p>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/register.js"></script>
+</body>
+</html>

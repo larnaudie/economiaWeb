@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Categoría - Economía Web</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Crear Categoría</h1>
+            <div>
+                <a href="index.html">Volver</a>
+                <button id="logoutButton" style="margin-left: 1rem;">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <div class="crear-sticky-bar">
+            <button type="button" id="openCategoriaModal">Crear Categoría</button>
+        </div>
+    </header>
+
+    <main>
+        <section>
+            <h2>Mis Categorías</h2>
+
+            <div class="inline-group" style="margin-bottom: 1rem;">
+                <button type="button" id="eliminarCategoriasSeleccionadasBtn">Eliminar Seleccionadas</button>
+            </div>
+
+            <div id="bulkCategoriasError" class="error"></div>
+            <div id="bulkCategoriasSuccess" style="color: green; margin-top: 0.75rem;"></div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAllCategorias"></th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="categoriasList">
+                    <tr>
+                        <td colspan="3">No hay elementos registrados.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <div id="gestionError" class="error"></div>
+
+        <div id="categoriaModal" class="modal hidden">
+            <div class="modal-content">
+                <button type="button" class="close-modal" data-close="categoriaModal">&times;</button>
+                <h2>Nueva Categoría</h2>
+
+                <form id="modalCategoriaForm">
+                    <label for="modalCategoriaNombre">Nombre</label>
+                    <input type="text" id="modalCategoriaNombre" required placeholder="Ej: Supermercado">
+
+                    <div id="modalCategoriaError" class="error"></div>
+
+                    <div class="modal-actions">
+                        <button type="submit">Guardar categoría</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/crear-categoria.js"></script>
+</body>
+</html>

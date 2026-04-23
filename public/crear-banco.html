@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Banco - Economía Web</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Crear Banco</h1>
+            <div>
+                <a href="index.html">Volver</a>
+                <button id="logoutButton" style="margin-left: 1rem;">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <div class="crear-sticky-bar">
+            <button type="button" id="openBancoModal">Crear Banco</button>
+        </div>
+    </header>
+
+    <main>
+        <section>
+            <h2>Mis Bancos</h2>
+
+            <div class="inline-group" style="margin-bottom: 1rem;">
+                <button type="button" id="eliminarBancosSeleccionadosBtn">Eliminar Seleccionados</button>
+            </div>
+
+            <div id="bulkBancosError" class="error"></div>
+            <div id="bulkBancosSuccess" style="color: green; margin-top: 0.75rem;"></div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAllBancos"></th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="bancosList">
+                    <tr>
+                        <td colspan="3">No hay elementos registrados.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <div id="gestionError" class="error"></div>
+
+        <div id="bancoModal" class="modal hidden">
+            <div class="modal-content">
+                <button type="button" class="close-modal" data-close="bancoModal">&times;</button>
+                <h2>Nuevo Banco</h2>
+
+                <form id="modalBancoForm">
+                    <label for="modalBancoNombre">Nombre</label>
+                    <input type="text" id="modalBancoNombre" required placeholder="Ej: Santander">
+
+                    <div id="modalBancoError" class="error"></div>
+
+                    <div class="modal-actions">
+                        <button type="submit">Guardar banco</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/crear-banco.js"></script>
+</body>
+</html>

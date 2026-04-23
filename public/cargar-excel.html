@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargar Excel - Economía Web</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Cargar Excel / CSV</h1>
+
+            <div class="crear-sticky-bar">
+                <button type="button" id="importButton">Importar Excel Bancario</button>
+                <a href="index.html">Volver</a>
+                <button id="logoutButton">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <div class="inline-group">
+            <button type="button" id="openBancoModal">Crear Banco</button>
+            <button type="button" id="openCuentaModal">Crear Cuenta</button>
+            <button type="button" id="openCategoriaModal">Crear Categoría</button>
+        </div>
+    </header>
+
+    <main>
+        <section>
+            <h2>Importación</h2>
+            <p>
+                Importante: Esta funcionalidad esta tomando un formato específico de extracto bancario. Si tu banco no
+                exporta el excel en este formato y con este orden de columnas, es probable que no funcione
+                correctamente. Se recomienda revisar el formato de ejemplo antes de intentar importar.
+            <p>Se leerán las columnas <strong>B, D, G, I</strong> desde la <strong>fila 16</strong>.
+            </p>
+            <p>
+                B = Fecha, D = Descripción, G e I = Gasto Bancario.
+            </p>
+
+            <div id="importError" class="error"></div>
+            <div id="importSuccess" style="color: green; margin-top: 0.75rem;"></div>
+        </section>
+
+        <section>
+            <h2>Cambios por lote</h2>
+
+            <div class="crear-sticky-bar">
+
+                <div>
+                    <label for="bulkFecha">Fecha:</label>
+                    <input type="date" id="bulkFecha">
+                </div>
+
+                <div>
+                    <label for="bulkDescripcion">Descripción:</label>
+                    <input type="text" id="bulkDescripcion" placeholder="No cambiar">
+                </div>
+
+                <div>
+                    <label for="bulkFlujo">Gasto Bancario:</label>
+                    <input type="number" id="bulkFlujo" step="0.01" placeholder="No cambiar">
+                </div>
+
+                <div>
+                    <label for="bulkPorcentaje">Porcentaje Gasto Real:</label>
+                    <input type="number" id="bulkPorcentaje" min="0" max="100" step="0.01" placeholder="No cambiar">
+                </div>
+
+                <div>
+                    <label for="bulkEconomia">Gasto Real:</label>
+                    <input type="number" id="bulkEconomia" step="0.01" placeholder="No cambiar">
+                </div>
+
+                <div>
+                    <label for="bulkCategoria">Categoría:</label>
+                    <select id="bulkCategoria">
+                        <option value="">No cambiar</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="bulkCuenta">Cuenta:</label>
+                    <select id="bulkCuenta">
+                        <option value="">No cambiar</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="button" id="aplicarTodosButton">Aplicar a Todos</button>
+                </div>
+
+                <div>
+                    <button type="button" id="eliminarSeleccionadosButton">Eliminar Seleccionados</button>
+                </div>
+
+                <div>
+                    <button type="button" id="vaciarTablaButton">Vaciar tabla</button>
+                </div>
+
+            </div>
+
+            <div id="bulkError" class="error"></div>
+            <div id="bulkSuccess" style="color: green; margin-top: 0.75rem;"></div>
+        </section>
+
+        <section>
+            <h2>Previsualización de gastos</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAllRows">
+                        </th>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Flujo Bancario</th>
+                        <th>% Economía Real</th>
+                        <th>Economía Real</th>
+                        <th>Categoría</th>
+                        <th>Cuenta</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody">
+                    <tr>
+                        <td colspan="9">Todavía no hay datos importados.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <div class="crear-sticky-bar">
+                <button type="button" id="crearTodosButton">Crear Todos</button>
+            </div>
+            <div id="crearTodosError" class="error"></div>
+            <div id="crearTodosSuccess" style="color: green; margin-top: 0.75rem;"></div>
+        </section>
+    </main>
+
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cargar-excel.js"></script>
+</body>
+
+</html>
