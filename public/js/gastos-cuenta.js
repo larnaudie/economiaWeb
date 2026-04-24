@@ -136,25 +136,35 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
   return todos;
 }
 
+function esTransferencia(gasto) {
+  const nombreCategoria = String(gasto?.categoria?.nombre || "").toLowerCase();
+  return nombreCategoria.includes("transf");
+}
+
 function renderResumenTotalesCuenta(gastos) {
   let gastoBancario = 0;
   let gastoReal = 0;
+  let saldoBancario = 0;
 
   gastos.forEach(g => {
     const flujo = Number(g.flujoBancario) || 0;
     const real = Number(g.economiaReal) || 0;
+    const transferencia = esTransferencia(g);
 
-    if (g.incluirEnGastoBancario) {
+    saldoBancario += flujo;
+
+    if (g.incluirEnGastoBancario === true && flujo < 0 && !transferencia) {
       gastoBancario += flujo;
     }
 
-    if (g.incluirEnGastoReal) {
+    if (g.incluirEnGastoReal === true && real < 0 && !transferencia) {
       gastoReal += real;
     }
   });
 
   document.getElementById("gastoBancarioTotal").textContent = gastoBancario.toFixed(2);
   document.getElementById("gastoRealTotal").textContent = gastoReal.toFixed(2);
+  document.getElementById("saldoBancarioTotal").textContent = saldoBancario.toFixed(2);
 }
 
 function renderTotalesCategoriasCuenta(gastos) {
@@ -163,8 +173,6 @@ function renderTotalesCategoriasCuenta(gastos) {
   const acumulado = {};
 
   for (const g of gastos) {
-    if (g.incluirEnGastoReal !== true) continue;
-
     const nombre = g.categoria?.nombre || "Sin categoría";
     const valor = Number(g.economiaReal) || 0;
 
@@ -177,7 +185,7 @@ function renderTotalesCategoriasCuenta(gastos) {
 
   const filas = Object.entries(acumulado)
     .map(([nombre, total]) => ({ nombre, total }))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => a.total - b.total);
 
   if (!filas.length) {
     body.innerHTML = `<tr><td colspan="2">No hay datos</td></tr>`;

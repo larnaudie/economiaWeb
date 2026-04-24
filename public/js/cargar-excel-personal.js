@@ -100,20 +100,34 @@ editarSeleccionadosButton.addEventListener("click", editarSeleccionados);
 bloquearSeleccionadosButton.addEventListener("click", bloquearSeleccionados);
 limpiarBulkButton.addEventListener("click", limpiarBulk);
 
-function resolverFlagsGastoPorCategoria(nombreCategoria) {
+function resolverFlagsGastoPorCategoria(nombreCategoria, flujoBancario, economiaReal) {
     const nombre = String(nombreCategoria || "").trim().toLowerCase();
 
     const esTransf = nombre.includes("transf");
     const esAhorro = nombre.includes("ahorro");
+    const esBalanceSplit = nombre.includes("balance split");
 
-    const excluir = esTransf || esAhorro;
+    const flujo = Number(flujoBancario) || 0;
+    const real = Number(economiaReal) || 0;
+
+    let incluirEnGastoBancario = flujo !== 0;
+    let incluirEnGastoReal = real !== 0;
+
+    if (esTransf || esAhorro) {
+        incluirEnGastoBancario = false;
+        incluirEnGastoReal = false;
+    }
+
+    if (esBalanceSplit) {
+        incluirEnGastoBancario = false;
+        incluirEnGastoReal = real !== 0;
+    }
 
     return {
-        incluirEnGastoBancario: !excluir,
-        incluirEnGastoReal: !excluir
+        incluirEnGastoBancario,
+        incluirEnGastoReal
     };
 }
-
 function limpiarBulk() {
     bulkFecha.value = "";
     bulkDescripcion.value = "";
@@ -339,8 +353,13 @@ async function procesarArchivoExcelPersonal(file) {
                 economiaFinal = economiaReal ?? 0;
             }
 
-            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
+            const flags = resolverFlagsGastoPorCategoria(
+                categoriaNombre,
+                flujoBancario ?? 0,
+                economiaFinal ?? 0
+            );
 
+            /*
             const incluirEnGastoBancario =
                 Number(flujoBancario ?? 0) !== 0
                     ? flags.incluirEnGastoBancario
@@ -350,6 +369,7 @@ async function procesarArchivoExcelPersonal(file) {
                 Number(economiaFinal ?? 0) !== 0
                     ? flags.incluirEnGastoReal
                     : false;
+                    */
 
             return {
                 localId: `row-${Date.now()}-${index}`,
@@ -361,8 +381,8 @@ async function procesarArchivoExcelPersonal(file) {
                 categoria: categoriaEncontrada?._id || "",
                 categoriaNombreOriginal: categoriaNombre,
                 cuenta: "",
-                incluirEnGastoBancario,
-                incluirEnGastoReal,
+                incluirEnGastoBancario: flags.incluirEnGastoBancario,
+                incluirEnGastoReal: flags.incluirEnGastoReal,
                 selected: true,
                 isEditing: false,
                 created: false
