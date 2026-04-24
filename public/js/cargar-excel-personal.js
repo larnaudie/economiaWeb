@@ -56,7 +56,7 @@ fileInput.addEventListener("change", async (event) => {
     crearTodosSuccess.textContent = "";
 
     try {
-        await procesarArchivo(file);
+        await procesarArchivoExcelPersonal(file);
         importSuccess.textContent = `Archivo procesado. Se encontraron ${importedRows.length} filas válidas.`;
     } catch (error) {
         importError.textContent = error.message || "Error al procesar el archivo";
@@ -272,7 +272,7 @@ async function crearCategoriaSiNoExiste(nombre) {
     return existente || data.categoria || null;
 }
 
-async function procesarArchivo(file) {
+async function procesarArchivoExcelPersonal(file) {
     await Promise.all([cargarCategorias(), cargarCuentas()]);
 
     const arrayBuffer = await file.arrayBuffer();
@@ -293,19 +293,17 @@ async function procesarArchivo(file) {
 
     importedRows = rows
         .map((row, index) => {
-            const fechaRaw = row[0];
-            const descripcionRaw = row[1];
-            const flujoRaw = row[2];
-            const economiaRaw = row[3];
-            const categoriaRaw = row[4];
+            const fechaRaw = row[0];        // A
+            const descripcionRaw = row[1];  // B
+            const flujoRaw = row[2];        // C
+            const economiaRaw = row[3];     // D
+            const categoriaRaw = row[4];    // E
 
             const fecha = excelDateToISO(fechaRaw);
             const descripcion = String(descripcionRaw || "").trim();
             const flujoBancario = parseNumber(flujoRaw);
             const economiaReal = parseNumber(economiaRaw);
             const categoriaNombre = String(categoriaRaw || "").trim();
-
-            const categoriaEncontrada = buscarCategoriaPorNombre(categoriaNombre);
 
             const isEmptyRow =
                 !fecha &&
@@ -315,6 +313,9 @@ async function procesarArchivo(file) {
                 !categoriaNombre;
 
             if (isEmptyRow) return null;
+
+            const categoriaEncontrada = buscarCategoriaPorNombre(categoriaNombre);
+            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
 
             let porcentajeEconomiaReal = 0;
             let economiaFinal = economiaReal ?? 0;
@@ -331,7 +332,6 @@ async function procesarArchivo(file) {
                 porcentajeEconomiaReal = 0;
                 economiaFinal = economiaReal ?? 0;
             }
-            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
 
             return {
                 localId: `row-${Date.now()}-${index}`,
@@ -865,32 +865,48 @@ function aplicarCambiosATodos() {
     bulkError.textContent = "";
     bulkSuccess.textContent = "";
 
-    const categoria = bulkCategoria.value;
-    const cuenta = bulkCuenta.value;
-    const porcentajeRaw = bulkPorcentaje.value;
     const fecha = bulkFecha.value;
     const descripcion = bulkDescripcion.value.trim();
     const flujoRaw = bulkFlujo.value;
     const economiaRaw = bulkEconomia.value;
+    const categoria = bulkCategoria.value;
+    const cuenta = bulkCuenta.value;
+    const porcentajeRaw = bulkPorcentaje.value;
+    const incluirBancarioRaw = bulkIncluirGastoBancario.value;
+    const incluirRealRaw = bulkIncluirGastoReal.value;
 
-    const hayCategoria = categoria !== "";
-    const hayCuenta = cuenta !== "";
-    const hayPorcentaje = porcentajeRaw !== "";
     const hayFecha = fecha !== "";
     const hayDescripcion = descripcion !== "";
     const hayFlujo = flujoRaw !== "";
     const hayEconomia = economiaRaw !== "";
+    const hayCategoria = categoria !== "";
+    const hayCuenta = cuenta !== "";
+    const hayPorcentaje = porcentajeRaw !== "";
+    const hayIncluirBancario = incluirBancarioRaw !== "";
+    const hayIncluirReal = incluirRealRaw !== "";
 
     if (
-        !hayCategoria &&
-        !hayCuenta &&
-        !hayPorcentaje &&
         !hayFecha &&
         !hayDescripcion &&
         !hayFlujo &&
-        !hayEconomia
+        !hayEconomia &&
+        !hayCategoria &&
+        !hayCuenta &&
+        !hayPorcentaje &&
+        !hayIncluirBancario &&
+        !hayIncluirReal
     ) {
         bulkError.textContent = "Seleccioná al menos un valor para aplicar.";
+        return;
+    }
+
+    if (hayFlujo && Number.isNaN(Number(flujoRaw))) {
+        bulkError.textContent = "El gasto bancario debe ser válido.";
+        return;
+    }
+
+    if (hayEconomia && Number.isNaN(Number(economiaRaw))) {
+        bulkError.textContent = "El gasto real debe ser válido.";
         return;
     }
 
@@ -902,42 +918,15 @@ function aplicarCambiosATodos() {
         }
     }
 
-    if (hayFlujo) {
-        const flujo = Number(flujoRaw);
-        if (Number.isNaN(flujo)) {
-            bulkError.textContent = "El flujo bancario debe ser válido.";
-            return;
-        }
-    }
-
-    if (hayEconomia) {
-        const economia = Number(economiaRaw);
-        if (Number.isNaN(economia)) {
-            bulkError.textContent = "La economía real debe ser válida.";
-            return;
-        }
-    }
-
     let filasActualizadas = 0;
 
     importedRows.forEach((row) => {
         if (row.created || !row.selected) return;
 
-        if (hayFecha) {
-            row.fecha = fecha;
-        }
-
-        if (hayDescripcion) {
-            row.descripcion = descripcion;
-        }
-
-        if (hayCategoria) {
-            row.categoria = categoria;
-        }
-
-        if (hayCuenta) {
-            row.cuenta = cuenta;
-        }
+        if (hayFecha) row.fecha = fecha;
+        if (hayDescripcion) row.descripcion = descripcion;
+        if (hayCategoria) row.categoria = categoria;
+        if (hayCuenta) row.cuenta = cuenta;
 
         if (hayFlujo) {
             row.flujoBancario = Number(flujoRaw);
@@ -951,6 +940,14 @@ function aplicarCambiosATodos() {
             row.porcentajeEconomiaReal = Number(porcentajeRaw);
         }
 
+        if (hayIncluirBancario) {
+            row.incluirEnGastoBancario = incluirBancarioRaw === "true";
+        }
+
+        if (hayIncluirReal) {
+            row.incluirEnGastoReal = incluirRealRaw === "true";
+        }
+
         const flujo = Number(row.flujoBancario);
         const porcentaje = Number(row.porcentajeEconomiaReal);
 
@@ -960,13 +957,8 @@ function aplicarCambiosATodos() {
             if (!hayEconomia) {
                 row.economiaReal = Number(row.economiaReal) || 0;
             }
-        } else {
-            if (hayEconomia && !hayPorcentaje) {
-                // mantener economía manual ingresada
-                row.economiaReal = Number(row.economiaReal);
-            } else {
-                row.economiaReal = Number((flujo * (porcentaje / 100)).toFixed(2));
-            }
+        } else if (!hayEconomia) {
+            row.economiaReal = Number((flujo * (porcentaje / 100)).toFixed(2));
         }
 
         filasActualizadas++;

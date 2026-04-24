@@ -11,6 +11,8 @@ const crearTodosError = document.getElementById("crearTodosError");
 const crearTodosSuccess = document.getElementById("crearTodosSuccess");
 const bulkCategoria = document.getElementById("bulkCategoria");
 const bulkCuenta = document.getElementById("bulkCuenta");
+const bulkIncluirGastoBancario = document.getElementById("bulkIncluirGastoBancario");
+const bulkIncluirGastoReal = document.getElementById("bulkIncluirGastoReal");
 const bulkPorcentaje = document.getElementById("bulkPorcentaje");
 const aplicarTodosButton = document.getElementById("aplicarTodosButton");
 const bulkError = document.getElementById("bulkError");
@@ -35,21 +37,6 @@ function openModal(modal) {
 function closeModal(modal) {
     if (!modal) return;
     modal.classList.add("hidden");
-}
-
-function resolverFlagsGastoPorCategoria(nombreCategoria) {
-    const nombre = String(nombreCategoria || "").trim().toLowerCase();
-
-    const esTransf = nombre.includes("transf");
-    const esAhorro = nombre.includes("ahorro");
-    const esBalanceSplit = nombre.includes("balance split");
-
-    const excluir = esTransf || esAhorro || esBalanceSplit;
-
-    return {
-        incluirEnGastoBancario: !excluir,
-        incluirEnGastoReal: !excluir
-    };
 }
 
 document.querySelectorAll(".close-modal").forEach((btn) => {
@@ -85,7 +72,7 @@ fileInput.addEventListener("change", async (event) => {
     importSuccess.textContent = "";
 
     try {
-        await procesarArchivo(file);
+        await procesarArchivoExcelNoPersonal(file);
         renderPreview();
         importSuccess.textContent = `Archivo procesado. Se encontraron ${importedRows.length} filas válidas.`;
     } catch (error) {
@@ -181,7 +168,22 @@ async function cargarCuentas() {
     renderBulkCuentas();
 }
 
-async function procesarArchivo(file) {
+function resolverFlagsGastoPorCategoria(nombreCategoria) {
+    const nombre = String(nombreCategoria || "").trim().toLowerCase();
+
+    const esTransf = nombre.includes("transf");
+    const esAhorro = nombre.includes("ahorro");
+    const esBalanceSplit = nombre.includes("balance split");
+
+    const excluir = esTransf || esAhorro || esBalanceSplit;
+
+    return {
+        incluirEnGastoBancario: !excluir,
+        incluirEnGastoReal: !excluir
+    };
+}
+
+async function procesarArchivoExcelNoPersonal(file) {
     await Promise.all([cargarCategorias(), cargarCuentas()]);
 
     const arrayBuffer = await file.arrayBuffer();
@@ -204,10 +206,10 @@ async function procesarArchivo(file) {
 
     importedRows = sliced
         .map((row, index) => {
-            const fechaRaw = row[1];       // B
-            const descripcionRaw = row[3]; // D
-            const gRaw = row[6];           // G
-            const iRaw = row[8];           // I
+            const fechaRaw = row[1];
+            const descripcionRaw = row[3];
+            const gRaw = row[6];
+            const iRaw = row[8];
 
             const fecha = excelDateToISO(fechaRaw);
             const descripcion = String(descripcionRaw || "").trim();
@@ -222,9 +224,8 @@ async function procesarArchivo(file) {
 
             const porcentajeEconomiaReal = 100;
             const economiaReal = flujoBancario
-                ? Number((flujoBancario * 1).toFixed(2))
+                ? Number(flujoBancario.toFixed(2))
                 : 0;
-            const flags = resolverFlagsGastoPorCategoria(categoriaNombre)
 
             return {
                 localId: `row-${Date.now()}-${index}`,
@@ -235,14 +236,15 @@ async function procesarArchivo(file) {
                 economiaReal,
                 categoria: "",
                 cuenta: "",
+                incluirEnGastoBancario: true,
+                incluirEnGastoReal: true,
                 selected: true,
                 isEditing: false,
-                created: false,
-                incluirEnGastoBancario: flags.incluirEnGastoBancario,
-                incluirEnGastoReal: flags.incluirEnGastoReal,
+                created: false
             };
         })
         .filter(Boolean);
+
     renderPreview();
 }
 
@@ -509,7 +511,9 @@ async function handleConfirmRow(event) {
                 economiaReal,
                 porcentajeEconomiaReal,
                 categoria,
-                cuenta
+                cuenta,
+                incluirEnGastoBancario: row.incluirEnGastoBancario,
+                incluirEnGastoReal: row.incluirEnGastoReal
             },
             token
         );
@@ -517,9 +521,7 @@ async function handleConfirmRow(event) {
         row.created = true;
         row.isEditing = false;
         row.selected = false;
-        incluirEnGastoBancario: row.incluirEnGastoBancario,
-            incluirEnGastoReal: row.incluirEnGastoReal,
-                renderPreview();
+        renderPreview();
     } catch (error) {
         if (errorEl) {
             errorEl.textContent = error.message || "Error al crear el gasto.";
@@ -594,14 +596,17 @@ async function crearTodosLosGastos() {
                     flujoBancario: Number(row.flujoBancario),
                     economiaReal: Number(row.economiaReal),
                     porcentajeEconomiaReal: Number(row.porcentajeEconomiaReal),
-                    categoria: categoriaId,
-                    cuenta: row.cuenta
+                    categoria: row.categoria,
+                    cuenta: row.cuenta,
+                    incluirEnGastoBancario: row.incluirEnGastoBancario,
+                    incluirEnGastoReal: row.incluirEnGastoReal
                 },
                 token
             );
 
             row.created = true;
             row.isEditing = false;
+            row.selected = false;
             creados++;
         } catch (error) {
             errores++;
@@ -642,27 +647,22 @@ function aplicarCambiosATodos() {
     const categoria = bulkCategoria.value;
     const cuenta = bulkCuenta.value;
     const porcentajeRaw = bulkPorcentaje.value;
-    const fecha = bulkFecha.value;
-    const descripcion = bulkDescripcion.value.trim();
-    const flujoRaw = bulkFlujo.value;
-    const economiaRaw = bulkEconomia.value;
+
+    const incluirBancarioRaw = bulkIncluirGastoBancario.value;
+    const incluirRealRaw = bulkIncluirGastoReal.value;
 
     const hayCategoria = categoria !== "";
     const hayCuenta = cuenta !== "";
     const hayPorcentaje = porcentajeRaw !== "";
-    const hayFecha = fecha !== "";
-    const hayDescripcion = descripcion !== "";
-    const hayFlujo = flujoRaw !== "";
-    const hayEconomia = economiaRaw !== "";
+    const hayIncluirBancario = incluirBancarioRaw !== "";
+    const hayIncluirReal = incluirRealRaw !== "";
 
     if (
         !hayCategoria &&
         !hayCuenta &&
         !hayPorcentaje &&
-        !hayFecha &&
-        !hayDescripcion &&
-        !hayFlujo &&
-        !hayEconomia
+        !hayIncluirBancario &&
+        !hayIncluirReal
     ) {
         bulkError.textContent = "Seleccioná al menos un valor para aplicar.";
         return;
@@ -670,24 +670,9 @@ function aplicarCambiosATodos() {
 
     if (hayPorcentaje) {
         const porcentaje = Number(porcentajeRaw);
+
         if (Number.isNaN(porcentaje) || porcentaje < 0 || porcentaje > 100) {
             bulkError.textContent = "El porcentaje debe estar entre 0 y 100.";
-            return;
-        }
-    }
-
-    if (hayFlujo) {
-        const flujo = Number(flujoRaw);
-        if (Number.isNaN(flujo)) {
-            bulkError.textContent = "El flujo bancario debe ser válido.";
-            return;
-        }
-    }
-
-    if (hayEconomia) {
-        const economia = Number(economiaRaw);
-        if (Number.isNaN(economia)) {
-            bulkError.textContent = "La economía real debe ser válida.";
             return;
         }
     }
@@ -697,14 +682,6 @@ function aplicarCambiosATodos() {
     importedRows.forEach((row) => {
         if (row.created || !row.selected) return;
 
-        if (hayFecha) {
-            row.fecha = fecha;
-        }
-
-        if (hayDescripcion) {
-            row.descripcion = descripcion;
-        }
-
         if (hayCategoria) {
             row.categoria = categoria;
         }
@@ -713,31 +690,24 @@ function aplicarCambiosATodos() {
             row.cuenta = cuenta;
         }
 
-        if (hayFlujo) {
-            row.flujoBancario = Number(flujoRaw);
-        }
-
-        if (hayEconomia) {
-            row.economiaReal = Number(economiaRaw);
-        }
-
         if (hayPorcentaje) {
             row.porcentajeEconomiaReal = Number(porcentajeRaw);
+
+            if (Number(row.flujoBancario) === 0) {
+                row.porcentajeEconomiaReal = 0;
+            } else {
+                row.economiaReal = Number(
+                    (Number(row.flujoBancario) * (Number(porcentajeRaw) / 100)).toFixed(2)
+                );
+            }
         }
 
-        const flujo = Number(row.flujoBancario);
-        const porcentaje = Number(row.porcentajeEconomiaReal);
+        if (hayIncluirBancario) {
+            row.incluirEnGastoBancario = incluirBancarioRaw === "true";
+        }
 
-        if (flujo === 0) {
-            row.porcentajeEconomiaReal = 0;
-
-            if (!hayEconomia) {
-                row.economiaReal = Number(row.economiaReal) || 0;
-            }
-        } else {
-            if (!hayEconomia) {
-                row.economiaReal = Number((flujo * (porcentaje / 100)).toFixed(2));
-            }
+        if (hayIncluirReal) {
+            row.incluirEnGastoReal = incluirRealRaw === "true";
         }
 
         filasActualizadas++;
