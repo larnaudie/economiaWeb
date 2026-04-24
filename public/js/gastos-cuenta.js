@@ -51,6 +51,9 @@ const editarGastoCuentaError = document.getElementById("editarGastoCuentaError")
 const editarSeleccionadosGastosCuentaBtn = document.getElementById("editarSeleccionadosGastosCuentaBtn");
 const bloquearSeleccionadosGastosCuentaBtn = document.getElementById("bloquearSeleccionadosGastosCuentaBtn");
 
+const editarGastoCuentaIncluirBancario = document.getElementById("editarGastoCuentaIncluirBancario");
+const editarGastoCuentaIncluirReal = document.getElementById("editarGastoCuentaIncluirReal");
+
 let paginaActualGastosCuenta = 1;
 let totalPaginasGastosCuenta = 1;
 
@@ -134,47 +137,24 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
 }
 
 function renderResumenTotalesCuenta(gastos) {
-  const body = document.getElementById("resumenTotalesCuentaBody");
-
   let gastoBancario = 0;
   let gastoReal = 0;
-  let balanceBancario = 0;
-  let balanceReal = 0;
 
-  for (const gasto of gastos) {
-    const flujo = Number(gasto.flujoBancario) || 0;
-    const economia = Number(gasto.economiaReal) || 0;
+  gastos.forEach(g => {
+    const flujo = Number(g.flujoBancario) || 0;
+    const real = Number(g.economiaReal) || 0;
 
-    if (gasto.incluirEnGastoBancario === true) {
+    if (g.incluirEnGastoBancario) {
       gastoBancario += flujo;
     }
 
-    if (gasto.incluirEnGastoReal === true) {
-      gastoReal += economia;
+    if (g.incluirEnGastoReal) {
+      gastoReal += real;
     }
+  });
 
-    balanceBancario += flujo;
-    balanceReal += economia;
-  }
-
-  body.innerHTML = `
-    <tr>
-      <td>Gasto Bancario:</td>
-      <td>${gastoBancario.toFixed(2)}</td>
-    </tr>
-    <tr>
-      <td>Gasto Real:</td>
-      <td>${gastoReal.toFixed(2)}</td>
-    </tr>
-    <tr>
-      <td>Balance Bancario:</td>
-      <td>${balanceBancario.toFixed(2)}</td>
-    </tr>
-    <tr>
-      <td>Balance Real:</td>
-      <td>${balanceReal.toFixed(2)}</td>
-    </tr>
-  `;
+  document.getElementById("gastoBancarioTotal").textContent = gastoBancario.toFixed(2);
+  document.getElementById("gastoRealTotal").textContent = gastoReal.toFixed(2);
 }
 
 function renderTotalesCategoriasCuenta(gastos) {
@@ -274,7 +254,7 @@ function renderGastosCuenta(gastos) {
   const body = document.getElementById("gastosCuentaBody");
 
   if (!gastos || gastos.length === 0) {
-    body.innerHTML = `<tr><td colspan="8">No hay gastos</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">No hay gastos</td></tr>`;
     return;
   }
 
@@ -314,6 +294,24 @@ function renderGastosCuenta(gastos) {
           <select class="row-categoria">
             ${buildCategoriaOptions(g.categoria?._id || g.categoria || "")}
           </select>
+        </td>
+
+        <td>
+          <input 
+  type="checkbox" 
+  class="row-incluir-bancario" 
+  ${g.incluirEnGastoBancario ? "checked" : ""}
+  ${Number(g.flujoBancario) === 0 ? "disabled" : ""}
+>
+        </td>
+
+        <td>
+          <input 
+  type="checkbox" 
+  class="row-incluir-real" 
+  ${g.incluirEnGastoReal ? "checked" : ""}
+  ${Number(g.economiaReal) === 0 ? "disabled" : ""}
+>
         </td>
 
         <td>
@@ -410,93 +408,74 @@ async function cargarGastosCuenta() {
 }
 
 function attachGastosCuentaEvents() {
-  document.querySelectorAll(".gasto-cuenta-checkbox").forEach((checkbox) => {
-    checkbox.addEventListener("change", (e) => {
-      const id = e.target.dataset.id;
-      const gasto = gastosCuentaCache.find(g => g._id === id);
-      if (gasto) gasto.selected = e.target.checked;
-      actualizarEstadoSelectAllGastosCuenta();
-    });
-  });
+  const rows = document.querySelectorAll("#gastosCuentaBody tr");
 
-  document.querySelectorAll(".edit-row-btn").forEach((button) => {
-    button.addEventListener("click", (e) => {
-      const id = e.target.dataset.id;
-      const gasto = gastosCuentaCache.find(g => g._id === id);
-      if (!gasto) return;
-
-      gasto.isEditing = !gasto.isEditing;
-      renderGastosCuenta(gastosCuentaCache);
-    });
-  });
-
-  document.querySelectorAll(".save-row-btn").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      await guardarFilaGastoCuenta(id);
-    });
-  });
-
-  document.querySelectorAll(".delete-row-btn").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-      await eliminarGastoCuenta(id);
-    });
-  });
-
-  document.querySelectorAll("#gastosCuentaBody tr").forEach((rowElement) => {
-    const id = rowElement.dataset.id;
+  rows.forEach(row => {
+    const id = row.dataset.id;
     const gasto = gastosCuentaCache.find(g => g._id === id);
+
     if (!gasto) return;
 
-    rowElement.querySelector(".row-fecha")?.addEventListener("input", (e) => {
-      gasto.fecha = e.target.value;
-    });
-
-    rowElement.querySelector(".row-descripcion")?.addEventListener("input", (e) => {
+    row.querySelector(".row-descripcion")?.addEventListener("input", e => {
       gasto.descripcion = e.target.value;
     });
 
-    rowElement.querySelector(".row-flujo")?.addEventListener("input", (e) => {
+    row.querySelector(".row-flujo")?.addEventListener("input", e => {
       gasto.flujoBancario = Number(e.target.value);
 
       if (Number(gasto.flujoBancario) === 0) {
-        gasto.porcentajeEconomiaReal = 0;
-      } else {
-        gasto.economiaReal = Number(
-          (Number(gasto.flujoBancario) * (Number(gasto.porcentajeEconomiaReal) / 100)).toFixed(2)
-        );
+        gasto.incluirEnGastoBancario = false;
       }
 
-      renderGastosCuenta(gastosCuentaCache);
+      renderResumenTotalesCuenta(gastosCuentaCache);
     });
 
-    rowElement.querySelector(".row-porcentaje")?.addEventListener("input", (e) => {
-      if (Number(gasto.flujoBancario) === 0) {
-        gasto.porcentajeEconomiaReal = 0;
-        return;
-      }
-
+    row.querySelector(".row-porcentaje")?.addEventListener("input", e => {
       gasto.porcentajeEconomiaReal = Number(e.target.value);
-      gasto.economiaReal = Number(
-        (Number(gasto.flujoBancario) * (Number(gasto.porcentajeEconomiaReal) / 100)).toFixed(2)
-      );
-
-      const economiaInput = rowElement.querySelector(".row-economia");
-      if (economiaInput) {
-        economiaInput.value = gasto.economiaReal;
-      }
     });
 
-    rowElement.querySelector(".row-economia")?.addEventListener("input", (e) => {
-      if (Number(gasto.flujoBancario) === 0) {
-        gasto.economiaReal = Number(e.target.value) || 0;
-        gasto.porcentajeEconomiaReal = 0;
+    row.querySelector(".row-economia")?.addEventListener("input", e => {
+      gasto.economiaReal = Number(e.target.value);
+
+      if (Number(gasto.economiaReal) === 0) {
+        gasto.incluirEnGastoReal = false;
       }
+
+      renderResumenTotalesCuenta(gastosCuentaCache);
     });
 
-    rowElement.querySelector(".row-categoria")?.addEventListener("change", (e) => {
+    row.querySelector(".row-categoria")?.addEventListener("change", e => {
       gasto.categoria = e.target.value;
+    });
+
+    row.querySelector(".row-incluir-bancario")?.addEventListener("change", e => {
+      gasto.incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
+        ? e.target.checked
+        : false;
+
+      const gastoEnTodos = gastosCuentaTodos.find(g => g._id === id);
+      if (gastoEnTodos) {
+        gastoEnTodos.incluirEnGastoBancario = gasto.incluirEnGastoBancario;
+      }
+
+      renderResumenTotalesCuenta(gastosCuentaTodos);
+    });
+
+    row.querySelector(".row-incluir-real")?.addEventListener("change", e => {
+      gasto.incluirEnGastoReal = Number(gasto.economiaReal) !== 0
+        ? e.target.checked
+        : false;
+
+      const gastoEnTodos = gastosCuentaTodos.find(g => g._id === id);
+      if (gastoEnTodos) {
+        gastoEnTodos.incluirEnGastoReal = gasto.incluirEnGastoReal;
+      }
+
+      renderResumenTotalesCuenta(gastosCuentaTodos);
+    });
+
+    row.querySelector(".save-row-btn")?.addEventListener("click", () => {
+      guardarFilaGastoCuenta(id);
     });
   });
 }
@@ -508,20 +487,13 @@ async function guardarFilaGastoCuenta(id) {
   const gasto = gastosCuentaCache.find(g => g._id === id);
   if (!gasto) return;
 
-  if (!gasto.fecha) {
-    bulkGastosCuentaError.textContent = "La fecha es obligatoria.";
-    return;
-  }
+  const incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
+    ? gasto.incluirEnGastoBancario
+    : false;
 
-  if (!gasto.descripcion || gasto.descripcion.trim().length < 5) {
-    bulkGastosCuentaError.textContent = "La descripción debe tener al menos 5 caracteres.";
-    return;
-  }
-
-  if (!gasto.categoria) {
-    bulkGastosCuentaError.textContent = "Seleccioná una categoría.";
-    return;
-  }
+  const incluirEnGastoReal = Number(gasto.economiaReal) !== 0
+    ? gasto.incluirEnGastoReal
+    : false;
 
   try {
     await apiRequest(
@@ -529,23 +501,24 @@ async function guardarFilaGastoCuenta(id) {
       "PATCH",
       {
         fecha: gasto.fecha,
-        descripcion: gasto.descripcion.trim(),
+        descripcion: String(gasto.descripcion || "").trim(),
         flujoBancario: Number(gasto.flujoBancario),
         porcentajeEconomiaReal: Number(gasto.porcentajeEconomiaReal),
         economiaReal: Number(gasto.economiaReal),
         categoria: gasto.categoria?._id || gasto.categoria,
-        cuenta: cuentaId
+        cuenta: cuentaId,
+        incluirEnGastoBancario,
+        incluirEnGastoReal
       },
       token
     );
 
-    gasto.isEditing = false;
-    bulkGastosCuentaError.textContent = "";
-    bulkGastosCuentaSuccess.textContent = "Gasto actualizado correctamente.";
-    renderGastosCuenta(gastosCuentaCache);
+    await cargarGastosCuenta();
     await cargarResumenYTotalesCuenta();
+
+    bulkGastosCuentaSuccess.textContent = "Gasto actualizado correctamente.";
   } catch (error) {
-    bulkGastosCuentaError.textContent = error.message || "Error al guardar el gasto.";
+    bulkGastosCuentaError.textContent = error.message || "Error al actualizar gasto.";
   }
 }
 

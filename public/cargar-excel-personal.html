@@ -48,6 +48,23 @@
             <div class="inline-group">
 
                 <div>
+                    <button type="button" id="aplicarTodosButton">Aplicar a Todos</button>
+                </div>
+
+                <div>
+                    <button type="button" id="eliminarSeleccionadosButton">Eliminar Seleccionados</button>
+                </div>
+
+                <div>
+                    <button type="button" id="vaciarTablaButton">Vaciar tabla</button>
+                </div>
+
+                <button type="button" id="editarSeleccionadosButton">Editar Seleccionados</button>
+                <button type="button" id="bloquearSeleccionadosButton">Bloquear Seleccionados</button>
+                <button type="button" id="limpiarBulkButton">Limpiar cambios por lote</button>
+            </div>
+            <div class="inline-group">
+                <div>
                     <label for="bulkFecha">Fecha:</label>
                     <input type="date" id="bulkFecha">
                 </div>
@@ -87,16 +104,23 @@
                 </div>
 
                 <div>
-                    <button type="button" id="aplicarTodosButton">Aplicar a Todos</button>
+                    <label for="bulkIncluirGastoBancario">Contar en Gasto Bancario:</label>
+                    <select id="bulkIncluirGastoBancario">
+                        <option value="">No cambiar</option>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
                 </div>
 
                 <div>
-                    <button type="button" id="eliminarSeleccionadosButton">Eliminar Seleccionados</button>
+                    <label for="bulkIncluirGastoReal">Contar en Gasto Real:</label>
+                    <select id="bulkIncluirGastoReal">
+                        <option value="">No cambiar</option>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
                 </div>
 
-                <div>
-                    <button type="button" id="vaciarTablaButton">Vaciar tabla</button>
-                </div>
             </div>
 
             <div id="bulkError" class="error"></div>
@@ -135,10 +159,6 @@
 
         <div class="inline-group">
             <button type="button" id="crearTodosButton">Crear Todos</button>
-            <button type="button" id="eliminarSeleccionadosButton">Eliminar Seleccionados</button>
-            <button type="button" id="editarSeleccionadosButton">Editar Seleccionados</button>
-            <button type="button" id="bloquearSeleccionadosButton">Bloquear Seleccionados</button>
-            <button type="button" id="limpiarBulkButton">Limpiar cambios por lote</button>
         </div>
         <div id="crearTodosError" class="error"></div>
         <div id="crearTodosSuccess" style="color: green; margin-top: 0.75rem;"></div>

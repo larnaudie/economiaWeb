@@ -146,19 +146,11 @@
                 <tbody id="resumenTotalesCuentaBody">
                     <tr>
                         <td>Gasto Bancario:</td>
-                        <td>0.00</td>
+                        <td id="gastoBancarioTotal">0.00</td>
                     </tr>
                     <tr>
                         <td>Gasto Real:</td>
-                        <td>0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Balance Bancario:</td>
-                        <td>0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Balance Real:</td>
-                        <td>0.00</td>
+                        <td id="gastoRealTotal">0.00</td>
                     </tr>
                 </tbody>
             </table>
@@ -170,21 +162,21 @@
             <table>
                 <thead>
                     <tr>
-                        <th>
-                            <input type="checkbox" id="selectAllGastosCuenta">
-                        </th>
+                        <th><input type="checkbox" id="selectAllGastosCuenta"></th>
                         <th>Fecha</th>
                         <th>Descripción</th>
                         <th>Gasto Bancario</th>
                         <th>% Gasto Real</th>
                         <th>Gasto Real</th>
                         <th>Categoría</th>
+                        <th>Incluir Bancario</th>
+                        <th>Incluir Real</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="gastosCuentaBody">
                     <tr>
-                        <td colspan="8">Cargando...</td>
+                        <td colspan="10">Cargando...</td>
                     </tr>
                 </tbody>
             </table>

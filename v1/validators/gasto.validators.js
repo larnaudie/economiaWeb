@@ -8,16 +8,16 @@ export const gastoSchema = Joi.object({
             "any.required": "La fecha es obligatoria"
         }),
     descripcion: Joi.string()
-    .required()
-    .min(2)
-    .max(500)
-    .trim()
-    .messages({
-        "string.empty": "La descripción es obligatoria",
-        "string.min": "La descripción debe tener al menos 2 caracteres",
-        "string.max": "La descripción no puede exceder 500 caracteres",
-        "any.required": "La descripción es obligatoria"
-    }),
+        .required()
+        .min(2)
+        .max(500)
+        .trim()
+        .messages({
+            "string.empty": "La descripción es obligatoria",
+            "string.min": "La descripción debe tener al menos 2 caracteres",
+            "string.max": "La descripción no puede exceder 500 caracteres",
+            "any.required": "La descripción es obligatoria"
+        }),
     flujoBancario: Joi.number()
         .required()
         .messages({
@@ -53,5 +53,7 @@ export const gastoSchema = Joi.object({
         .messages({
             "string.pattern.base": "La cuenta debe ser un ObjectId válido",
             "any.required": "La cuenta es obligatoria"
-        })
+        }),
+    incluirEnGastoBancario: Joi.boolean().optional(),
+    incluirEnGastoReal: Joi.boolean().optional()
 });

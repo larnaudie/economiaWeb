@@ -32,6 +32,8 @@ const bulkDescripcion = document.getElementById("bulkDescripcion");
 const bulkFlujo = document.getElementById("bulkFlujo");
 const bulkEconomia = document.getElementById("bulkEconomia");
 const vaciarTablaButton = document.getElementById("vaciarTablaButton");
+const bulkIncluirGastoBancario = document.getElementById("bulkIncluirGastoBancario");
+const bulkIncluirGastoReal = document.getElementById("bulkIncluirGastoReal");
 
 let categoriasCache = [];
 let cuentasCache = [];
@@ -103,9 +105,8 @@ function resolverFlagsGastoPorCategoria(nombreCategoria) {
 
     const esTransf = nombre.includes("transf");
     const esAhorro = nombre.includes("ahorro");
-    const esBalanceSplit = nombre.includes("balance split");
 
-    const excluir = esTransf || esAhorro || esBalanceSplit;
+    const excluir = esTransf || esAhorro;
 
     return {
         incluirEnGastoBancario: !excluir,
@@ -114,9 +115,15 @@ function resolverFlagsGastoPorCategoria(nombreCategoria) {
 }
 
 function limpiarBulk() {
+    bulkFecha.value = "";
+    bulkDescripcion.value = "";
+    bulkFlujo.value = "";
+    bulkEconomia.value = "";
     bulkCategoria.value = "";
     bulkCuenta.value = "";
     bulkPorcentaje.value = "";
+    bulkIncluirGastoBancario.value = "";
+    bulkIncluirGastoReal.value = "";
 
     bulkError.textContent = "";
     bulkSuccess.textContent = "Se limpiaron los cambios por lote.";
@@ -293,11 +300,11 @@ async function procesarArchivoExcelPersonal(file) {
 
     importedRows = rows
         .map((row, index) => {
-            const fechaRaw = row[0];        // A
-            const descripcionRaw = row[1];  // B
-            const flujoRaw = row[2];        // C
-            const economiaRaw = row[3];     // D
-            const categoriaRaw = row[4];    // E
+            const fechaRaw = row[0];
+            const descripcionRaw = row[1];
+            const flujoRaw = row[2];
+            const economiaRaw = row[3];
+            const categoriaRaw = row[4];
 
             const fecha = excelDateToISO(fechaRaw);
             const descripcion = String(descripcionRaw || "").trim();
@@ -315,7 +322,6 @@ async function procesarArchivoExcelPersonal(file) {
             if (isEmptyRow) return null;
 
             const categoriaEncontrada = buscarCategoriaPorNombre(categoriaNombre);
-            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
 
             let porcentajeEconomiaReal = 0;
             let economiaFinal = economiaReal ?? 0;
@@ -333,6 +339,18 @@ async function procesarArchivoExcelPersonal(file) {
                 economiaFinal = economiaReal ?? 0;
             }
 
+            const flags = resolverFlagsGastoPorCategoria(categoriaNombre);
+
+            const incluirEnGastoBancario =
+                Number(flujoBancario ?? 0) !== 0
+                    ? flags.incluirEnGastoBancario
+                    : false;
+
+            const incluirEnGastoReal =
+                Number(economiaFinal ?? 0) !== 0
+                    ? flags.incluirEnGastoReal
+                    : false;
+
             return {
                 localId: `row-${Date.now()}-${index}`,
                 fecha,
@@ -343,8 +361,8 @@ async function procesarArchivoExcelPersonal(file) {
                 categoria: categoriaEncontrada?._id || "",
                 categoriaNombreOriginal: categoriaNombre,
                 cuenta: "",
-                incluirEnGastoBancario: flags.incluirEnGastoBancario,
-                incluirEnGastoReal: flags.incluirEnGastoReal,
+                incluirEnGastoBancario,
+                incluirEnGastoReal,
                 selected: true,
                 isEditing: false,
                 created: false
@@ -462,6 +480,7 @@ function cuentasOptions(selectedValue = "") {
 
     return options;
 }
+
 function renderPreview() {
     if (!importedRows.length) {
         previewBody.innerHTML = `
@@ -640,6 +659,14 @@ function attachRowEvents() {
         rowElement.querySelector(".row-cuenta")?.addEventListener("change", (e) => {
             updateRow(localId, "cuenta", e.target.value);
         });
+
+        rowElement.querySelector(".row-incluir-bancario")?.addEventListener("change", (e) => {
+            updateRow(localId, "incluirEnGastoBancario", e.target.checked);
+        });
+
+        rowElement.querySelector(".row-incluir-real")?.addEventListener("change", (e) => {
+            updateRow(localId, "incluirEnGastoReal", e.target.checked);
+        });
     });
 }
 
@@ -698,7 +725,7 @@ function validarFilaParaCrear(row) {
     const cuenta = row.cuenta;
 
     if (!fecha) return "La fecha es obligatoria.";
-    if (!descripcion || descripcion.length < 5) return "La descripción debe tener al menos 5 caracteres.";
+    if (!descripcion || descripcion.length < 2) return "La descripción debe tener al menos 2 caracteres.";
     if (descripcion.length > 500) return "La descripción no puede tener más de 500 caracteres.";
     if (Number.isNaN(flujoBancario)) return "El flujo bancario debe ser válido.";
     if (Number.isNaN(porcentajeEconomiaReal) || porcentajeEconomiaReal < 0 || porcentajeEconomiaReal > 100) {
@@ -749,7 +776,9 @@ async function handleConfirmRow(event) {
                 economiaReal: Number(row.economiaReal),
                 porcentajeEconomiaReal: Number(row.porcentajeEconomiaReal),
                 categoria: categoriaId,
-                cuenta: row.cuenta
+                cuenta: row.cuenta,
+                incluirEnGastoBancario: row.incluirEnGastoBancario,
+                incluirEnGastoReal: row.incluirEnGastoReal
             },
             token
         );
@@ -820,7 +849,9 @@ async function crearTodosLosGastos() {
                     economiaReal: Number(row.economiaReal),
                     porcentajeEconomiaReal: Number(row.porcentajeEconomiaReal),
                     categoria: categoriaId,
-                    cuenta: row.cuenta
+                    cuenta: row.cuenta,
+                    incluirEnGastoBancario: row.incluirEnGastoBancario,
+                    incluirEnGastoReal: row.incluirEnGastoReal
                 },
                 token
             );
@@ -1044,6 +1075,9 @@ function eliminarSeleccionados() {
         bulkError.textContent = "No hay filas seleccionadas para eliminar.";
         return;
     }
+
+    const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionados.length} fila(s) seleccionada(s)?`);
+    if (!confirmado) return;
 
     importedRows = importedRows.filter((row) => row.created || !row.selected);
     renderPreview();

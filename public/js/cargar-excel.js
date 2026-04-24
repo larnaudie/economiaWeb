@@ -173,9 +173,8 @@ function resolverFlagsGastoPorCategoria(nombreCategoria) {
 
     const esTransf = nombre.includes("transf");
     const esAhorro = nombre.includes("ahorro");
-    const esBalanceSplit = nombre.includes("balance split");
 
-    const excluir = esTransf || esAhorro || esBalanceSplit;
+    const excluir = esTransf || esAhorro;
 
     return {
         incluirEnGastoBancario: !excluir,
@@ -548,7 +547,7 @@ function validarFilaParaCrear(row) {
     const cuenta = row.cuenta;
 
     if (!fecha) return "La fecha es obligatoria.";
-    if (!descripcion || descripcion.length < 5) return "La descripción debe tener al menos 5 caracteres.";
+    if (!descripcion || descripcion.length < 2) return "La descripción debe tener al menos 2 caracteres.";
     if (descripcion.length > 500) return "La descripción no puede tener más de 500 caracteres.";
     if (Number.isNaN(flujoBancario)) return "El flujo bancario debe ser válido.";
     if (Number.isNaN(porcentajeEconomiaReal) || porcentajeEconomiaReal < 0 || porcentajeEconomiaReal > 100) {
