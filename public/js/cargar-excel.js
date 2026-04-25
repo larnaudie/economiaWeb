@@ -235,8 +235,8 @@ async function procesarArchivoExcelNoPersonal(file) {
                 economiaReal,
                 categoria: "",
                 cuenta: "",
-                incluirEnGastoBancario: true,
-                incluirEnGastoReal: true,
+                incluirEnGastoBancario: Number(flujoBancario ?? 0) !== 0,
+                incluirEnGastoReal: Number(economiaReal ?? 0) !== 0,
                 selected: true,
                 isEditing: false,
                 created: false
@@ -279,7 +279,7 @@ function renderPreview() {
     if (!importedRows.length) {
         previewBody.innerHTML = `
       <tr>
-        <td colspan="9">Todavía no hay datos importados.</td>
+        <td colspan="11">Todavía no hay datos importados.</td>
       </tr>
     `;
         return;
@@ -500,6 +500,14 @@ async function handleConfirmRow(event) {
     try {
         const token = getToken();
 
+        const incluirEnGastoBancario = Number(row.flujoBancario) !== 0
+            ? row.incluirEnGastoBancario
+            : false;
+
+        const incluirEnGastoReal = Number(row.economiaReal) !== 0
+            ? row.incluirEnGastoReal
+            : false;
+
         await apiRequest(
             "/gastos",
             "POST",
@@ -511,8 +519,8 @@ async function handleConfirmRow(event) {
                 porcentajeEconomiaReal,
                 categoria,
                 cuenta,
-                incluirEnGastoBancario: row.incluirEnGastoBancario,
-                incluirEnGastoReal: row.incluirEnGastoReal
+                incluirEnGastoBancario,
+                incluirEnGastoReal
             },
             token
         );
@@ -585,6 +593,14 @@ async function crearTodosLosGastos() {
             continue;
         }
 
+        const incluirEnGastoBancario = Number(row.flujoBancario) !== 0
+            ? row.incluirEnGastoBancario
+            : false;
+
+        const incluirEnGastoReal = Number(row.economiaReal) !== 0
+            ? row.incluirEnGastoReal
+            : false;
+
         try {
             await apiRequest(
                 "/gastos",
@@ -597,8 +613,8 @@ async function crearTodosLosGastos() {
                     porcentajeEconomiaReal: Number(row.porcentajeEconomiaReal),
                     categoria: row.categoria,
                     cuenta: row.cuenta,
-                    incluirEnGastoBancario: row.incluirEnGastoBancario,
-                    incluirEnGastoReal: row.incluirEnGastoReal
+                    incluirEnGastoBancario,
+                    incluirEnGastoReal
                 },
                 token
             );
@@ -707,6 +723,14 @@ function aplicarCambiosATodos() {
 
         if (hayIncluirReal) {
             row.incluirEnGastoReal = incluirRealRaw === "true";
+        }
+
+        if (Number(row.flujoBancario) === 0) {
+            row.incluirEnGastoBancario = false;
+        }
+
+        if (Number(row.economiaReal) === 0) {
+            row.incluirEnGastoReal = false;
         }
 
         filasActualizadas++;

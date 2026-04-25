@@ -505,7 +505,7 @@ function renderPreview() {
     if (!importedRows.length) {
         previewBody.innerHTML = `
       <tr>
-        <td colspan="9">Todavía no hay datos importados.</td>
+        <td colspan="11">Todavía no hay datos importados.</td>
       </tr>
     `;
         return;

@@ -24,10 +24,6 @@ const bulkCuentasSuccess = document.getElementById("bulkCuentasSuccess");
 
 // Bulk gastos
 const selectAllGastos = document.getElementById("selectAllGastos");
-//const bulkGastoCategoria = document.getElementById("bulkGastoCategoria");
-//const bulkGastoCuenta = document.getElementById("bulkGastoCuenta");
-//const bulkGastoPorcentaje = document.getElementById("bulkGastoPorcentaje");
-//const aplicarBulkGastosBtn = document.getElementById("aplicarBulkGastosBtn");
 const eliminarGastosSeleccionadosBtn = document.getElementById("eliminarGastosSeleccionadosBtn");
 const bulkGastosError = document.getElementById("bulkGastosError");
 const bulkGastosSuccess = document.getElementById("bulkGastosSuccess");
@@ -104,6 +100,9 @@ const filtroCuentaGastos = document.getElementById("filtroCuentaGastos");
 
 const editarSeleccionadosGastosBtn = document.getElementById("editarSeleccionadosGastosBtn");
 const bloquearSeleccionadosGastosBtn = document.getElementById("bloquearSeleccionadosGastosBtn");
+
+const bulkGastoIncluirBancario = document.getElementById("bulkGastoIncluirBancario");
+const bulkGastoIncluirReal = document.getElementById("bulkGastoIncluirReal");
 
 
 let paginaGastosActual = 1;
@@ -496,6 +495,30 @@ function attachGastoEvents() {
       const gasto = gastosCache.find(g => g._id === id);
       if (gasto) gasto.selected = e.target.checked;
       actualizarEstadoSelectAll(gastosCache, selectAllGastos);
+    });
+  });
+
+  document.querySelectorAll(".gasto-incluir-bancario").forEach((checkbox) => {
+    checkbox.addEventListener("change", (e) => {
+      const id = e.target.dataset.id;
+      const gasto = gastosCache.find(g => g._id === id);
+      if (!gasto) return;
+
+      gasto.incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
+        ? e.target.checked
+        : false;
+    });
+  });
+
+  document.querySelectorAll(".gasto-incluir-real").forEach((checkbox) => {
+    checkbox.addEventListener("change", (e) => {
+      const id = e.target.dataset.id;
+      const gasto = gastosCache.find(g => g._id === id);
+      if (!gasto) return;
+
+      gasto.incluirEnGastoReal = Number(gasto.economiaReal) !== 0
+        ? e.target.checked
+        : false;
     });
   });
 }
@@ -1183,6 +1206,7 @@ function renderGastosPaginados() {
           ${gasto.selected ? "checked" : ""}
         >
       </td>
+
       <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
       <td>${gasto.descripcion || "N/A"}</td>
       <td>${gasto.cuenta?.nombre || "N/A"}</td>
@@ -1190,6 +1214,27 @@ function renderGastosPaginados() {
       <td>${gasto.flujoBancario ?? "N/A"}</td>
       <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
       <td>${gasto.economiaReal ?? "N/A"}</td>
+
+      <td>
+        <input 
+          type="checkbox" 
+          class="gasto-incluir-bancario" 
+          data-id="${gasto._id}"
+          ${gasto.incluirEnGastoBancario ? "checked" : ""}
+          ${Number(gasto.flujoBancario) === 0 ? "disabled" : ""}
+        >
+      </td>
+
+      <td>
+        <input 
+          type="checkbox" 
+          class="gasto-incluir-real" 
+          data-id="${gasto._id}"
+          ${gasto.incluirEnGastoReal ? "checked" : ""}
+          ${Number(gasto.economiaReal) === 0 ? "disabled" : ""}
+        >
+      </td>
+
       <td>
         <button type="button" onclick="editarGasto('${gasto._id}')">Editar</button>
         <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
@@ -1369,7 +1414,9 @@ modalGastoForm.addEventListener("submit", async (e) => {
         economiaReal,
         porcentajeEconomiaReal,
         categoria,
-        cuenta
+        cuenta,
+        incluirEnGastoBancario: Number(flujoBancario) !== 0,
+        incluirEnGastoReal: Number(economiaReal) !== 0
       },
       authToken
     );
@@ -1437,24 +1484,7 @@ selectAllCuentas.addEventListener("change", (e) => {
 
 selectAllGastos.addEventListener("change", (e) => {
   toggleSelectAll(gastosCache, e.target.checked);
-  renderList("gastosList", gastosCache, gasto => `
-    <tr>
-      <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
-      <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
-      <td>${gasto.descripcion || "N/A"}</td>
-      <td>${gasto.cuenta?.nombre || "N/A"}</td>
-      <td>${gasto.categoria?.nombre || "N/A"}</td>
-      <td>${gasto.flujoBancario ?? "N/A"}</td>
-      <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
-      <td>${gasto.economiaReal ?? "N/A"}</td>
-      <td>
-        <button type="button" onclick="editarGasto('${gasto._id}')">Editar</button>
-        <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
-      </td>
-    </tr>
-  `);
-  attachGastoEvents();
-  actualizarEstadoSelectAll(gastosCache, selectAllGastos);
+  renderGastosPaginados();
 });
 
 // Listeners bulk
@@ -1595,10 +1625,12 @@ editarGastoForm.addEventListener("submit", async (e) => {
         fecha,
         descripcion,
         flujoBancario,
-        economiaReal,
         porcentajeEconomiaReal,
+        economiaReal,
         categoria,
-        cuenta
+        cuenta,
+        incluirEnGastoBancario: Number(flujoBancario) !== 0,
+        incluirEnGastoReal: Number(economiaReal) !== 0
       },
       authToken
     );
