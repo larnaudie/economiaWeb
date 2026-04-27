@@ -16,13 +16,30 @@ export const obtenerCuentaPorIdService = async (id) => {
     return cuenta;
 }
 
-export const actualizarCuentaService = async (id, data) => {
-    const cuentaActualizada = await Cuenta.findByIdAndUpdate(id, data, { returnDocument: "after" }).populate("banco");
+export const actualizarCuentaService = async (id, usuarioId, data) => {
+    const cuentaActualizada = await Cuenta.findOneAndUpdate(
+        { _id: id, usuario: usuarioId },
+        data,
+        { returnDocument: "after" }
+    ).populate("banco");
+
+    if (!cuentaActualizada) {
+        throw new Error("Cuenta no encontrada");
+    }
+
     return cuentaActualizada;
 }
 
-export const eliminarCuentaService = async (id) => {
-    const cuentaEliminada = await Cuenta.findByIdAndDelete(id);
+export const eliminarCuentaService = async (id, usuarioId) => {
+    const cuentaEliminada = await Cuenta.findOneAndDelete({
+        _id: id,
+        usuario: usuarioId
+    });
+
+    if (!cuentaEliminada) {
+        throw new Error("Cuenta no encontrada");
+    }
+
     return cuentaEliminada;
 }
 

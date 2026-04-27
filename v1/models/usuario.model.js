@@ -13,33 +13,8 @@ const usuarioSchema = new mongoose.Schema({
     email: {
         type: String,
         unique: true,
-        sparse: true 
-    },
-    bancos: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Banco"
-        }
-    ],
-    cuentas: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Cuenta"
-        }
-    ],
-    gastos: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Gasto"
-        }
-    ],
-    categorias: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Categoria"
-        }
-    ]
-
+        sparse: true
+    }
 });
 
 export default mongoose.model("Usuario", usuarioSchema);

@@ -10,13 +10,30 @@ export const obtenerBancoPorIdService = async (id) => {
     return banco;
 }
 
-export const actualizarBancoService = async (id, data) => {
-    const bancoActualizado = await Banco.findByIdAndUpdate(id, data, { returnDocument: "after" });
+export const actualizarBancoService = async (id, usuarioId, data) => {
+    const bancoActualizado = await Banco.findOneAndUpdate(
+        { _id: id, usuario: usuarioId },
+        data,
+        { returnDocument: "after" }
+    );
+
+    if (!bancoActualizado) {
+        throw new Error("Banco no encontrado");
+    }
+
     return bancoActualizado;
 }
 
-export const eliminarBancoService = async (id) => {
-    const bancoEliminado = await Banco.findByIdAndDelete(id);
+export const eliminarBancoService = async (id, usuarioId) => {
+    const bancoEliminado = await Banco.findOneAndDelete({
+        _id: id,
+        usuario: usuarioId
+    });
+
+    if (!bancoEliminado) {
+        throw new Error("Banco no encontrado");
+    }
+
     return bancoEliminado;
 }
 

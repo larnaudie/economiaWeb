@@ -63,13 +63,30 @@ export const obtenerCategoriaPorIdService = async (id) => {
     return categoria;
 }
 
-export const actualizarCategoriaService = async (id, data) => {
-    const categoriaActualizada = await Categoria.findByIdAndUpdate(id, data, { returnDocument: "after" });
+export const actualizarCategoriaService = async (id, usuarioId, data) => {
+    const categoriaActualizada = await Categoria.findOneAndUpdate(
+        { _id: id, usuario: usuarioId },
+        data,
+        { returnDocument: "after" }
+    );
+
+    if (!categoriaActualizada) {
+        throw new Error("Categoría no encontrada");
+    }
+
     return categoriaActualizada;
 }
 
-export const eliminarCategoriaService = async (id) => {
-    const categoriaEliminada = await Categoria.findByIdAndDelete(id);
+export const eliminarCategoriaService = async (id, usuarioId) => {
+    const categoriaEliminada = await Categoria.findOneAndDelete({
+        _id: id,
+        usuario: usuarioId
+    });
+
+    if (!categoriaEliminada) {
+        throw new Error("Categoría no encontrada");
+    }
+
     return categoriaEliminada;
 }
 

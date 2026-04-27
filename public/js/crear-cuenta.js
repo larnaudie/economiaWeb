@@ -111,7 +111,7 @@ async function cargarBancos() {
   if (!authToken) return;
 
   const data = await apiRequest("/bancos", "GET", null, authToken);
-  bancosCache = data.bancos || [];
+  bancosCache = getApiData(data);
   renderBancosEnSelects();
 }
 
@@ -122,12 +122,16 @@ async function cargarCuentas() {
   try {
     const data = await apiRequest("/cuentas", "GET", null, authToken);
 
-    cuentasCache = (data.cuentas || []).map(cuenta => ({
+    cuentasCache = getApiData(data).map(cuenta => ({
       ...cuenta,
       selected: false
     }));
 
-    renderList("cuentasList", cuentasCache, cuenta => `
+    renderTableRows({
+      containerId: "cuentasList",
+      items: cuentasCache,
+      colspan: 4,
+      renderItem: cuenta => `
       <tr>
         <td>
           <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
@@ -148,7 +152,8 @@ async function cargarCuentas() {
           <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
     actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
     attachCuentaEvents();
@@ -356,7 +361,11 @@ window.addEventListener("click", (e) => {
 selectAllCuentas.addEventListener("change", (e) => {
   toggleSelectAll(cuentasCache, e.target.checked);
 
-  renderList("cuentasList", cuentasCache, cuenta => `
+  renderTableRows({
+    containerId: "cuentasList",
+    items: cuentasCache,
+    colspan: 4,
+    renderItem: cuenta => `
     <tr>
       <td>
         <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
@@ -368,7 +377,8 @@ selectAllCuentas.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
 
   attachCuentaEvents();
   actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);

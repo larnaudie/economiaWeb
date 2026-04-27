@@ -4,9 +4,16 @@ import {
     obtenerGastoPorId,
     actualizarGasto,
     eliminarGasto,
-    crearGasto
+    crearGasto,
+    crearGastosBulk,
+    actualizarGastosBulk
 } from "../controllers/gastos.controller.js";
-import { gastoSchema } from "../validators/gasto.validators.js";
+import {
+    gastoSchema,
+    gastosBulkSchema,
+    gastosBulkUpdateSchema,
+    gastoUpdateSchema
+} from "../validators/gasto.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
 
 const router = express.Router({ mergeParams: true });
@@ -14,8 +21,10 @@ const router = express.Router({ mergeParams: true });
 //Peticiones a /v1/gastos
 router.get("/", obtenerGastos)
 router.get("/:id", obtenerGastoPorId)
-router.patch("/:id", validateBody(gastoSchema), actualizarGasto)
+router.patch("/:id", validateBody(gastoUpdateSchema), actualizarGasto);
 router.post("/", validateBody(gastoSchema), crearGasto)
 router.delete("/:id", eliminarGasto)
+router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
+router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
 
 export default router;

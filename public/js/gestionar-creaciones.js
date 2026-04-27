@@ -66,6 +66,9 @@ const modalGastoEconomia = document.getElementById("modalGastoEconomia");
 const modalGastoCategoria = document.getElementById("modalGastoCategoria");
 const modalGastoCuenta = document.getElementById("modalGastoCuenta");
 
+const modalGastoIncluirBancario = document.getElementById("modalGastoIncluirBancario");
+const modalGastoIncluirReal = document.getElementById("modalGastoIncluirReal");
+
 const modalBancoError = document.getElementById("modalBancoError");
 const modalCuentaError = document.getElementById("modalCuentaError");
 const modalCategoriaError = document.getElementById("modalCategoriaError");
@@ -116,17 +119,17 @@ let categoriasCache = [];
 async function cargarBancos() {
   const token = getAuthToken();
   const data = await apiRequest("/bancos", "GET", null, token);
-  bancosCache = data.bancos || [];
+  bancosCache = getApiData(data)
 }
 
 async function cargarCuentas() {
   const token = getAuthToken();
   const data = await apiRequest("/cuentas", "GET", null, token);
-  cuentasCache = data.cuentas || [];
+  cuentasCache = getApiData(data);
 }
 
 function editarSeleccionadosGastos() {
-  const seleccionados = gastosCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -139,7 +142,7 @@ function editarSeleccionadosGastos() {
 }
 
 function bloquearSeleccionadosGastos() {
-  const seleccionados = gastosCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -152,6 +155,14 @@ function bloquearSeleccionadosGastos() {
 }
 
 function actualizarVisibilidadFiltrosGastos() {
+  if (modoFiltroGastos.value === "todos") {
+    grupoMesGastos.style.display = "none";
+    grupoAnioGastos.style.display = "none";
+    grupoDesdeGastos.style.display = "none";
+    grupoHastaGastos.style.display = "none";
+    return;
+  }
+
   if (modoFiltroGastos.value === "mes") {
     grupoMesGastos.style.display = "";
     grupoAnioGastos.style.display = "";
@@ -216,6 +227,15 @@ function buildDateRangeGestion(modo, mes, anio, desde, hasta) {
 }
 
 function getFiltrosTodosLosGastos() {
+  if (modoFiltroGastos.value === "todos") {
+    return {
+      fechaDesde: "",
+      fechaHasta: "",
+      categoria: filtroCategoriaGastos.value,
+      cuenta: filtroCuentaGastos.value
+    };
+  }
+
   const { fechaDesde, fechaHasta } = buildDateRangeGestion(
     modoFiltroGastos.value,
     mesGastos.value,
@@ -233,8 +253,8 @@ function getFiltrosTodosLosGastos() {
 }
 
 function resetFiltrosTodosLosGastos() {
-  modoFiltroGastos.value = "mes";
-  mesGastos.value = String(new Date().getMonth() + 1);
+  modoFiltroGastos.value = "todos";
+  mesGastos.value = "";
   anioGastos.value = new Date().getFullYear();
   filtroFechaDesde.value = "";
   filtroFechaHasta.value = "";
@@ -254,26 +274,6 @@ function renderFiltrosGastos() {
     ${cuentasCache.map(c => `<option value="${c._id}">${c.nombre}</option>`).join("")}
   `;
 }
-
-/*
-function obtenerFechasFiltroGastos() {
-  const mes = Number(filtroMes.value);
-  const anio = Number(filtroAnio.value);
-
-  if (mes && anio) {
-    const fechaDesde = `${anio}-${String(mes).padStart(2, "0")}-01`;
-    const ultimoDia = new Date(anio, mes, 0).getDate();
-    const fechaHasta = `${anio}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
-
-    return { fechaDesde, fechaHasta };
-  }
-
-  return {
-    fechaDesde: filtroFechaDesde.value,
-    fechaHasta: filtroFechaHasta.value
-  };
-}
-  */
 
 function openModal(modal) {
   if (!modal) return;
@@ -333,87 +333,11 @@ function actualizarEconomiaEditarGasto() {
   editarGastoEconomia.value = calculado.toFixed(2);
 }
 
-function renderList(containerId, items, renderItem) {
-  const container = document.getElementById(containerId);
-
-  if (!items || items.length === 0) {
-    if (container.tagName === "TBODY") {
-      const columnMap = {
-        bancosList: 3,
-        cuentasList: 4,
-        categoriasList: 3,
-        gastosList: 9
-      };
-
-      const colspan = columnMap[containerId] || 1;
-      container.innerHTML = `<tr><td colspan="${colspan}">No hay elementos registrados.</td></tr>`;
-    } else {
-      container.innerHTML = "<li>No hay elementos registrados.</li>";
-    }
-    return;
-  }
-
-  container.innerHTML = items.map(renderItem).join("");
-}
-
-function escapeQuotes(value) {
-  return String(value).replace(/'/g, "\\'");
-}
-
 function renderBulkBancosSelect() {
   bulkCuentaBanco.innerHTML = '<option value="">No cambiar</option>' +
     bancosCache
       .map(banco => `<option value="${banco._id}">${banco.nombre}</option>`)
       .join("");
-}
-
-/*
-function renderBulkGastosSelects() {
-  bulkGastoCategoria.innerHTML = '<option value="">No cambiar</option>' +
-    categoriasCache
-      .map(categoria => `<option value="${categoria._id}">${categoria.nombre}</option>`)
-      .join("");
-
-  bulkGastoCuenta.innerHTML = '<option value="">No cambiar</option>' +
-    cuentasCache
-      .map(cuenta => `<option value="${cuenta._id}">${cuenta.nombre}</option>`)
-      .join("");
-}
-*/
-
-function actualizarEstadoSelectAll(items, checkbox, filterFn = () => true) {
-  const visibles = items.filter(filterFn);
-
-  if (!visibles.length) {
-    checkbox.checked = false;
-    checkbox.indeterminate = false;
-    return;
-  }
-
-  const seleccionados = visibles.filter(item => item.selected);
-
-  if (seleccionados.length === 0) {
-    checkbox.checked = false;
-    checkbox.indeterminate = false;
-    return;
-  }
-
-  if (seleccionados.length === visibles.length) {
-    checkbox.checked = true;
-    checkbox.indeterminate = false;
-    return;
-  }
-
-  checkbox.checked = false;
-  checkbox.indeterminate = true;
-}
-
-function toggleSelectAll(items, checked, filterFn = () => true) {
-  items.forEach(item => {
-    if (filterFn(item)) {
-      item.selected = checked;
-    }
-  });
 }
 
 async function calcularTotalPaginasGastos() {
@@ -435,7 +359,7 @@ async function calcularTotalPaginasGastos() {
     if (cuenta) params.set("cuenta", cuenta);
 
     const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
-    const gastosPagina = data.gastos || [];
+    const gastosPagina = getApiData(data);
 
     if (gastosPagina.length < 20) {
       seguir = false;
@@ -457,8 +381,8 @@ async function cargarRecursosBulk() {
       apiRequest("/usuarios/me/categorias", "GET", null, authToken)
     ]);
 
-    bancosCache = (bancos.bancos || []).map(b => ({ ...b, selected: b.selected ?? false }));
-    categoriasCache = categorias.categorias || [];
+    bancosCache = (getApiData(bancos)).map(b => ({ ...b, selected: b.selected ?? false }));
+    categoriasCache = getApiData(categorias);
 
     renderBulkBancosSelect();
   } catch (error) {
@@ -472,7 +396,7 @@ function attachBancoEvents() {
       const id = e.target.dataset.id;
       const banco = bancosCache.find(b => b._id === id);
       if (banco) banco.selected = e.target.checked;
-      actualizarEstadoSelectAll(bancosCache, selectAllBancos);
+      updateSelectAllState(bancosCache, selectAllBancos);
     });
   });
 }
@@ -483,7 +407,7 @@ function attachCuentaEvents() {
       const id = e.target.dataset.id;
       const cuenta = cuentasCache.find(c => c._id === id);
       if (cuenta) cuenta.selected = e.target.checked;
-      actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
+      updateSelectAllState(cuentasCache, selectAllCuentas);
     });
   });
 }
@@ -494,7 +418,7 @@ function attachGastoEvents() {
       const id = e.target.dataset.id;
       const gasto = gastosCache.find(g => g._id === id);
       if (gasto) gasto.selected = e.target.checked;
-      actualizarEstadoSelectAll(gastosCache, selectAllGastos);
+      updateSelectAllState(gastosCache, selectAllGastos);
     });
   });
 
@@ -540,7 +464,7 @@ async function cargarGastosPaginados() {
 
     const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
 
-    gastosCache = (data.gastos || []).map(gasto => ({
+    gastosCache = getApiData(data).map(gasto => ({
       ...gasto,
       selected: false,
       isEditing: false
@@ -550,37 +474,6 @@ async function cargarGastosPaginados() {
   } catch (error) {
     gestionError.textContent = error.message || "Error al cargar los gastos";
   }
-}
-
-function gastoPasaFiltroFecha(gasto) {
-  const desde = filtroFechaDesde.value;
-  const hasta = filtroFechaHasta.value;
-
-  if (!desde && !hasta) return true;
-  if (!gasto.fecha) return false;
-
-  const fechaGasto = new Date(gasto.fecha);
-  fechaGasto.setHours(0, 0, 0, 0);
-
-  if (desde) {
-    const fechaDesde = new Date(desde);
-    fechaDesde.setHours(0, 0, 0, 0);
-
-    if (fechaGasto < fechaDesde) {
-      return false;
-    }
-  }
-
-  if (hasta) {
-    const fechaHasta = new Date(hasta);
-    fechaHasta.setHours(0, 0, 0, 0);
-
-    if (fechaGasto > fechaHasta) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 async function cargarListas() {
@@ -594,22 +487,26 @@ async function cargarListas() {
       apiRequest("/usuarios/me/categorias", "GET", null, authToken)
     ]);
 
-    bancosCache = (bancos.bancos || []).map(banco => ({
+    bancosCache = (getApiData(bancos)).map(banco => ({
       ...banco,
       selected: false
     }));
 
-    cuentasCache = (cuentas.cuentas || []).map(cuenta => ({
+    cuentasCache = (getApiData(cuentas)).map(cuenta => ({
       ...cuenta,
       selected: false
     }));
 
-    categoriasCache = (categorias.categorias || []).map(categoria => ({
+    categoriasCache = (getApiData(categorias)).map(categoria => ({
       ...categoria,
       selected: false
     }));
 
-    renderList("bancosList", bancosCache, banco => `
+    renderTableRows({
+      containerId: "bancosList",
+      items: bancosCache,
+      colspan: 3,
+      renderItem: banco => `
       <tr>
         <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
         <td>${banco.nombre}</td>
@@ -618,9 +515,14 @@ async function cargarListas() {
           <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
-    renderList("cuentasList", cuentasCache, cuenta => `
+    renderTableRows({
+      containerId: "cuentasList",
+      items: cuentasCache,
+      colspan: 4,
+      renderItem: cuenta => `
   <tr>
     <td>
       <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
@@ -641,9 +543,14 @@ async function cargarListas() {
       <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
     </td>
   </tr>
-`);
+`
+    });
 
-    renderList("categoriasList", categoriasCache, categoria => `
+    renderTableRows({
+      containerId: "categoriasList",
+      items: categoriasCache,
+      colspan: 3,
+      renderItem: categoria => `
       <tr>
         <td><input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}></td>
         <td>${categoria.nombre}</td>
@@ -652,11 +559,12 @@ async function cargarListas() {
           <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
-    actualizarEstadoSelectAll(bancosCache, selectAllBancos);
-    actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
-    actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
+    updateSelectAllState(bancosCache, selectAllBancos);
+    updateSelectAllState(cuentasCache, selectAllCuentas);
+    updateSelectAllState(categoriasCache, selectAllCategorias);
 
     attachBancoEvents();
     attachCuentaEvents();
@@ -675,7 +583,7 @@ function attachCategoriaEvents() {
       const id = e.target.dataset.id;
       const categoria = categoriasCache.find(c => c._id === id);
       if (categoria) categoria.selected = e.target.checked;
-      actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
+      updateSelectAllState(categoriasCache, selectAllCategorias);
     });
   });
 }
@@ -836,14 +744,6 @@ async function eliminarCuenta(id) {
   }
 }
 
-function fechaInputValue(fecha) {
-  const d = new Date(fecha);
-  const year = d.getUTCFullYear();
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 async function editarGasto(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
@@ -854,10 +754,10 @@ async function editarGasto(id) {
     await cargarRecursosBulk();
 
     const gastoActual = await apiRequest(`/gastos/${id}`, "GET", null, authToken);
-    const gasto = gastoActual.gasto;
+    const gasto = getApiData(gastoActual, null);
 
     editarGastoId.value = gasto._id;
-    editarGastoFecha.value = gasto.fecha ? fechaInputValue(gasto.fecha) : "";
+    editarGastoFecha.value = gasto.fecha ? fechaInputValueUTC(gasto.fecha) : "";
     editarGastoDescripcion.value = gasto.descripcion || "";
     editarGastoFlujo.value = gasto.flujoBancario ?? "";
     editarGastoPorcentaje.value = gasto.porcentajeEconomiaReal ?? "";
@@ -905,7 +805,7 @@ async function eliminarBancosSeleccionados() {
   bulkBancosError.textContent = "";
   bulkBancosSuccess.textContent = "";
 
-  const seleccionados = bancosCache.filter(banco => banco.selected);
+  const seleccionados = getSelectedItems(bancosCache);
 
   if (!seleccionados.length) {
     bulkBancosError.textContent = "No hay bancos seleccionados.";
@@ -1060,7 +960,7 @@ async function aplicarBulkGastos() {
     }
   }
 
-  const seleccionados = gastosCache.filter(gasto => gasto.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -1115,7 +1015,7 @@ async function eliminarGastosSeleccionados() {
   bulkGastosError.textContent = "";
   bulkGastosSuccess.textContent = "";
 
-  const seleccionados = gastosCache.filter(gasto => gasto.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -1185,18 +1085,12 @@ function gastoPasaFiltroFecha(gasto) {
   return true;
 }
 
-function formatearFecha(fecha) {
-  const d = new Date(fecha);
-
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = d.getUTCFullYear();
-
-  return `${day}/${month}/${year}`;
-}
-
 function renderGastosPaginados() {
-  renderList("gastosList", gastosCache, gasto => `
+  renderTableRows({
+    containerId: "gastosList",
+    items: gastosCache,
+    colspan: 11,
+    renderItem: gasto => `
     <tr>
       <td>
         <input
@@ -1207,7 +1101,7 @@ function renderGastosPaginados() {
         >
       </td>
 
-      <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
+      <td>${gasto.fecha ? formatFechaUTC(gasto.fecha) : "N/A"}</td>
       <td>${gasto.descripcion || "N/A"}</td>
       <td>${gasto.cuenta?.nombre || "N/A"}</td>
       <td>${gasto.categoria?.nombre || "N/A"}</td>
@@ -1240,13 +1134,14 @@ function renderGastosPaginados() {
         <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
 
   gastosPaginaActual.textContent = `${paginaGastosActual} / ${totalPaginasGastos}`;
   prevGastosBtn.disabled = paginaGastosActual === 1;
   nextGastosBtn.disabled = paginaGastosActual >= totalPaginasGastos;
 
-  actualizarEstadoSelectAll(gastosCache, selectAllGastos);
+  updateSelectAllState(gastosCache, selectAllGastos);
   attachGastoEvents();
 }
 
@@ -1415,8 +1310,8 @@ modalGastoForm.addEventListener("submit", async (e) => {
         porcentajeEconomiaReal,
         categoria,
         cuenta,
-        incluirEnGastoBancario: Number(flujoBancario) !== 0,
-        incluirEnGastoReal: Number(economiaReal) !== 0
+        incluirEnGastoBancario: Number(flujoBancario) !== 0 && modalGastoIncluirBancario.checked,
+        incluirEnGastoReal: Number(economiaReal) !== 0 && modalGastoIncluirReal.checked
       },
       authToken
     );
@@ -1450,8 +1345,12 @@ nextGastosBtn.addEventListener("click", async () => {
 
 // Listeners select all
 selectAllBancos.addEventListener("change", (e) => {
-  toggleSelectAll(bancosCache, e.target.checked);
-  renderList("bancosList", bancosCache, banco => `
+  toggleItemsSelection(bancosCache, e.target.checked);
+  renderTableRows({
+    containerId: "bancosList",
+    items: bancosCache,
+    colspan: 3,
+    renderItem: banco => `
     <tr>
       <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
       <td>${banco.nombre}</td>
@@ -1460,14 +1359,19 @@ selectAllBancos.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
   attachBancoEvents();
-  actualizarEstadoSelectAll(bancosCache, selectAllBancos);
+  updateSelectAllState(bancosCache, selectAllBancos);
 });
 
 selectAllCuentas.addEventListener("change", (e) => {
-  toggleSelectAll(cuentasCache, e.target.checked);
-  renderList("cuentasList", cuentasCache, cuenta => `
+  toggleItemsSelection(cuentasCache, e.target.checked);
+  renderTableRows({
+    containerId: "cuentasList",
+    items: cuentasCache,
+    colspan: 4,
+    renderItem: cuenta => `
     <tr>
       <td><input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}></td>
       <td>${cuenta.nombre}</td>
@@ -1477,13 +1381,14 @@ selectAllCuentas.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
   attachCuentaEvents();
-  actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
+  updateSelectAllState(cuentasCache, selectAllCuentas);
 });
 
 selectAllGastos.addEventListener("change", (e) => {
-  toggleSelectAll(gastosCache, e.target.checked);
+  toggleItemsSelection(gastosCache, e.target.checked);
   renderGastosPaginados();
 });
 
@@ -1519,9 +1424,13 @@ limpiarFiltroGastosBtn.addEventListener("click", async () => {
 });
 
 selectAllCategorias.addEventListener("change", (e) => {
-  toggleSelectAll(categoriasCache, e.target.checked);
+  toggleItemsSelection(categoriasCache, e.target.checked);
 
-  renderList("categoriasList", categoriasCache, categoria => `
+  renderTableRows({
+    containerId: "categoriasList",
+    items: categoriasCache,
+    colspan: 3,
+    renderItem: categoria => `
     <tr>
       <td><input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}></td>
       <td>${categoria.nombre}</td>
@@ -1530,10 +1439,10 @@ selectAllCategorias.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `});
 
   attachCategoriaEvents();
-  actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
+  updateSelectAllState(categoriasCache, selectAllCategorias);
 });
 
 eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas)
@@ -1555,6 +1464,8 @@ openGastoModalBtn.addEventListener("click", async () => {
   await cargarRecursosBulk();
   renderModalGastoSelects();
   actualizarEconomiaModalGasto();
+  modalGastoIncluirBancario.checked = true;
+  modalGastoIncluirReal.checked = true;
   openModal(gastoModal);
 });
 
@@ -1570,6 +1481,10 @@ editarSeleccionadosGastosBtn.addEventListener("click", editarSeleccionadosGastos
 bloquearSeleccionadosGastosBtn.addEventListener("click", bloquearSeleccionadosGastos);
 
 modoFiltroGastos.addEventListener("change", () => {
+  if (modoFiltroGastos.value === "mes" && !mesGastos.value) {
+    mesGastos.value = "1";
+  }
+
   actualizarVisibilidadFiltrosGastos();
 });
 

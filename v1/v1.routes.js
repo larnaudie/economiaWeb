@@ -6,6 +6,7 @@ import usuariosRouter from "./routes/usuarios.routes.js";
 import cuentasRouter from "./routes/cuentas.routes.js";
 import gastosRouter from "./routes/gastos.routes.js";
 import categoriaRouter from "./routes/categorias.routes.js";
+import deudasRoutes from "./routes/deudas.routes.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -21,5 +22,6 @@ router.use("/usuarios", usuariosRouter);
 router.use("/cuentas", cuentasRouter);
 router.use("/gastos", gastosRouter);
 router.use("/categorias", categoriaRouter);
+router.use("/deudas", deudasRoutes);
 
 export default router; 

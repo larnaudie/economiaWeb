@@ -98,12 +98,16 @@ async function cargarCategorias() {
   try {
     const data = await apiRequest("/categorias", "GET", null, authToken);
 
-    categoriasCache = (data.categorias || []).map(categoria => ({
+    categoriasCache = (getApiData(data)).map(categoria => ({
       ...categoria,
       selected: false
     }));
 
-    renderList("categoriasList", categoriasCache, categoria => `
+    renderTableRows({
+      containerId: "categoriasList",
+      items: categoriasCache,
+      colspan: 3,
+      renderItem: categoria => `
       <tr>
         <td>
           <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
@@ -114,7 +118,8 @@ async function cargarCategorias() {
           <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
     actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
     attachCategoriaEvents();
@@ -240,7 +245,11 @@ window.addEventListener("click", (e) => {
 selectAllCategorias.addEventListener("change", (e) => {
   toggleSelectAll(categoriasCache, e.target.checked);
 
-  renderList("categoriasList", categoriasCache, categoria => `
+  renderTableRows({
+    containerId: "categoriasList",
+    items: categoriasCache,
+    colspan: 3,
+    renderItem: categoria => `
     <tr>
       <td>
         <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
@@ -251,7 +260,8 @@ selectAllCategorias.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
 
   attachCategoriaEvents();
   actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);

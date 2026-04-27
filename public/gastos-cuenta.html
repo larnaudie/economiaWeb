@@ -143,18 +143,59 @@
             <h2>Resumen de Totales</h2>
 
             <table>
-                <tbody id="resumenTotalesCuentaBody">
+                <thead>
                     <tr>
-                        <td>Gasto Bancario:</td>
+                        <th>
+                            Gasto Bancario
+                            <br>
+                            <button type="button" id="verDesgloseBancarioBtn">Ver desglose</button>
+                        </th>
+                        <th>
+                            Gasto Real
+                            <br>
+                            <button type="button" id="verDesgloseRealBtn">Ver desglose</button>
+                        </th>
+                        <th>Saldo Bancario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
                         <td id="gastoBancarioTotal">0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Gasto Real:</td>
                         <td id="gastoRealTotal">0.00</td>
-                    </tr>
-                    <tr>
-                        <td>Saldo Bancario:</td>
                         <td id="saldoBancarioTotal">0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="desgloseGastosCuentaSection" style="display:none;">
+            <h2 id="desgloseGastosCuentaTitulo">Desglose de Gastos</h2>
+            <div class="inline-group" style="margin-bottom: 1rem;">
+                <button type="button" id="editarSeleccionadosDesgloseBtn">Editar Seleccionados</button>
+                <button type="button" id="bloquearSeleccionadosDesgloseBtn">Bloquear Seleccionados</button>
+                <button type="button" id="eliminarSeleccionadosDesgloseBtn">Eliminar Seleccionados</button>
+                <button type="button" id="guardarSeleccionadosDesgloseBtn">Guardar Seleccionados</button>
+            </div>
+
+            <div id="bulkDesgloseError" class="error"></div>
+            <div id="bulkDesgloseSuccess" style="color: green;"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAllDesglose">
+                        </th>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Monto</th>
+                        <th>Acumulado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="desgloseGastosCuentaBody">
+                    <tr>
+                        <td colspan="6">No hay datos</td>
                     </tr>
                 </tbody>
             </table>
@@ -230,6 +271,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
     <script src="/js/gastos-cuenta.js"></script>
 </body>
 

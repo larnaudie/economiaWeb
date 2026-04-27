@@ -61,6 +61,22 @@ const prevGastosCuentaBtn = document.getElementById("prevGastosCuentaBtn");
 const nextGastosCuentaBtn = document.getElementById("nextGastosCuentaBtn");
 const gastosCuentaPaginaActual = document.getElementById("gastosCuentaPaginaActual");
 
+const verDesgloseBancarioBtn = document.getElementById("verDesgloseBancarioBtn");
+const verDesgloseRealBtn = document.getElementById("verDesgloseRealBtn");
+const desgloseGastosCuentaSection = document.getElementById("desgloseGastosCuentaSection");
+const desgloseGastosCuentaTitulo = document.getElementById("desgloseGastosCuentaTitulo");
+const desgloseGastosCuentaBody = document.getElementById("desgloseGastosCuentaBody");
+
+const selectAllDesglose = document.getElementById("selectAllDesglose");
+const editarSeleccionadosDesgloseBtn = document.getElementById("editarSeleccionadosDesgloseBtn");
+const bloquearSeleccionadosDesgloseBtn = document.getElementById("bloquearSeleccionadosDesgloseBtn");
+const eliminarSeleccionadosDesgloseBtn = document.getElementById("eliminarSeleccionadosDesgloseBtn");
+
+const bulkDesgloseError = document.getElementById("bulkDesgloseError");
+const bulkDesgloseSuccess = document.getElementById("bulkDesgloseSuccess");
+
+const guardarSeleccionadosDesgloseBtn = document.getElementById("guardarSeleccionadosDesgloseBtn");
+
 function openModal(modal) {
   if (!modal) return;
   modal.classList.remove("hidden");
@@ -90,7 +106,7 @@ async function calcularTotalPaginasGastosCuenta() {
     if (categoriaGastosCuenta.value) params.set("categoria", categoriaGastosCuenta.value);
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
-    const gastosPagina = data.gastos || [];
+    const gastosPagina = getApiData(data);
 
     if (gastosPagina.length < 20) {
       seguir = false;
@@ -122,7 +138,7 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
     if (categoriaGastosCuenta.value) params.set("categoria", categoriaGastosCuenta.value);
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
-    const gastosPagina = data.gastos || [];
+    const gastosPagina = getApiData(data);
 
     todos = [...todos, ...gastosPagina];
 
@@ -166,6 +182,205 @@ function renderResumenTotalesCuenta(gastos) {
   document.getElementById("gastoRealTotal").textContent = gastoReal.toFixed(2);
   document.getElementById("saldoBancarioTotal").textContent = saldoBancario.toFixed(2);
 }
+
+function obtenerGastosParaDesglose(tipo) {
+  return gastosCuentaTodos
+    .filter(g => {
+      const transferencia = esTransferencia(g);
+
+      if (tipo === "bancario") {
+        const flujo = Number(g.flujoBancario) || 0;
+        return g.incluirEnGastoBancario === true && flujo < 0 && !transferencia;
+      }
+
+      if (tipo === "real") {
+        const real = Number(g.economiaReal) || 0;
+        return g.incluirEnGastoReal === true && real < 0 && !transferencia;
+      }
+
+      return false;
+    })
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+}
+
+function renderDesgloseGastosCuenta(tipo) {
+  const gastos = obtenerGastosParaDesglose(tipo);
+
+  desgloseGastosCuentaSection.style.display = "";
+
+  desgloseGastosCuentaTitulo.textContent =
+    tipo === "bancario"
+      ? "Desglose de Gasto Bancario"
+      : "Desglose de Gasto Real";
+
+  if (!gastos.length) {
+    desgloseGastosCuentaBody.innerHTML = `<tr><td colspan="6">No hay gastos incluidos en este total.</td></tr>`;
+    return;
+  }
+
+  let acumulado = 0;
+
+  desgloseGastosCuentaBody.innerHTML = gastos.map(g => {
+    const monto = tipo === "bancario"
+      ? Number(g.flujoBancario) || 0
+      : Number(g.economiaReal) || 0;
+
+    acumulado += monto;
+
+    return `
+      <tr data-id="${g._id}">
+        <td>
+          <input type="checkbox" class="desglose-checkbox" data-id="${g._id}">
+        </td>
+        <td>${g.fecha ? formatFechaUTC(g.fecha) : "N/A"}</td>
+        <td>${g.descripcion || "N/A"}</td>
+        <td>${g.categoria?.nombre || "Sin categoría"}</td>
+        <td>${monto.toFixed(2)}</td>
+        <td>${acumulado.toFixed(2)}</td>
+        <td>
+          <button type="button" onclick="editarGastoCuenta('${g._id}')">Editar</button>
+          <button type="button" onclick="eliminarGastoCuenta('${g._id}')">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function getDesgloseSeleccionados() {
+  const checkboxes = document.querySelectorAll(".desglose-checkbox:checked");
+  const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
+
+  return gastosCuentaTodos.filter(g => ids.includes(g._id));
+}
+
+selectAllDesglose.addEventListener("change", (e) => {
+  document.querySelectorAll(".desglose-checkbox").forEach(cb => {
+    cb.checked = e.target.checked;
+  });
+});
+
+let tipoDesgloseActual = null;
+
+editarSeleccionadosDesgloseBtn.addEventListener("click", () => {
+  const seleccionados = getDesgloseSeleccionados();
+
+  if (!seleccionados.length) {
+    bulkDesgloseError.textContent = "No hay gastos seleccionados.";
+    return;
+  }
+
+  bulkDesgloseError.textContent = "";
+
+  seleccionados.forEach(g => g.isEditing = true);
+
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+bloquearSeleccionadosDesgloseBtn.addEventListener("click", () => {
+  const seleccionados = getDesgloseSeleccionados();
+
+  if (!seleccionados.length) {
+    bulkDesgloseError.textContent = "No hay gastos seleccionados.";
+    return;
+  }
+
+  bulkDesgloseError.textContent = "";
+
+  seleccionados.forEach(g => g.isEditing = false);
+
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+eliminarSeleccionadosDesgloseBtn.addEventListener("click", async () => {
+  const token = getToken();
+  if (!token) return;
+
+  const seleccionados = getDesgloseSeleccionados();
+
+  if (!seleccionados.length) {
+    bulkDesgloseError.textContent = "No hay gastos seleccionados.";
+    return;
+  }
+
+  const confirmado = confirm(`¿Eliminar ${seleccionados.length} gastos?`);
+  if (!confirmado) return;
+
+  let eliminados = 0;
+
+  for (const g of seleccionados) {
+    try {
+      await apiRequest(`/gastos/${g._id}`, "DELETE", null, token);
+      eliminados++;
+    } catch { }
+  }
+
+  await cargarGastosCuenta();
+  await cargarResumenYTotalesCuenta();
+
+  bulkDesgloseSuccess.textContent = `${eliminados} gastos eliminados`;
+});
+
+guardarSeleccionadosDesgloseBtn.addEventListener("click", async () => {
+  const token = getToken();
+  if (!token) return;
+
+  const seleccionados = getDesgloseSeleccionados();
+
+  if (!seleccionados.length) {
+    bulkDesgloseError.textContent = "No hay gastos seleccionados.";
+    return;
+  }
+
+  bulkDesgloseError.textContent = "";
+  bulkDesgloseSuccess.textContent = "";
+
+  let actualizados = 0;
+  let errores = 0;
+
+  for (const g of seleccionados) {
+    try {
+      const incluirEnGastoBancario = Number(g.flujoBancario) !== 0
+        ? g.incluirEnGastoBancario
+        : false;
+
+      const incluirEnGastoReal = Number(g.economiaReal) !== 0
+        ? g.incluirEnGastoReal
+        : false;
+
+      await apiRequest(
+        `/gastos/${g._id}`,
+        "PATCH",
+        {
+          fecha: g.fecha,
+          descripcion: g.descripcion,
+          flujoBancario: Number(g.flujoBancario),
+          economiaReal: Number(g.economiaReal),
+          porcentajeEconomiaReal: Number(g.porcentajeEconomiaReal),
+          categoria: g.categoria?._id || g.categoria,
+          cuenta: g.cuenta?._id || g.cuenta,
+          incluirEnGastoBancario,
+          incluirEnGastoReal
+        },
+        token
+      );
+
+      actualizados++;
+    } catch {
+      errores++;
+    }
+  }
+
+  await cargarGastosCuenta();
+  await cargarResumenYTotalesCuenta();
+
+  if (actualizados > 0) {
+    bulkDesgloseSuccess.textContent = `${actualizados} gastos actualizados`;
+  }
+
+  if (errores > 0) {
+    bulkDesgloseError.textContent = `${errores} errores al actualizar`;
+  }
+});
 
 function renderTotalesCategoriasCuenta(gastos) {
   const body = document.getElementById("totalesCategoriasCuentaBody");
@@ -213,7 +428,7 @@ async function cargarResumenYTotalesCuenta() {
 }
 
 function editarSeleccionadosGastosCuenta() {
-  const seleccionados = gastosCuentaCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCuentaCache);
 
   if (!seleccionados.length) {
     bulkGastosCuentaError.textContent = "No hay gastos seleccionados.";
@@ -229,7 +444,7 @@ function editarSeleccionadosGastosCuenta() {
 }
 
 function bloquearSeleccionadosGastosCuenta() {
-  const seleccionados = gastosCuentaCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCuentaCache);
 
   if (!seleccionados.length) {
     bulkGastosCuentaError.textContent = "No hay gastos seleccionados.";
@@ -242,20 +457,6 @@ function bloquearSeleccionadosGastosCuenta() {
   });
 
   renderGastosCuenta(gastosCuentaCache);
-}
-
-/*
-function esMovimientoInterno(gasto) {
-  const nombreCategoria = String(gasto?.categoria?.nombre || "").toLowerCase();
-  return nombreCategoria.includes("transf") || nombreCategoria.includes("ahorro");
-}*/
-
-function formatearFecha(fecha) {
-  const d = new Date(fecha);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const year = d.getUTCFullYear();
-  return `${day}/${month}/${year}`;
 }
 
 function renderGastosCuenta(gastos) {
@@ -350,7 +551,7 @@ async function cargarCategoriasParaGastosCuenta() {
   if (!token) return;
 
   const data = await apiRequest("/categorias", "GET", null, token);
-  const categorias = data.categorias || [];
+  const categorias = getApiData(data);
   categoriasCuentaCache = categorias;
 
   bulkCategoriaGastosCuenta.innerHTML = `
@@ -387,7 +588,7 @@ async function cargarGastosCuenta() {
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
 
-    gastosCuentaCache = (data.gastos || []).map(g => ({
+    gastosCuentaCache = (getApiData(data)).map(g => ({
       ...g,
       selected: false,
       isEditing: false
@@ -531,28 +732,7 @@ async function guardarFilaGastoCuenta(id) {
 }
 
 function actualizarEstadoSelectAllGastosCuenta() {
-  if (!gastosCuentaCache.length) {
-    selectAllGastosCuenta.checked = false;
-    selectAllGastosCuenta.indeterminate = false;
-    return;
-  }
-
-  const seleccionados = gastosCuentaCache.filter(g => g.selected);
-
-  if (seleccionados.length === 0) {
-    selectAllGastosCuenta.checked = false;
-    selectAllGastosCuenta.indeterminate = false;
-    return;
-  }
-
-  if (seleccionados.length === gastosCuentaCache.length) {
-    selectAllGastosCuenta.checked = true;
-    selectAllGastosCuenta.indeterminate = false;
-    return;
-  }
-
-  selectAllGastosCuenta.checked = false;
-  selectAllGastosCuenta.indeterminate = true;
+  updateSelectAllState(gastosCuentaCache, selectAllGastosCuenta);
 }
 
 selectAllGastosCuenta.addEventListener("change", (e) => {
@@ -581,7 +761,7 @@ async function eliminarGastosCuentaSeleccionados() {
   bulkGastosCuentaError.textContent = "";
   bulkGastosCuentaSuccess.textContent = "";
 
-  const seleccionados = gastosCuentaCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCuentaCache);
 
   if (!seleccionados.length) {
     bulkGastosCuentaError.textContent = "No hay gastos seleccionados.";
@@ -645,7 +825,7 @@ async function editarGastoCuenta(id) {
   await cargarCategoriasParaGastosCuenta();
 
   const data = await apiRequest(`/gastos/${id}`, "GET", null, token);
-  const gasto = data.gasto;
+  const gasto = getApiData(data, null);
 
   editarGastoCuentaId.value = gasto._id;
   editarGastoCuentaFecha.value = gasto.fecha ? new Date(gasto.fecha).toISOString().slice(0, 10) : "";
@@ -735,7 +915,7 @@ function getFiltrosGastosCuenta() {
 
 function resetFiltrosGastosCuenta() {
   modoFiltroGastosCuenta.value = "mes";
-  mesGastosCuenta.value = String(new Date().getMonth() + 1);
+  mesGastosCuenta.value = "1";
   anioGastosCuenta.value = new Date().getFullYear();
   desdeGastosCuenta.value = "";
   hastaGastosCuenta.value = "";
@@ -748,7 +928,7 @@ async function cargarCategoriasFiltroGastosCuenta() {
   if (!token) return;
 
   const data = await apiRequest("/categorias", "GET", null, token);
-  const categorias = data.categorias || [];
+  const categorias = getApiData(data);
 
   categoriaGastosCuenta.innerHTML = `
     <option value="">Todas</option>
@@ -765,7 +945,7 @@ async function aplicarBulkGastosCuenta() {
   bulkGastosCuentaError.textContent = "";
   bulkGastosCuentaSuccess.textContent = "";
 
-  const seleccionados = gastosCuentaCache.filter(g => g.selected);
+  const seleccionados = getSelectedItems(gastosCuentaCache);
   const categoria = bulkCategoriaGastosCuenta.value;
   const porcentajeRaw = bulkPorcentajeGastosCuenta.value;
 
@@ -835,6 +1015,16 @@ async function aplicarBulkGastosCuenta() {
 
 aplicarBulkGastosCuentaBtn.addEventListener("click", aplicarBulkGastosCuenta);
 eliminarBulkGastosCuentaBtn.addEventListener("click", eliminarGastosCuentaSeleccionados);
+
+verDesgloseBancarioBtn.addEventListener("click", () => {
+  tipoDesgloseActual = "bancario";
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+verDesgloseRealBtn.addEventListener("click", () => {
+  tipoDesgloseActual = "real";
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
 
 editarGastoCuentaFlujo.addEventListener("input", actualizarEconomiaEditarGastoCuenta);
 editarGastoCuentaPorcentaje.addEventListener("input", actualizarEconomiaEditarGastoCuenta);

@@ -20,3 +20,8 @@ export const cuentaSchema = Joi.object({
             "any.required": "El banco es obligatorio"
         })
 });
+
+export const cuentaUpdateSchema = cuentaSchema.fork(
+    ["nombre", "banco"],
+    (schema) => schema.optional()
+);

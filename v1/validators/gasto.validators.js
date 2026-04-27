@@ -55,5 +55,52 @@ export const gastoSchema = Joi.object({
             "any.required": "La cuenta es obligatoria"
         }),
     incluirEnGastoBancario: Joi.boolean().optional(),
-    incluirEnGastoReal: Joi.boolean().optional()
+    incluirEnGastoReal: Joi.boolean().optional(),
 });
+
+export const gastosBulkSchema = Joi.object({
+    gastos: Joi.array()
+        .items(gastoSchema)
+        .min(1)
+        .required()
+        .messages({
+            "array.base": "Gastos debe ser un array",
+            "array.min": "Debe enviarse al menos un gasto",
+            "any.required": "Gastos es obligatorio"
+        })
+});
+
+export const gastosBulkUpdateSchema = Joi.object({
+    gastos: Joi.array()
+        .items(
+            gastoSchema.keys({
+                _id: Joi.string()
+                    .required()
+                    .regex(/^[0-9a-fA-F]{24}$/)
+                    .messages({
+                        "string.pattern.base": "El _id debe ser un ObjectId válido",
+                        "any.required": "El _id es obligatorio"
+                    })
+            })
+        )
+        .min(1)
+        .required()
+        .messages({
+            "array.base": "Gastos debe ser un array",
+            "array.min": "Debe enviarse al menos un gasto",
+            "any.required": "Gastos es obligatorio"
+        })
+});
+
+export const gastoUpdateSchema = gastoSchema.fork(
+    [
+        "fecha",
+        "descripcion",
+        "flujoBancario",
+        "economiaReal",
+        "porcentajeEconomiaReal",
+        "categoria",
+        "cuenta"
+    ],
+    (schema) => schema.optional()
+);

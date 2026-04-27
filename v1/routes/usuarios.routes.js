@@ -9,7 +9,7 @@ import {
     obtenerCuentasUsuario,
     obtenerCategoriasUsuario,
     obtenerGastosUsuario
-} from "../controllers/usurios.controller.js";
+} from "../controllers/usuarios.controller.js";
 
 const router = express.Router({ mergeParams: true });
 

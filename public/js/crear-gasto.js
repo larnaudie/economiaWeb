@@ -311,8 +311,8 @@ async function cargarRecursos() {
     apiRequest("/cuentas", "GET", null, authToken)
   ]);
 
-  categoriasCache = categorias.categorias || [];
-  cuentasCache = cuentas.cuentas || [];
+  categoriasCache = getApiData(categorias);
+  cuentasCache = getApiData(cuentas);
 
   renderBulkGastosSelects();
 }
@@ -333,7 +333,7 @@ async function calcularTotalPaginasGastos() {
     params.set("fechaHasta", fechaHasta);
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, authToken);
-    const gastosPagina = data.gastos || [];
+    const gastosPagina = getApiData(data);
 
     if (gastosPagina.length < 20) {
       seguir = false;
@@ -359,12 +359,16 @@ async function cargarGastosPaginados() {
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, authToken);
 
-    gastosCache = (data.gastos || []).map(gasto => ({
+    gastosCache = (getApiData(data)).map(gasto => ({
       ...gasto,
       selected: false
     }));
 
-    renderList("gastosList", gastosCache, gasto => `
+    renderTableRows({
+      containerId: "gastosList",
+      items: gastosCache,
+      colspan: 11,
+      renderItem: gasto => `
       <tr>
         <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
         <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
@@ -379,7 +383,8 @@ async function cargarGastosPaginados() {
           <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
     gastosPaginaActual.textContent = `${paginaActual} / ${totalPaginas}`;
     prevGastosBtn.disabled = paginaActual === 1;
@@ -460,7 +465,7 @@ async function aplicarBulkGastos() {
     return;
   }
 
-  const seleccionados = gastosCache.filter(gasto => gasto.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -518,7 +523,7 @@ async function eliminarGastosSeleccionados() {
   bulkGastosError.textContent = "";
   bulkGastosSuccess.textContent = "";
 
-  const seleccionados = gastosCache.filter(gasto => gasto.selected);
+  const seleccionados = getSelectedItems(gastosCache);
 
   if (!seleccionados.length) {
     bulkGastosError.textContent = "No hay gastos seleccionados.";
@@ -751,7 +756,11 @@ limpiarFiltroGastosBtn.addEventListener("click", async () => {
 selectAllGastos.addEventListener("change", (e) => {
   toggleSelectAll(gastosCache, e.target.checked);
 
-  renderList("gastosList", gastosCache, gasto => `
+  renderTableRows({
+    containerId: "gastosList",
+    items: gastosCache,
+    colspan: 11,
+    renderItem: gasto => `
     <tr>
       <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
       <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
@@ -766,7 +775,8 @@ selectAllGastos.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
 
   attachGastoEvents();
   actualizarEstadoSelectAll(gastosCache, selectAllGastos);

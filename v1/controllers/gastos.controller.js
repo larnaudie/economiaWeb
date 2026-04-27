@@ -3,95 +3,120 @@ import {
     obtenerGastoPorIdService,
     actualizarGastoService,
     eliminarGastoService,
-    crearGastoService
+    crearGastoService,
+    crearGastosBulkService,
+    actualizarGastosBulkService
 } from "../services/gasto.service.js";
+import { successResponse } from "../utils/apiResponse.js";
 
-export const obtenerGastos = async (req, res) => {
-    const { mes, pagina, fechaDesde, fechaHasta, categoria, cuenta } = req.query;
+export const obtenerGastos = async (req, res, next) => {
+    try {
+        const {
+            mes,
+            pagina,
+            fechaDesde,
+            fechaHasta,
+            categoria,
+            cuenta,
+            busqueda,
+            flujoMin,
+            flujoMax,
+            realMin,
+            realMax
+        } = req.query;
 
-    const gastosObtenidos = await obtenerGastosService(
-        req.user.id,
-        mes,
-        pagina,
-        fechaDesde,
-        fechaHasta,
-        categoria,
-        cuenta
-    );
+        const gastosObtenidos = await obtenerGastosService(
+            req.user.id,
+            mes,
+            pagina,
+            fechaDesde,
+            fechaHasta,
+            categoria,
+            cuenta,
+            busqueda,
+            flujoMin,
+            flujoMax,
+            realMin,
+            realMax
+        );
 
-    res.json({ message: "Gastos obtenidos", gastos: gastosObtenidos });
+        successResponse(res, "Gastos obtenidos", gastosObtenidos);
+    } catch (error) {
+        next(error);
+    }
 };
 
-export const obtenerGastoPorId = async (req, res) => {
-    const { id } = req.params;
-    const gastoObtenido = await obtenerGastoPorIdService(id);
-    res.json({ message: `Gasto ${gastoObtenido.id} obtenido con exito`, gasto: gastoObtenido });
+export const obtenerGastoPorId = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const gastoObtenido = await obtenerGastoPorIdService(id);
+        successResponse(res, `Gasto ${gastoObtenido.id} obtenido con exito`, gastoObtenido);
+    } catch (error) {
+        next(error);
+    }
 }
 
-export const actualizarGasto = async (req, res) => {
-    const { id } = req.params;
-    const {
-        fecha,
-        descripcion,
-        flujoBancario,
-        economiaReal,
-        porcentajeEconomiaReal,
-        categoria,
-        cuenta,
-        incluirEnGastoBancario,
-        incluirEnGastoReal
-    } = req.body;
+export const actualizarGasto = async (req, res, next) => {
+    try {
+        const { id } = req.params;
 
-    const gastoActualizado = await actualizarGastoService(
-        id,
-        req.user.id,
-        fecha,
-        descripcion,
-        flujoBancario,
-        economiaReal,
-        porcentajeEconomiaReal,
-        categoria,
-        cuenta,
-        incluirEnGastoBancario,
-        incluirEnGastoReal
-    );
+        const gastoActualizado = await actualizarGastoService({
+            id,
+            usuarioId: req.user.id,
+            data: req.body
+        });
 
-    res.json({ message: "Gasto actualizado", gasto: gastoActualizado });
+        successResponse(res, "Gasto actualizado", gastoActualizado);
+    } catch (error) {
+        next(error);
+    }
 };
 
-export const crearGasto = async (req, res) => {
-    const {
-        fecha,
-        descripcion,
-        flujoBancario,
-        economiaReal,
-        porcentajeEconomiaReal,
-        categoria,
-        cuenta,
-        incluirEnGastoBancario,
-        incluirEnGastoReal
-    } = req.body;
+export const crearGasto = async (req, res, next) => {
+    try {
+        const gastoCreado = await crearGastoService({
+            usuarioId: req.user.id,
+            data: req.body
+        });
 
-    const gastoCreado = await crearGastoService(
-        req.user.id,
-        fecha,
-        descripcion,
-        flujoBancario,
-        economiaReal,
-        porcentajeEconomiaReal,
-        categoria,
-        cuenta,
-        incluirEnGastoBancario,
-        incluirEnGastoReal
-    );
-
-    res.status(201).json({ message: "Gasto creado", gasto: gastoCreado });
+        successResponse(res, "Gasto creado", gastoCreado, 201);
+    } catch (error) {
+        next(error);
+    }
 };
-export const eliminarGasto = async (req, res) => {
-    const { id } = req.params;
-    const gastoEliminado = await eliminarGastoService(id);
-    res.json({
-        message: `Gasto ${gastoEliminado.id} eliminado exitosamente`,
-        gasto: gastoEliminado
-    });
+
+export const eliminarGasto = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const gastoEliminado = await eliminarGastoService(id, req.user.id);
+        successResponse(res, `Gasto ${gastoEliminado.id} eliminado exitosamente`, gastoEliminado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const crearGastosBulk = async (req, res, next) => {
+    try {
+        const resultado = await crearGastosBulkService({
+            usuarioId: req.user.id,
+            gastos: req.body.gastos
+        });
+
+        successResponse(res, "Gastos creados masivamente", resultado, 201);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const actualizarGastosBulk = async (req, res, next) => {
+    try {
+        const resultado = await actualizarGastosBulkService({
+            usuarioId: req.user.id,
+            gastos: req.body.gastos
+        });
+
+        successResponse(res, "Gastos actualizados masivamente", resultado);
+    } catch (error) {
+        next(error);
+    }
 };

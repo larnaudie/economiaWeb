@@ -23,13 +23,13 @@ async function cargarBancos() {
 
   try {
     const data = await apiRequest("/usuarios/me/bancos", "GET", null, token);
-    const bancos = data.bancos || [];
+    const bancos = getApiData(data);
 
     bancoSeleccionado.innerHTML = `
-      ${bancos.map((banco) => `
-        <option value="${banco._id}">${banco.nombre}</option>
-      `).join("")}
-    `;
+  ${bancos.map((banco) => `
+    <option value="${banco._id}">${banco.nombre}</option>
+  `).join("")}
+`;
 
     if (!bancos.length) {
       if (cuentasContainer) {
@@ -41,6 +41,7 @@ async function cargarBancos() {
     return bancos[0]._id;
   } catch (error) {
     console.error("Error al cargar bancos:", error);
+    alert(error.message || "Error desconocido al cargar bancos");
 
     if (cuentasContainer) {
       cuentasContainer.innerHTML = "<p>Error al cargar bancos.</p>";
@@ -61,7 +62,7 @@ async function cargarCuentasPorBanco(bancoId) {
 
   try {
     const data = await apiRequest(`/usuarios/me/cuentas?banco=${bancoId}`, "GET", null, token);
-    const cuentas = data.cuentas || [];
+    const cuentas = data.data
 
     if (!cuentas.length) {
       cuentasContainer.innerHTML = "<p>No hay cuentas para este banco.</p>";

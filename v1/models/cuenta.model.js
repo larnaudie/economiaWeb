@@ -14,13 +14,7 @@ const cuentaSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
         required: true
-    },
-    listaGastos: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Gasto"
-        }
-    ]
-}); 
+    }
+});
 
 export default mongoose.model("Cuenta", cuentaSchema);

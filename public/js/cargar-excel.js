@@ -157,7 +157,7 @@ function buildFlujo(gValue, iValue) {
 async function cargarCategorias() {
     const token = getToken();
     const data = await apiRequest("/categorias", "GET", null, token);
-    categoriasCache = data.categorias || [];
+    categoriasCache = getApiData(data);
     renderBulkCategorias();
 }
 

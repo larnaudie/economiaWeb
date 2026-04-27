@@ -98,12 +98,16 @@ async function cargarBancos() {
   try {
     const data = await apiRequest("/bancos", "GET", null, authToken);
 
-    bancosCache = (data.bancos || []).map(banco => ({
+    bancosCache = getApiData(data).map(banco => ({
       ...banco,
       selected: false
     }));
 
-    renderList("bancosList", bancosCache, banco => `
+    renderTableRows({
+      containerId: "bancosList",
+      items: bancosCache,
+      colspan: 3,
+      renderItem: banco => `
       <tr>
         <td>
           <input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}>
@@ -114,7 +118,8 @@ async function cargarBancos() {
           <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
         </td>
       </tr>
-    `);
+    `
+    });
 
     actualizarEstadoSelectAll(bancosCache, selectAllBancos);
     attachBancoEvents();
@@ -160,7 +165,7 @@ async function eliminarBancosSeleccionados() {
   bulkBancosError.textContent = "";
   bulkBancosSuccess.textContent = "";
 
-  const seleccionados = bancosCache.filter(banco => banco.selected);
+  const seleccionados = getSelectedItems(bancosCache);
 
   if (!seleccionados.length) {
     bulkBancosError.textContent = "No hay bancos seleccionados.";
@@ -240,7 +245,11 @@ window.addEventListener("click", (e) => {
 selectAllBancos.addEventListener("change", (e) => {
   toggleSelectAll(bancosCache, e.target.checked);
 
-  renderList("bancosList", bancosCache, banco => `
+  renderTableRows({
+    containerId: "bancosList",
+    items: bancosCache,
+    colspan: 3,
+    renderItem: banco => `
     <tr>
       <td>
         <input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}>
@@ -251,7 +260,8 @@ selectAllBancos.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
       </td>
     </tr>
-  `);
+  `
+  });
 
   attachBancoEvents();
   actualizarEstadoSelectAll(bancosCache, selectAllBancos);
