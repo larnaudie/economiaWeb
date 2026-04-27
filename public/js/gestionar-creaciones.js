@@ -1572,13 +1572,9 @@ editarGastoForm.addEventListener("submit", async (e) => {
 
 //ESTO DEBE IR ULTIMO
 document.addEventListener("DOMContentLoaded", async () => {
-    resetFiltrosTodosLosGastos();
+  resetFiltrosTodosLosGastos();
 
-  await cargarBancos();
-  await cargarCuentas();
-  await cargarCategorias();
-
-  renderFiltrosGastos();
+  await cargarListas();
 
   totalPaginasGastos = await calcularTotalPaginasGastos();
   await cargarGastosPaginados();
