@@ -1,6 +1,7 @@
 requireAuth();
+renderHeader({ title: "Cargar Excel Personal" });
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const importButton = document.getElementById("importButton");
 const fileInput = document.getElementById("fileInput");
 const importError = document.getElementById("importError");
@@ -40,7 +41,7 @@ let cuentasCache = [];
 let importedRows = [];
 
 vaciarTablaButton.addEventListener("click", vaciarTabla);
-logoutButton.addEventListener("click", logout);
+ 
 importButton.addEventListener("click", () => fileInput.click());
 crearTodosButton.addEventListener("click", crearTodosLosGastos);
 aplicarTodosButton.addEventListener("click", aplicarCambiosATodos);

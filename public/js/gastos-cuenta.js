@@ -1,4 +1,5 @@
 requireAuth();
+renderHeader({ title: "Gastos por Cuenta" });;
 
 const params = new URLSearchParams(window.location.search);
 const cuentaId = params.get("cuenta");

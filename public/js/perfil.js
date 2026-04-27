@@ -1,7 +1,8 @@
 requireAuth();
+renderHeader({ title: "Perfil" });;
 
 const token = getToken();
-const logoutButton = document.getElementById("logoutButton");
+  
 const perfilForm = document.getElementById("perfilForm");
 const perfilError = document.getElementById("perfilError");
 const perfilSuccess = document.getElementById("perfilSuccess");
@@ -89,7 +90,7 @@ perfilForm.addEventListener("submit", async (e) => {
   }
 });
 
-logoutButton.addEventListener("click", logout);
+ 
 
 document.addEventListener("DOMContentLoaded", async () => {
   await cargarPerfil();

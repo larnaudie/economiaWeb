@@ -1,7 +1,8 @@
 requireAuth();
+renderHeader({ title: "Gestión de Creaciones" });;
 
 const token = getToken();
-const logoutButton = document.getElementById("logoutButton");
+  
 const gestionError = document.getElementById("gestionError");
 
 const prevGastosBtn = document.getElementById("prevGastosBtn");
@@ -126,6 +127,14 @@ async function cargarCuentas() {
   const token = getAuthToken();
   const data = await apiRequest("/cuentas", "GET", null, token);
   cuentasCache = getApiData(data);
+}
+
+async function cargarCategorias() {
+  const token = getAuthToken();
+  if (!token) return;
+
+  const data = await apiRequest("/categorias", "GET", null, token);
+  categoriasCache = getApiData(data);
 }
 
 function editarSeleccionadosGastos() {
@@ -1399,7 +1408,7 @@ eliminarCuentasSeleccionadasBtn.addEventListener("click", eliminarCuentasSelecci
 //aplicarBulkGastosBtn.addEventListener("click", aplicarBulkGastos);
 eliminarGastosSeleccionadosBtn.addEventListener("click", eliminarGastosSeleccionados);
 
-logoutButton.addEventListener("click", logout);
+ 
 
 window.editarBanco = editarBanco;
 window.eliminarBanco = eliminarBanco;
@@ -1563,11 +1572,14 @@ editarGastoForm.addEventListener("submit", async (e) => {
 
 //ESTO DEBE IR ULTIMO
 document.addEventListener("DOMContentLoaded", async () => {
-  resetFiltrosTodosLosGastos();
-  actualizarVisibilidadFiltrosGastos();
+    resetFiltrosTodosLosGastos();
 
-  await cargarListas();
-  await cargarRecursosBulk();
+  await cargarBancos();
+  await cargarCuentas();
+  await cargarCategorias();
+
+  renderFiltrosGastos();
+
   totalPaginasGastos = await calcularTotalPaginasGastos();
   await cargarGastosPaginados();
 

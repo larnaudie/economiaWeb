@@ -1,4 +1,5 @@
 requireAuth();
+renderHeader({ title: "Deudas" });;
 
 const deudaForm = document.getElementById("deudaForm");
 const deudasBody = document.getElementById("deudasBody");

@@ -1,8 +1,9 @@
 requireAuth();
+renderHeader({ title: "Crear Cuenta" });;
 
 const token = getToken();
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const gestionError = document.getElementById("gestionError");
 
 const selectAllCuentas = document.getElementById("selectAllCuentas");
@@ -386,7 +387,7 @@ selectAllCuentas.addEventListener("change", (e) => {
 
 aplicarBulkCuentasBtn.addEventListener("click", aplicarBulkCuentas);
 eliminarCuentasSeleccionadasBtn.addEventListener("click", eliminarCuentasSeleccionadas);
-logoutButton.addEventListener("click", logout);
+ 
 
 window.editarCuenta = editarCuenta;
 window.eliminarCuenta = eliminarCuenta;

@@ -1,8 +1,9 @@
 requireAuth();
+renderHeader({ title: "Crear Banco" });;
 
 const token = getToken();
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const gestionError = document.getElementById("gestionError");
 
 const selectAllBancos = document.getElementById("selectAllBancos");
@@ -268,7 +269,7 @@ selectAllBancos.addEventListener("change", (e) => {
 });
 
 eliminarBancosSeleccionadosBtn.addEventListener("click", eliminarBancosSeleccionados);
-logoutButton.addEventListener("click", logout);
+ 
 
 window.editarBanco = editarBanco;
 window.eliminarBanco = eliminarBanco;

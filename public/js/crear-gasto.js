@@ -1,8 +1,9 @@
 requireAuth();
+renderHeader({ title: "Crear Gasto" });;
 
 const token = getToken();
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const gestionError = document.getElementById("gestionError");
 
 const prevGastosBtn = document.getElementById("prevGastosBtn");
@@ -784,7 +785,7 @@ selectAllGastos.addEventListener("change", (e) => {
 
 aplicarBulkGastosBtn.addEventListener("click", aplicarBulkGastos);
 eliminarGastosSeleccionadosBtn.addEventListener("click", eliminarGastosSeleccionados);
-logoutButton.addEventListener("click", logout);
+ 
 
 window.editarGasto = editarGasto;
 window.eliminarGasto = eliminarGasto;

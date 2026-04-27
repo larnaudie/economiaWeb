@@ -1,8 +1,9 @@
 requireAuth();
+renderHeader({ title: "Crear Categoría" });;
 
 const token = getToken();
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const gestionError = document.getElementById("gestionError");
 
 const selectAllCategorias = document.getElementById("selectAllCategorias");
@@ -268,7 +269,7 @@ selectAllCategorias.addEventListener("change", (e) => {
 });
 
 eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas);
-logoutButton.addEventListener("click", logout);
+ 
 
 window.editarCategoria = editarCategoria;
 window.eliminarCategoria = eliminarCategoria;

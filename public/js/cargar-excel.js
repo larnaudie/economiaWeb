@@ -1,6 +1,7 @@
 requireAuth();
+renderHeader({ title: "Cargar Excel" });
 
-const logoutButton = document.getElementById("logoutButton");
+  
 const importButton = document.getElementById("importButton");
 const fileInput = document.getElementById("fileInput");
 const importError = document.getElementById("importError");
@@ -56,7 +57,7 @@ window.addEventListener("click", (e) => {
 selectAllRows.addEventListener("change", (e) => {
     toggleSelectAllRows(e.target.checked);
 });
-logoutButton.addEventListener("click", logout);
+ 
 importButton.addEventListener("click", () => {
     fileInput.click();
 });
