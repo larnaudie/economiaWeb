@@ -20,6 +20,6 @@ router.get("/:id", obtenerCategoriaPorId)
 router.patch("/:id", validateBody(categoriaSchema), actualizarCategoria)
 router.post("/", validateBody(categoriaSchema), crearCategoria)
 router.delete("/:id", eliminarCategoria);
-router.delete("/", eliminarTodosLasCategorias);
+router.delete("/eliminar-todo", eliminarTodosLasCategorias);
 
 export default router;

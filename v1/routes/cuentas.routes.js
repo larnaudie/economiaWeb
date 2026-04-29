@@ -18,6 +18,6 @@ router.get("/:id", obtenerCuentaPorId)
 router.patch("/:id", validateBody(cuentaUpdateSchema), actualizarCuenta);
 router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.delete("/:id", eliminarCuenta)
-router.delete("/", eliminarTodasLasCuentas);
+router.delete("/eliminar-todo", eliminarTodasLasCuentas);
 
 export default router;

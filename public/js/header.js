@@ -23,16 +23,17 @@ function renderHeader({ title = "Economía Web" } = {}) {
       </div>
 
       <nav class="sidebar-links">
-        <a href="index.html">Inicio</a>
-        <a href="gestionar-creaciones.html">Gestionar Creaciones</a>
-        <a href="crear-banco.html">Mis Bancos</a>
-        <a href="crear-cuenta.html">Mis Cuentas</a>
-        <a href="crear-categoria.html">Mis Categorías</a>
-        <a href="deudas.html">Mis Deudas</a>
-        <a href="cargar-excel.html">Importar Excel</a>
-        <a href="cargar-excel-personal.html">Importar Excel Personal</a>
-        <a href="perfil.html">Perfil</a>
-      </nav>
+  <a href="index.html">Inicio</a>
+  <a href="gestionar-creaciones.html">Gestionar Creaciones</a>
+  <a href="categorias-grupo.html">Categorías Principales</a>
+  <a href="crear-banco.html">Mis Bancos</a>
+  <a href="crear-cuenta.html">Mis Cuentas</a>
+  <a href="crear-categoria.html">Mis Subcategorías</a>
+  <a href="deudas.html">Mis Deudas</a>
+  <a href="cargar-excel.html">Importar Excel</a>
+  <a href="cargar-excel-personal.html">Importar Excel Personal</a>
+  <a href="perfil.html">Perfil</a>
+</nav>
 
       <button id="logoutButton" type="button" class="sidebar-logout">
         Cerrar sesión

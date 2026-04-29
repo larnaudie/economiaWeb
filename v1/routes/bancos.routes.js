@@ -18,6 +18,6 @@ router.get("/:id", obtenerBancoPorId)
 router.patch("/:id", validateBody(bancoSchema), actualizarBanco)
 router.post("/", validateBody(bancoSchema), crearBanco)
 router.delete("/:id", eliminarBanco)
-router.delete("/", eliminarTodosLosBancos)
+router.delete("/eliminar-todo", eliminarTodosLosBancos)
 
 export default router;

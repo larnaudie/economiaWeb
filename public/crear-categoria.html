@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crear Categoría - Economía Web</title>
+    <title>Crear Subcategorías - Economía Web</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -13,10 +13,10 @@
 
     <main>
         <section>
-            <button type="button" id="openCategoriaModal">Crear Categoría</button>
+            <button type="button" id="openCategoriaModal">Crear Subcategoría</button>
         </section>
         <section>
-            <h2>Mis Categorías</h2>
+            <h2>Mis Subcategorías</h2>
 
             <div class="inline-group" style="margin-bottom: 1rem;">
                 <button type="button" id="eliminarCategoriasSeleccionadasBtn">Eliminar Seleccionadas</button>
@@ -30,12 +30,13 @@
                     <tr>
                         <th><input type="checkbox" id="selectAllCategorias"></th>
                         <th>Nombre</th>
+                        <th>Categoría principal</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="categoriasList">
                     <tr>
-                        <td colspan="3">No hay elementos registrados.</td>
+                        <td colspan="4">No hay elementos registrados.</td>
                     </tr>
                 </tbody>
             </table>
@@ -46,16 +47,20 @@
         <div id="categoriaModal" class="modal hidden">
             <div class="modal-content">
                 <button type="button" class="close-modal" data-close="categoriaModal">&times;</button>
-                <h2>Nueva Categoría</h2>
+                <h2>Nueva Subcategoría</h2>
 
                 <form id="modalCategoriaForm">
                     <label for="modalCategoriaNombre">Nombre</label>
                     <input type="text" id="modalCategoriaNombre" required placeholder="Ej: Supermercado">
+                    <label for="modalCategoriaGrupo">Categoría principal</label>
+                    <select id="modalCategoriaGrupo">
+                        <option value="">Sin categoría principal</option>
+                    </select>
 
                     <div id="modalCategoriaError" class="error"></div>
 
                     <div class="modal-actions">
-                        <button type="submit">Guardar categoría</button>
+                        <button type="submit">Guardar subcategoría</button>
                     </div>
                 </form>
             </div>

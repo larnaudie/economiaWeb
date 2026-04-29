@@ -19,7 +19,7 @@ router.get("/", obtenerDeudas);
 router.get("/:id", obtenerDeudaPorId);
 router.patch("/:id", validateBody(deudaSchema), actualizarDeuda);
 router.delete("/:id", eliminarDeuda);
-router.delete("/", eliminarTodosLasDeudas);
+router.delete("/eliminar-todo", eliminarTodosLasDeudas);
 
 router.post("/:id/pagar-cuota", pagarCuotaDeuda);
 

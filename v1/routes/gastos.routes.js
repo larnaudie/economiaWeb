@@ -27,5 +27,5 @@ router.post("/", validateBody(gastoSchema), crearGasto)
 router.delete("/:id", eliminarGasto)
 router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
 router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
-router.delete("/", eliminarTodosLosGastos);
+router.delete("/eliminar-todo", eliminarTodosLosGastos);
 export default router;

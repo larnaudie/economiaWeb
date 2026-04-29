@@ -54,21 +54,31 @@ export const obtenerTotalesPorCategoriaService = async (usuarioId, mes, anual) =
 }
 
 export const obtenerCategoriasService = async (usuarioId) => {
-    const categorias = await Categoria.find({ usuario: usuarioId });
+    const categorias = await Categoria.find({ usuario: usuarioId })
+        .populate("categoriaGrupo", "nombre")
+        .sort({ nombre: 1 });
+
     return categorias;
 }
 
 export const obtenerCategoriaPorIdService = async (id) => {
-    const categoria = await Categoria.findById(id);
+    const categoria = await Categoria.findById(id)
+        .populate("categoriaGrupo", "nombre");
+
     return categoria;
 }
 
 export const actualizarCategoriaService = async (id, usuarioId, data) => {
+    const updateData = {
+        ...data,
+        categoriaGrupo: data.categoriaGrupo || null
+    };
+
     const categoriaActualizada = await Categoria.findOneAndUpdate(
         { _id: id, usuario: usuarioId },
-        data,
-        { returnDocument: "after" }
-    );
+        updateData,
+        { returnDocument: "after", runValidators: true }
+    ).populate("categoriaGrupo", "nombre");
 
     if (!categoriaActualizada) {
         throw new Error("Categoría no encontrada");
@@ -93,18 +103,31 @@ export const eliminarCategoriaService = async (id, usuarioId) => {
 export const crearCategoriaService = async (data, usuarioId) => {
     const categoriaExistente = await Categoria.findOne({
         usuario: usuarioId,
-        nombre: { $regex: new RegExp(`^${data.nombre}$`, 'i') }
-    });
+        nombre: { $regex: new RegExp(`^${data.nombre}$`, "i") }
+    }).populate("categoriaGrupo", "nombre");
+
     if (categoriaExistente) {
         return { categoria: categoriaExistente, existed: true };
     }
-    const nuevaCategoria = new Categoria({ ...data, usuario: usuarioId });
+
+    const nuevaCategoria = new Categoria({
+        nombre: data.nombre,
+        usuario: usuarioId,
+        categoriaGrupo: data.categoriaGrupo || null
+    });
+
     await nuevaCategoria.save();
+
+    await nuevaCategoria.populate("categoriaGrupo", "nombre");
+
     return { categoria: nuevaCategoria, existed: false };
 }
 
 export const obtenerCategoriasPorUsuarioService = async (usuarioId) => {
-    const categorias = await Categoria.find({ usuario: usuarioId });
+    const categorias = await Categoria.find({ usuario: usuarioId })
+        .populate("categoriaGrupo", "nombre")
+        .sort({ nombre: 1 });
+
     return categorias;
 }
 
