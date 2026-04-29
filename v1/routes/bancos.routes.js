@@ -4,7 +4,8 @@ import {
     obtenerBancoPorId,
     actualizarBanco,
     eliminarBanco,
-    crearBanco
+    crearBanco,
+    eliminarTodosLosBancos
 } from "../controllers/bancos.controller.js";
 import { bancoSchema } from "../validators/banco.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
@@ -17,5 +18,6 @@ router.get("/:id", obtenerBancoPorId)
 router.patch("/:id", validateBody(bancoSchema), actualizarBanco)
 router.post("/", validateBody(bancoSchema), crearBanco)
 router.delete("/:id", eliminarBanco)
+router.delete("/", eliminarTodosLosBancos)
 
 export default router;

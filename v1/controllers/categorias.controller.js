@@ -4,7 +4,8 @@ import {
     actualizarCategoriaService,
     crearCategoriaService,
     eliminarCategoriaService,
-    obtenerTotalesPorCategoriaService
+    obtenerTotalesPorCategoriaService,
+    eliminarTodosLasCategoriasService
 } from "../services/categoria.service.js";
 import { successResponse } from "../utils/apiResponse.js";
 
@@ -68,3 +69,12 @@ export const eliminarCategoria = async (req, res, next) => {
         next(error);
     }
 }
+
+export const eliminarTodosLasCategorias = async (req, res, next) => {
+    try {
+        await eliminarTodosLasCategoriasService(req.user.id);
+        successResponse(res, "Todas las categorias eliminadas exitosamente", null);
+    } catch (error) {
+        next(error);
+    }
+};

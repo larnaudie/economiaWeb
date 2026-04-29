@@ -4,6 +4,7 @@ import {
     actualizarCuentaService,
     crearCuentaService,
     eliminarCuentaService,
+    eliminarTodosLasCuentasService
 } from "../services/cuenta.service.js";
 import { successResponse } from "../utils/apiResponse.js";
 
@@ -51,6 +52,15 @@ export const eliminarCuenta = async (req, res, next) => {
         const { id } = req.params;
         const cuentaEliminada = await eliminarCuentaService(id, req.user.id);
         successResponse(res, `Cuenta ${cuentaEliminada.id} eliminada exitosamente`, cuentaEliminada);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const eliminarTodasLasCuentas = async (req, res, next) => {
+    try {
+        await eliminarTodosLasCuentasService(req.user.id);
+        successResponse(res, "Todas las cuentas eliminadas exitosamente", null);
     } catch (error) {
         next(error);
     }

@@ -1,7 +1,7 @@
 requireAuth();
 renderHeader({ title: "Cargar Excel" });
 
-  
+
 const importButton = document.getElementById("importButton");
 const fileInput = document.getElementById("fileInput");
 const importError = document.getElementById("importError");
@@ -57,7 +57,7 @@ window.addEventListener("click", (e) => {
 selectAllRows.addEventListener("change", (e) => {
     toggleSelectAllRows(e.target.checked);
 });
- 
+
 importButton.addEventListener("click", () => {
     fileInput.click();
 });
@@ -695,28 +695,26 @@ function aplicarCambiosATodos() {
 
     let filasActualizadas = 0;
 
-    importedRows.forEach((row) => {
-        if (row.created || !row.selected) return;
+    const filasObjetivo = importedRows.filter(row =>
+        !row.created &&
+        row.selected === true &&
+        row.isEditing === true
+    );
 
-        if (hayCategoria) {
-            row.categoria = categoria;
-        }
+    if (!filasObjetivo.length) {
+        bulkError.textContent = "No hay filas seleccionadas en modo edición.";
+        return;
+    }
 
-        if (hayCuenta) {
-            row.cuenta = cuenta;
-        }
+    filasObjetivo.forEach((row) => {
+        if (hayFecha) row.fecha = fecha;
+        if (hayDescripcion) row.descripcion = descripcion;
+        if (hayCategoria) row.categoria = categoria;
+        if (hayCuenta) row.cuenta = cuenta;
 
-        if (hayPorcentaje) {
-            row.porcentajeEconomiaReal = Number(porcentajeRaw);
-
-            if (Number(row.flujoBancario) === 0) {
-                row.porcentajeEconomiaReal = 0;
-            } else {
-                row.economiaReal = Number(
-                    (Number(row.flujoBancario) * (Number(porcentajeRaw) / 100)).toFixed(2)
-                );
-            }
-        }
+        if (hayFlujo) row.flujoBancario = Number(flujoRaw);
+        if (hayEconomia) row.economiaReal = Number(economiaRaw);
+        if (hayPorcentaje) row.porcentajeEconomiaReal = Number(porcentajeRaw);
 
         if (hayIncluirBancario) {
             row.incluirEnGastoBancario = incluirBancarioRaw === "true";
@@ -726,12 +724,17 @@ function aplicarCambiosATodos() {
             row.incluirEnGastoReal = incluirRealRaw === "true";
         }
 
-        if (Number(row.flujoBancario) === 0) {
-            row.incluirEnGastoBancario = false;
-        }
+        const flujo = Number(row.flujoBancario);
+        const porcentaje = Number(row.porcentajeEconomiaReal);
 
-        if (Number(row.economiaReal) === 0) {
-            row.incluirEnGastoReal = false;
+        if (flujo === 0) {
+            row.porcentajeEconomiaReal = 0;
+
+            if (!hayEconomia) {
+                row.economiaReal = Number(row.economiaReal) || 0;
+            }
+        } else if (!hayEconomia) {
+            row.economiaReal = Number((flujo * (porcentaje / 100)).toFixed(2));
         }
 
         filasActualizadas++;

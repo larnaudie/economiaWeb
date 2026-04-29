@@ -54,3 +54,7 @@ export const obtenerCuentasPorUsuarioService = async (usuarioId) => {
     const cuentas = await Cuenta.find({ usuario: usuarioId }).populate("banco");
     return cuentas;
 }
+
+export const eliminarTodosLasCuentasService = async () => {
+    await Cuenta.deleteMany({});
+}

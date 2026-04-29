@@ -107,3 +107,7 @@ export const obtenerCategoriasPorUsuarioService = async (usuarioId) => {
     const categorias = await Categoria.find({ usuario: usuarioId });
     return categorias;
 }
+
+export const eliminarTodosLasCategoriasService = async () => {
+    await Categoria.deleteMany({});
+}

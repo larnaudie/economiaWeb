@@ -5,7 +5,8 @@ import {
     eliminarGastoService,
     crearGastoService,
     crearGastosBulkService,
-    actualizarGastosBulkService
+    actualizarGastosBulkService,
+    eliminarTodosLosGastosService
 } from "../services/gasto.service.js";
 import { successResponse } from "../utils/apiResponse.js";
 
@@ -116,6 +117,15 @@ export const actualizarGastosBulk = async (req, res, next) => {
         });
 
         successResponse(res, "Gastos actualizados masivamente", resultado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const eliminarTodosLosGastos = async (req, res, next) => {
+    try {
+        await eliminarTodosLosGastosService(req.user.id);
+        successResponse(res, "Todos los gastos eliminados exitosamente", null);
     } catch (error) {
         next(error);
     }

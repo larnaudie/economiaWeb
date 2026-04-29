@@ -177,3 +177,7 @@ export const actualizarGastosBulkService = async ({ usuarioId, gastos }) => {
 
     return resultado;
 };
+
+export const eliminarTodosLosGastosService = async () => {
+    await Gasto.deleteMany({});
+}

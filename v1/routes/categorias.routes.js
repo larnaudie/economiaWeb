@@ -5,7 +5,8 @@ import {
     actualizarCategoria,
     crearCategoria,
     eliminarCategoria,
-    obtenerTotalesPorCategoria
+    obtenerTotalesPorCategoria,
+    eliminarTodosLasCategorias
 } from "../controllers/categorias.controller.js";
 import { categoriaSchema } from "../validators/categoria.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
@@ -19,5 +20,6 @@ router.get("/:id", obtenerCategoriaPorId)
 router.patch("/:id", validateBody(categoriaSchema), actualizarCategoria)
 router.post("/", validateBody(categoriaSchema), crearCategoria)
 router.delete("/:id", eliminarCategoria);
+router.delete("/", eliminarTodosLasCategorias);
 
 export default router;

@@ -8,7 +8,8 @@ import {
     obtenerBancosUsuario,
     obtenerCuentasUsuario,
     obtenerCategoriasUsuario,
-    obtenerGastosUsuario
+    obtenerGastosUsuario,
+    eliminarTodosLosUsuarios
 } from "../controllers/usuarios.controller.js";
 
 const router = express.Router({ mergeParams: true });
@@ -23,5 +24,6 @@ router.get("/me/categorias", obtenerCategoriasUsuario)
 router.get("/me/gastos", obtenerGastosUsuario)
 router.get("/:id", obtenerUsuarioPorId)
 router.patch("/:id", actualizarUsuario)
+router.delete("/", eliminarTodosLosUsuarios)
 
 export default router;

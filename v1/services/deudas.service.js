@@ -106,3 +106,7 @@ export const pagarCuotaDeudaService = async ({
     gasto
   };
 };
+
+export const eliminarTodosLasDeudasService = async () => {
+    await Deuda.deleteMany({});
+}
