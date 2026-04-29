@@ -261,7 +261,7 @@ async function cargarCategorias() {
 async function cargarCuentas() {
     const token = getToken();
     const data = await apiRequest("/cuentas", "GET", null, token);
-    cuentasCache = data.cuentas || [];
+    cuentasCache = getApiData(data);
     renderBulkCuentas();
 }
 
