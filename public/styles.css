@@ -570,7 +570,7 @@ progress::-webkit-progress-value {
   border-radius: 18px;
   padding: 1rem;
   box-shadow: var(--shadow);
-  min-height: 340px;
+  min-height: 430px;
 }
 
 .chart-card h3 {
@@ -581,7 +581,7 @@ progress::-webkit-progress-value {
 
 .chart-card canvas {
   width: 100% !important;
-  height: 260px !important;
+  height: 340px !important;
 }
 
 @media (max-width: 768px) {
