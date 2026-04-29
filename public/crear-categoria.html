@@ -19,7 +19,24 @@
             <h2>Mis Subcategorías</h2>
 
             <div class="inline-group" style="margin-bottom: 1rem;">
-                <button type="button" id="eliminarCategoriasSeleccionadasBtn">Eliminar Seleccionadas</button>
+                <div>
+                    <label for="bulkCategoriaGrupo">Categoría principal:</label>
+                    <select id="bulkCategoriaGrupo">
+                        <option value="">Sin categoría principal</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="button" id="aplicarBulkCategoriasGrupoBtn">
+                        Aplicar a seleccionadas
+                    </button>
+                </div>
+
+                <div>
+                    <button type="button" id="eliminarCategoriasSeleccionadasBtn">
+                        Eliminar Seleccionadas
+                    </button>
+                </div>
             </div>
 
             <div id="bulkCategoriasError" class="error"></div>

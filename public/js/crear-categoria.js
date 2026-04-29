@@ -18,6 +18,8 @@ const modalCategoriaNombre = document.getElementById("modalCategoriaNombre");
 const modalCategoriaError = document.getElementById("modalCategoriaError");
 
 const modalCategoriaGrupo = document.getElementById("modalCategoriaGrupo");
+const bulkCategoriaGrupo = document.getElementById("bulkCategoriaGrupo");
+const aplicarBulkCategoriasGrupoBtn = document.getElementById("aplicarBulkCategoriasGrupoBtn");
 
 let categoriasGrupoCache = [];
 let categoriasCache = [];
@@ -60,7 +62,7 @@ async function cargarCategoriasGrupo() {
 }
 
 function renderCategoriasGrupoSelect(selectedValue = "") {
-  modalCategoriaGrupo.innerHTML =
+  const options =
     '<option value="">Sin categoría principal</option>' +
     categoriasGrupoCache
       .map(grupo => `
@@ -69,6 +71,12 @@ function renderCategoriasGrupoSelect(selectedValue = "") {
         </option>
       `)
       .join("");
+
+  modalCategoriaGrupo.innerHTML = options;
+
+  if (bulkCategoriaGrupo) {
+    bulkCategoriaGrupo.innerHTML = options;
+  }
 }
 
 async function cargarCategoriasGrupo() {
@@ -135,6 +143,42 @@ function attachCategoriaEvents() {
       actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
     });
   });
+}
+
+async function aplicarBulkCategoriaGrupo() {
+  const authToken = getAuthToken();
+  if (!authToken) return;
+
+  bulkCategoriasError.textContent = "";
+  bulkCategoriasSuccess.textContent = "";
+
+  const seleccionadas = categoriasCache.filter(categoria => categoria.selected);
+
+  if (!seleccionadas.length) {
+    bulkCategoriasError.textContent = "No hay subcategorías seleccionadas.";
+    return;
+  }
+
+  const categoriaGrupo = bulkCategoriaGrupo.value || null;
+
+  try {
+    for (const categoria of seleccionadas) {
+      await apiRequest(
+        `/categorias/${categoria._id}`,
+        "PATCH",
+        {
+          nombre: categoria.nombre,
+          categoriaGrupo
+        },
+        authToken
+      );
+    }
+
+    bulkCategoriasSuccess.textContent = `Se actualizaron ${seleccionadas.length} subcategoría(s).`;
+    await cargarCategorias();
+  } catch (error) {
+    bulkCategoriasError.textContent = error.message || "Error al actualizar subcategorías.";
+  }
 }
 
 async function cargarCategorias() {
@@ -258,13 +302,27 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  const payload = {
+    nombre,
+    categoriaGrupo: modalCategoriaGrupo.value || null
+  };
+
   try {
-    await apiRequest("/categorias", "POST", payload, authToken);
+    const editingId = modalCategoriaForm.dataset.editingId;
+
+    if (editingId) {
+      await apiRequest(`/categorias/${editingId}`, "PATCH", payload, authToken);
+      delete modalCategoriaForm.dataset.editingId;
+    } else {
+      await apiRequest("/categorias", "POST", payload, authToken);
+    }
+
     modalCategoriaForm.reset();
+    renderCategoriasGrupoSelect();
     closeModal(categoriaModal);
     await cargarCategorias();
   } catch (error) {
-    modalCategoriaError.textContent = error.message || "Error al crear categoría";
+    modalCategoriaError.textContent = error.message || "Error al guardar subcategoría";
   }
 });
 
@@ -314,7 +372,7 @@ selectAllCategorias.addEventListener("change", (e) => {
 });
 
 eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas);
-
+aplicarBulkCategoriasGrupoBtn?.addEventListener("click", aplicarBulkCategoriaGrupo);
 
 window.editarCategoria = editarCategoria;
 window.eliminarCategoria = eliminarCategoria;

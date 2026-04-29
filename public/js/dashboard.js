@@ -1,5 +1,63 @@
+const modoFiltroDashboard = document.getElementById("modoFiltroDashboard");
+const mesDashboard = document.getElementById("mesDashboard");
+const anioDashboard = document.getElementById("anioDashboard");
+
+const grupoMesDashboard = document.getElementById("grupoMesDashboard");
+const grupoAnioDashboard = document.getElementById("grupoAnioDashboard");
+const grupoDesdeDashboard = document.getElementById("grupoDesdeDashboard");
+const grupoHastaDashboard = document.getElementById("grupoHastaDashboard");
+
 let gastosGlobal = [];
 let deudasGlobal = [];
+const tipoAgrupacionCategoria = document.getElementById("tipoAgrupacionCategoria");
+
+function actualizarVisibilidadFiltrosDashboard() {
+  const modo = modoFiltroDashboard.value;
+
+  if (modo === "todos") {
+    grupoMesDashboard.style.display = "none";
+    grupoAnioDashboard.style.display = "none";
+    grupoDesdeDashboard.style.display = "none";
+    grupoHastaDashboard.style.display = "none";
+    return;
+  }
+
+  grupoMesDashboard.style.display = modo === "mes" ? "" : "none";
+  grupoAnioDashboard.style.display = modo === "mes" ? "" : "none";
+
+  grupoDesdeDashboard.style.display = modo === "rango" ? "" : "none";
+  grupoHastaDashboard.style.display = modo === "rango" ? "" : "none";
+}
+
+function getGastosFiltradosDashboard() {
+  const modo = modoFiltroDashboard.value;
+
+  if (modo === "todos") {
+    return gastosGlobal;
+  }
+
+  if (modo === "mes") {
+    const mes = Number(mesDashboard.value);
+    const anio = Number(anioDashboard.value) || new Date().getUTCFullYear();
+
+    return gastosGlobal.filter(g => {
+      if (!g.fecha) return false;
+
+      const fecha = new Date(g.fecha);
+      return (
+        fecha.getUTCMonth() + 1 === mes &&
+        fecha.getUTCFullYear() === anio
+      );
+    });
+  }
+
+  if (modo === "rango") {
+    const { desde, hasta } = getRangoFechas();
+    return filtrarGastosPorFecha(gastosGlobal, desde, hasta);
+  }
+
+  return gastosGlobal;
+}
 
 async function cargarDashboard() {
   const token = getToken();
@@ -39,17 +97,10 @@ function filtrarUltimosDosMesesConDatos(gastos) {
 }
 
 function aplicarDashboard() {
-  const { desde, hasta } = getRangoFechas();
-
-  let gastos = gastosGlobal;
-
-  if (desde || hasta) {
-    gastos = filtrarGastosPorFecha(gastosGlobal, desde, hasta);
-  } else {
-    gastos = filtrarUltimosDosMesesConDatos(gastosGlobal);
-  }
+  const gastos = getGastosFiltradosDashboard();
 
   renderGastoRealPorCategoria(gastos);
+  renderGastoBancarioPorCategoria(gastos);
   renderBancarioVsReal(gastos);
   renderComparativoMensual(gastos);
   renderSaldoDeudas(deudasGlobal);
@@ -67,9 +118,6 @@ function filtrarMesActual(gastos) {
   });
 }
 
-document.getElementById("aplicarFiltroDashboard")
-  .addEventListener("click", aplicarDashboard);
-
 function esTransferenciaDashboard(gasto) {
   const categoria = String(gasto?.categoria?.nombre || "").toLowerCase();
   return categoria.includes("transf");
@@ -77,6 +125,7 @@ function esTransferenciaDashboard(gasto) {
 
 function renderGastoRealPorCategoria(gastos) {
   const acumulado = {};
+  const tipoAgrupacion = tipoAgrupacionCategoria?.value || "subcategoria";
 
   gastos.forEach(g => {
     if (esTransferenciaDashboard(g)) return;
@@ -85,12 +134,26 @@ function renderGastoRealPorCategoria(gastos) {
     const valor = Number(g.economiaReal) || 0;
     if (valor >= 0) return;
 
-    const categoria = g.categoria?.nombre || "Sin categoría";
-    acumulado[categoria] = (acumulado[categoria] || 0) + Math.abs(valor);
+    let nombreGrupo = "Sin categoría";
+
+    if (tipoAgrupacion === "categoriaPrincipal") {
+      nombreGrupo =
+        g.categoria?.categoriaGrupo?.nombre ||
+        "Sin categoría principal";
+    } else {
+      nombreGrupo =
+        g.categoria?.nombre ||
+        "Sin subcategoría";
+    }
+
+    acumulado[nombreGrupo] = (acumulado[nombreGrupo] || 0) + Math.abs(valor);
   });
 
-  const labels = Object.keys(acumulado);
-  const values = Object.values(acumulado).map(v => Number(v.toFixed(2)));
+  const entries = Object.entries(acumulado)
+    .sort((a, b) => b[1] - a[1]);
+
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => Number(e[1].toFixed(2)));
 
   crearChart("gastoRealCategoriaChart", "doughnut", {
     labels,
@@ -324,4 +387,67 @@ function renderLegend(containerId, labels, data) {
   `).join("");
 }
 
-document.addEventListener("DOMContentLoaded", cargarDashboard);
+function renderGastoBancarioPorCategoria(gastos) {
+  const acumulado = {};
+  const tipoAgrupacion = tipoAgrupacionCategoria?.value || "subcategoria";
+
+  gastos.forEach(g => {
+    if (esTransferenciaDashboard(g)) return;
+    if (g.incluirEnGastoBancario !== true) return;
+
+    const valor = Number(g.flujoBancario) || 0;
+    if (valor >= 0) return;
+
+    let nombreGrupo = "Sin categoría";
+
+    if (tipoAgrupacion === "categoriaPrincipal") {
+      nombreGrupo =
+        g.categoria?.categoriaGrupo?.nombre ||
+        "Sin categoría principal";
+    } else {
+      nombreGrupo =
+        g.categoria?.nombre ||
+        "Sin subcategoría";
+    }
+
+    acumulado[nombreGrupo] =
+      (acumulado[nombreGrupo] || 0) + Math.abs(valor);
+  });
+
+  const entries = Object.entries(acumulado)
+    .sort((a, b) => b[1] - a[1]);
+
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => Number(e[1].toFixed(2)));
+
+  crearChart("gastoBancarioCategoriaChart", "doughnut", {
+    labels,
+    datasets: [{
+      data: values
+    }]
+  }, {
+    cutout: "60%"
+  });
+
+  renderLegend("gastoBancarioCategoriaLegend", labels, values);
+}
+
+modoFiltroDashboard?.addEventListener("change", () => {
+  actualizarVisibilidadFiltrosDashboard();
+  aplicarDashboard();
+});
+
+document.getElementById("aplicarFiltroDashboard")
+  ?.addEventListener("click", aplicarDashboard);
+
+tipoAgrupacionCategoria?.addEventListener("change", aplicarDashboard);
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const now = new Date();
+
+  mesDashboard.value = String(now.getUTCMonth() + 1);
+  anioDashboard.value = now.getUTCFullYear();
+
+  actualizarVisibilidadFiltrosDashboard();
+  await cargarDashboard();
+});

@@ -42,6 +42,29 @@ export const obtenerGastosService = async (
                 as: "categoria"
             }
         },
+        { $unwind: { path: "$categoria", preserveNullAndEmptyArrays: true } },
+
+        {
+            $lookup: {
+                from: "categoriagrupos",
+                localField: "categoria.categoriaGrupo",
+                foreignField: "_id",
+                as: "categoriaGrupo"
+            }
+        },
+        { $unwind: { path: "$categoriaGrupo", preserveNullAndEmptyArrays: true } },
+
+        {
+            $addFields: {
+                "categoria.categoriaGrupo": "$categoriaGrupo"
+            }
+        },
+        {
+            $project: {
+                categoriaGrupo: 0
+            }
+        },
+
         {
             $lookup: {
                 from: "cuentas",
@@ -50,8 +73,8 @@ export const obtenerGastosService = async (
                 as: "cuenta"
             }
         },
-        { $unwind: { path: "$categoria", preserveNullAndEmptyArrays: true } },
         { $unwind: { path: "$cuenta", preserveNullAndEmptyArrays: true } },
+
         { $sort: { fecha: -1 } }
     );
 
@@ -68,30 +91,30 @@ export const obtenerGastoPorIdService = async (id) => {
 };
 
 export const actualizarGastoService = async ({ id, usuarioId, data }) => {
-  const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
+    const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
 
-  if (!gasto) {
-    throw new Error("Gasto no encontrado");
-  }
+    if (!gasto) {
+        throw new Error("Gasto no encontrado");
+    }
 
-  if (data.fecha !== undefined) gasto.fecha = data.fecha;
-  if (data.descripcion !== undefined) gasto.descripcion = data.descripcion;
-  if (data.flujoBancario !== undefined) gasto.flujoBancario = data.flujoBancario;
-  if (data.economiaReal !== undefined) gasto.economiaReal = data.economiaReal;
-  if (data.porcentajeEconomiaReal !== undefined) gasto.porcentajeEconomiaReal = data.porcentajeEconomiaReal;
-  if (data.categoria !== undefined) gasto.categoria = data.categoria;
-  if (data.cuenta !== undefined) gasto.cuenta = data.cuenta;
+    if (data.fecha !== undefined) gasto.fecha = data.fecha;
+    if (data.descripcion !== undefined) gasto.descripcion = data.descripcion;
+    if (data.flujoBancario !== undefined) gasto.flujoBancario = data.flujoBancario;
+    if (data.economiaReal !== undefined) gasto.economiaReal = data.economiaReal;
+    if (data.porcentajeEconomiaReal !== undefined) gasto.porcentajeEconomiaReal = data.porcentajeEconomiaReal;
+    if (data.categoria !== undefined) gasto.categoria = data.categoria;
+    if (data.cuenta !== undefined) gasto.cuenta = data.cuenta;
 
-  if (data.incluirEnGastoBancario !== undefined) {
-    gasto.incluirEnGastoBancario = data.incluirEnGastoBancario;
-  }
+    if (data.incluirEnGastoBancario !== undefined) {
+        gasto.incluirEnGastoBancario = data.incluirEnGastoBancario;
+    }
 
-  if (data.incluirEnGastoReal !== undefined) {
-    gasto.incluirEnGastoReal = data.incluirEnGastoReal;
-  }
+    if (data.incluirEnGastoReal !== undefined) {
+        gasto.incluirEnGastoReal = data.incluirEnGastoReal;
+    }
 
-  await gasto.save();
-  return gasto;
+    await gasto.save();
+    return gasto;
 };
 
 export const eliminarGastoService = async (id, usuarioId) => {

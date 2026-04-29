@@ -16,7 +16,7 @@
             <div class="inline-group">
                 <button type="button" id="openBancoModal">Crear Banco</button>
                 <button type="button" id="openCuentaModal">Crear Cuenta</button>
-                <button type="button" id="openCategoriaModal">Crear Categoría</button>
+                <button type="button" id="openCategoriaModal">Crear Subcategoría</button>
                 <button type="button" id="openGastoModal">Crear Gasto</button>
             </div>
         </section>
@@ -91,7 +91,7 @@
         </section>
 
         <section>
-            <h2>Mis Categorías</h2>
+            <h2>Mis Subcategorías</h2>
 
             <div class="inline-group" style="margin-bottom: 1rem;">
                 <button type="button" id="eliminarCategoriasSeleccionadasBtn">Eliminar Seleccionadas</button>
@@ -166,7 +166,7 @@
                 </div>
 
                 <div>
-                    <label for="filtroCategoriaGastos">Categoría:</label>
+                    <label for="filtroCategoriaGastos">Subcategoría:</label>
                     <select id="filtroCategoriaGastos">
                         <option value="">Todas</option>
                     </select>
@@ -229,7 +229,7 @@
                         <th>Fecha</th>
                         <th>Descripción</th>
                         <th>Cuenta</th>
-                        <th>Categoría</th>
+                        <th>Subcategoría</th>
                         <th>Gasto Bancario</th>
                         <th>% Gasto Real</th>
                         <th>Gasto Real</th>
@@ -298,7 +298,7 @@
         <div id="categoriaModal" class="modal hidden">
             <div class="modal-content">
                 <button class="close-modal" data-close="categoriaModal">&times;</button>
-                <h2>Nueva Categoría</h2>
+                <h2>Nueva Subcategoría</h2>
 
                 <form id="modalCategoriaForm">
                     <label for="modalCategoriaNombre">Nombre</label>
@@ -307,7 +307,7 @@
                     <div id="modalCategoriaError" class="error"></div>
 
                     <div class="modal-actions">
-                        <button type="submit">Guardar categoría</button>
+                        <button type="submit">Guardar Subcategoría</button>
                     </div>
                 </form>
             </div>
@@ -344,9 +344,9 @@
                         Incluir en Gasto Real
                     </label>
 
-                    <label for="modalGastoCategoria">Categoría</label>
+                    <label for="modalGastoCategoria">Subcategoría</label>
                     <select id="modalGastoCategoria" required>
-                        <option value="">Seleccionar categoría</option>
+                        <option value="">Seleccionar Subcategoría</option>
                     </select>
 
                     <label for="modalGastoCuenta">Cuenta</label>
@@ -386,9 +386,9 @@
                     <label for="editarGastoEconomia">Gasto Real</label>
                     <input type="number" id="editarGastoEconomia" step="0.01" readonly>
 
-                    <label for="editarGastoCategoria">Categoría</label>
+                    <label for="editarGastoCategoria">Subcategoría</label>
                     <select id="editarGastoCategoria" required>
-                        <option value="">Seleccionar categoría</option>
+                        <option value="">Seleccionar Subcategoría</option>
                     </select>
 
                     <label for="editarGastoCuenta">Cuenta</label>

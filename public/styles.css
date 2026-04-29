@@ -597,3 +597,20 @@ progress::-webkit-progress-value {
   justify-content: space-between;
   font-size: 0.9rem;
 }
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.chart-card-header h3 {
+  margin: 0;
+}
+
+.chart-card-header select {
+  min-width: 180px;
+}
