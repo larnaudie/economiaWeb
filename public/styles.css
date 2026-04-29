@@ -564,28 +564,36 @@ progress::-webkit-progress-value {
   gap: 1.25rem;
 }
 
-.chart-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1rem;
-  box-shadow: var(--shadow);
-  min-height: 430px;
-}
-
 .chart-card h3 {
   margin: 0 0 1rem;
   font-size: 1rem;
   color: #334155;
 }
 
+.chart-card {
+  position: relative;
+  min-height: 430px;
+}
+
 .chart-card canvas {
   width: 100% !important;
-  height: 340px !important;
+  max-height: 300px !important;
 }
 
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.chart-legend {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.legend-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
 }

@@ -28,6 +28,24 @@
                 <p>Seleccioná un banco para ver sus cuentas.</p>
             </div>
         </section>
+
+        <section>
+            <h2>Filtros</h2>
+
+            <div class="inline-group">
+                <div>
+                    <label>Desde:</label>
+                    <input type="date" id="filtroDesde">
+                </div>
+
+                <div>
+                    <label>Hasta:</label>
+                    <input type="date" id="filtroHasta">
+                </div>
+
+                <button id="aplicarFiltroDashboard">Aplicar</button>
+            </div>
+        </section>
         <section>
             <h2>Dashboard financiero</h2>
 
@@ -35,6 +53,7 @@
                 <div class="chart-card">
                     <h3>Gasto real por categoría</h3>
                     <canvas id="gastoRealCategoriaChart"></canvas>
+                    <div id="gastoRealCategoriaLegend" class="chart-legend"></div>
                 </div>
 
                 <div class="chart-card">
