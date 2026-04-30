@@ -2,7 +2,7 @@ requireAuth();
 renderHeader({ title: "Gestión de Creaciones" });;
 
 const token = getToken();
-  
+
 const gestionError = document.getElementById("gestionError");
 
 const prevGastosBtn = document.getElementById("prevGastosBtn");
@@ -58,6 +58,9 @@ const modalBancoNombre = document.getElementById("modalBancoNombre");
 const modalCuentaNombre = document.getElementById("modalCuentaNombre");
 const modalCuentaBanco = document.getElementById("modalCuentaBanco");
 const modalCategoriaNombre = document.getElementById("modalCategoriaNombre");
+const modalCategoriaGrupo = document.getElementById("modalCategoriaGrupo");
+const busquedaGastos = document.getElementById("busquedaGastos");
+let categoriasGrupoCache = [];
 
 const modalGastoFecha = document.getElementById("modalGastoFecha");
 const modalGastoDescripcion = document.getElementById("modalGastoDescripcion");
@@ -135,6 +138,30 @@ async function cargarCategorias() {
 
   const data = await apiRequest("/categorias", "GET", null, token);
   categoriasCache = getApiData(data);
+}
+
+async function cargarCategoriasGrupo() {
+  const token = getAuthToken();
+  if (!token) return;
+
+  const data = await apiRequest("/categorias-grupo", "GET", null, token);
+  categoriasGrupoCache = getApiData(data);
+
+  renderCategoriasGrupoSelect();
+}
+
+function renderCategoriasGrupoSelect(selectedValue = "") {
+  if (!modalCategoriaGrupo) return;
+
+  modalCategoriaGrupo.innerHTML =
+    '<option value="">Sin categoría principal</option>' +
+    categoriasGrupoCache
+      .map(grupo => `
+        <option value="${grupo._id}" ${selectedValue === grupo._id ? "selected" : ""}>
+          ${grupo.nombre}
+        </option>
+      `)
+      .join("");
 }
 
 function editarSeleccionadosGastos() {
@@ -241,7 +268,8 @@ function getFiltrosTodosLosGastos() {
       fechaDesde: "",
       fechaHasta: "",
       categoria: filtroCategoriaGastos.value,
-      cuenta: filtroCuentaGastos.value
+      cuenta: filtroCuentaGastos.value,
+      busqueda: busquedaGastos.value.trim()
     };
   }
 
@@ -257,7 +285,8 @@ function getFiltrosTodosLosGastos() {
     fechaDesde,
     fechaHasta,
     categoria: filtroCategoriaGastos.value,
-    cuenta: filtroCuentaGastos.value
+    cuenta: filtroCuentaGastos.value,
+    busqueda: busquedaGastos.value.trim()
   };
 }
 
@@ -356,7 +385,7 @@ async function calcularTotalPaginasGastos() {
   let pagina = 1;
   let seguir = true;
 
-  const { fechaDesde, fechaHasta, categoria, cuenta } = getFiltrosTodosLosGastos();
+  const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } = getFiltrosTodosLosGastos();
 
   while (seguir) {
     const params = new URLSearchParams();
@@ -365,7 +394,7 @@ async function calcularTotalPaginasGastos() {
     if (fechaDesde) params.set("fechaDesde", fechaDesde);
     if (fechaHasta) params.set("fechaHasta", fechaHasta);
     if (categoria) params.set("categoria", categoria);
-    if (cuenta) params.set("cuenta", cuenta);
+    if (busqueda) params.set("busqueda", busqueda);
 
     const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
     const gastosPagina = getApiData(data);
@@ -461,7 +490,7 @@ async function cargarGastosPaginados() {
   if (!authToken) return;
 
   try {
-    const { fechaDesde, fechaHasta, categoria, cuenta } = getFiltrosTodosLosGastos();
+    const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } = getFiltrosTodosLosGastos();
 
     const params = new URLSearchParams();
     params.set("pagina", paginaGastosActual);
@@ -470,6 +499,7 @@ async function cargarGastosPaginados() {
     if (fechaHasta) params.set("fechaHasta", fechaHasta);
     if (categoria) params.set("categoria", categoria);
     if (cuenta) params.set("cuenta", cuenta);
+    if (busqueda) params.set("busqueda", busqueda);
 
     const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
 
@@ -490,10 +520,11 @@ async function cargarListas() {
   if (!authToken) return;
 
   try {
-    const [bancos, cuentas, categorias] = await Promise.all([
+    const [bancos, cuentas, categorias, categoriasGrupo] = await Promise.all([
       apiRequest("/usuarios/me/bancos", "GET", null, authToken),
       apiRequest("/usuarios/me/cuentas", "GET", null, authToken),
-      apiRequest("/usuarios/me/categorias", "GET", null, authToken)
+      apiRequest("/usuarios/me/categorias", "GET", null, authToken),
+      apiRequest("/categorias-grupo", "GET", null, authToken)
     ]);
 
     bancosCache = (getApiData(bancos)).map(banco => ({
@@ -510,21 +541,26 @@ async function cargarListas() {
       ...categoria,
       selected: false
     }));
+    categoriasGrupoCache = getApiData(categoriasGrupo);
+    renderCategoriasGrupoSelect();
 
     renderTableRows({
       containerId: "bancosList",
       items: bancosCache,
-      colspan: 3,
-      renderItem: banco => `
-      <tr>
-        <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
-        <td>${banco.nombre}</td>
-        <td>
-          <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
-          <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
-        </td>
-      </tr>
-    `
+      colspan: 4,
+      renderItem: categoria => `
+  <tr>
+    <td>
+      <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
+    </td>
+    <td>${categoria.nombre}</td>
+    <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+    <td>
+      <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
+      <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+    </td>
+  </tr>
+`
     });
 
     renderTableRows({
@@ -597,19 +633,17 @@ function attachCategoriaEvents() {
   });
 }
 
-async function editarCategoria(id, nombreActual) {
-  const authToken = getAuthToken();
-  if (!authToken) return;
+async function editarCategoria(id) {
+  const categoria = categoriasCache.find(c => c._id === id);
+  if (!categoria) return;
 
-  const nuevoNombre = prompt("Nuevo nombre de la categoría:", nombreActual);
-  if (!nuevoNombre || !nuevoNombre.trim()) return;
+  modalCategoriaForm.dataset.editingId = categoria._id;
+  modalCategoriaNombre.value = categoria.nombre;
 
-  try {
-    await apiRequest(`/categorias/${id}`, "PATCH", { nombre: nuevoNombre.trim() }, authToken);
-    await cargarListas();
-  } catch (error) {
-    gestionError.textContent = error.message || "Error al editar categoría";
-  }
+  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  renderCategoriasGrupoSelect(grupoId);
+
+  openModal(categoriaModal);
 }
 
 async function eliminarCategoria(id) {
@@ -1249,19 +1283,33 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
   modalCategoriaError.textContent = "";
 
   const nombre = modalCategoriaNombre.value.trim();
+
   if (!nombre) {
     modalCategoriaError.textContent = "El nombre es obligatorio.";
     return;
   }
 
+  const payload = {
+    nombre,
+    categoriaGrupo: modalCategoriaGrupo.value || null
+  };
+
   try {
-    await apiRequest("/categorias", "POST", { nombre }, authToken);
+    const editingId = modalCategoriaForm.dataset.editingId;
+
+    if (editingId) {
+      await apiRequest(`/categorias/${editingId}`, "PATCH", payload, authToken);
+      delete modalCategoriaForm.dataset.editingId;
+    } else {
+      await apiRequest("/categorias", "POST", payload, authToken);
+    }
+
     modalCategoriaForm.reset();
+    renderCategoriasGrupoSelect();
     closeModal(categoriaModal);
     await cargarListas();
-    await cargarRecursosBulk();
   } catch (error) {
-    modalCategoriaError.textContent = error.message || "Error al crear categoría";
+    modalCategoriaError.textContent = error.message || "Error al guardar subcategoría";
   }
 });
 
@@ -1408,7 +1456,7 @@ eliminarCuentasSeleccionadasBtn.addEventListener("click", eliminarCuentasSelecci
 //aplicarBulkGastosBtn.addEventListener("click", aplicarBulkGastos);
 eliminarGastosSeleccionadosBtn.addEventListener("click", eliminarGastosSeleccionados);
 
- 
+
 
 window.editarBanco = editarBanco;
 window.eliminarBanco = eliminarBanco;
@@ -1464,7 +1512,9 @@ openCuentaModalBtn.addEventListener("click", async () => {
 });
 
 openCategoriaModalBtn.addEventListener("click", () => {
-  modalCategoriaError.textContent = "";
+  delete modalCategoriaForm.dataset.editingId;
+  modalCategoriaForm.reset();
+  renderCategoriasGrupoSelect();
   openModal(categoriaModal);
 });
 

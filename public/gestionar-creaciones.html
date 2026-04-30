@@ -37,12 +37,13 @@
                             <input type="checkbox" id="selectAllBancos">
                         </th>
                         <th>Nombre</th>
+                        <th>Categoría principal</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="bancosList">
                     <tr>
-                        <td colspan="3">No hay elementos registrados.</td>
+                        <td colspan="4">No hay elementos registrados.</td>
                     </tr>
                 </tbody>
             </table>
@@ -177,6 +178,10 @@
                     <select id="filtroCuentaGastos">
                         <option value="">Todas</option>
                     </select>
+                    <div>
+                        <label for="busquedaGastos">Buscar descripción:</label>
+                        <input type="text" id="busquedaGastos" placeholder="Ej: supermercado">
+                    </div>
                 </div>
 
                 <div>
@@ -301,8 +306,10 @@
                 <h2>Nueva Subcategoría</h2>
 
                 <form id="modalCategoriaForm">
-                    <label for="modalCategoriaNombre">Nombre</label>
-                    <input type="text" id="modalCategoriaNombre" required placeholder="Ej: Supermercado">
+                    <label for="modalCategoriaGrupo">Categoría principal</label>
+                    <select id="modalCategoriaGrupo">
+                        <option value="">Sin categoría principal</option>
+                    </select>
 
                     <div id="modalCategoriaError" class="error"></div>
 

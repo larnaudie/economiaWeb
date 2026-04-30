@@ -225,6 +225,8 @@ function editarCategoria(id) {
 
   modalCategoriaForm.dataset.editingId = categoria._id;
   modalCategoriaNombre.value = categoria.nombre;
+  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  renderCategoriasGrupoSelect(grupoId);
 
   const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
   renderCategoriasGrupoSelect(grupoId);
