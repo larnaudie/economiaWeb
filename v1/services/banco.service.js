@@ -47,3 +47,7 @@ export const obtenerBancosPorUsuarioService = async (usuarioId) => {
     const bancos = await Banco.find({ usuario: usuarioId });
     return bancos;
 }
+
+export const eliminarTodosLosBancosService = async () => {
+    await Banco.deleteMany({});
+}

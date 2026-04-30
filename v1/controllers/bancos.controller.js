@@ -3,7 +3,8 @@ import {
     obtenerBancoPorIdService,
     actualizarBancoService,
     crearBancoService,
-    eliminarBancoService
+    eliminarBancoService,
+    eliminarTodosLosBancosService
 } from "../services/banco.service.js";
 import { successResponse } from "../utils/apiResponse.js";
 
@@ -50,6 +51,15 @@ export const eliminarBanco = async (req, res, next) => {
         const { id } = req.params;
         const bancoEliminado = await eliminarBancoService(id, req.user.id);
         successResponse(res, `Banco ${bancoEliminado.id} eliminado exitosamente`, bancoEliminado);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const eliminarTodosLosBancos = async (req, res, next) => {
+    try {
+        await eliminarTodosLosBancosService(req.user.id);
+        successResponse(res, "Todos los bancos eliminados exitosamente", null);
     } catch (error) {
         next(error);
     }

@@ -24,3 +24,7 @@ export const actualizarUsuarioService = async (id, data) => {
     const usuarioActualizado = await Usuario.findByIdAndUpdate(id, data, { returnDocument: "after" });
     return usuarioActualizado;
 }
+
+export const eliminarTodosLosUsuariosService = async () => {
+    await Usuario.deleteMany({});
+}

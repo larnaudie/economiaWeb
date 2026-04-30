@@ -5,7 +5,8 @@ import {
   obtenerDeudaPorId,
   actualizarDeuda,
   eliminarDeuda,
-  pagarCuotaDeuda
+  pagarCuotaDeuda,
+  eliminarTodosLasDeudas
 } from "../controllers/deudas.controller.js";
 
 import { validateBody } from "../middlewares/validateBody.middleware.js";
@@ -18,6 +19,7 @@ router.get("/", obtenerDeudas);
 router.get("/:id", obtenerDeudaPorId);
 router.patch("/:id", validateBody(deudaSchema), actualizarDeuda);
 router.delete("/:id", eliminarDeuda);
+router.delete("/eliminar-todo", eliminarTodosLasDeudas);
 
 router.post("/:id/pagar-cuota", pagarCuotaDeuda);
 

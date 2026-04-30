@@ -10,6 +10,11 @@ const categoriaSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
         required: true
+    },
+    categoriaGrupo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "CategoriaGrupo",
+        default: null
     }
 });
 

@@ -3,7 +3,8 @@ import {
     obtenerUsuariosService,
     actualizarUsuarioService,
     obtenerUsuarioActualService,
-    actualizarUsuarioActualService
+    actualizarUsuarioActualService,
+    eliminarTodosLosUsuariosService
 } from "../services/usuario.service.js";
 import { obtenerBancosPorUsuarioService } from "../services/banco.service.js";
 import { obtenerCuentasPorUsuarioService } from "../services/cuenta.service.js";
@@ -125,3 +126,12 @@ export const actualizarUsuario = async (req, res, next) => {
         next(error);
     }
 }
+
+export const eliminarTodosLosUsuarios = async (req, res, next) => {
+    try {
+        await eliminarTodosLosUsuariosService(req.user.id);
+        successResponse(res, "Todos los usuarios eliminados exitosamente", null);
+    } catch (error) {
+        next(error);
+    }
+};

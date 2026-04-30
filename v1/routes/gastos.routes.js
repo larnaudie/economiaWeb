@@ -6,7 +6,8 @@ import {
     eliminarGasto,
     crearGasto,
     crearGastosBulk,
-    actualizarGastosBulk
+    actualizarGastosBulk,
+    eliminarTodosLosGastos
 } from "../controllers/gastos.controller.js";
 import {
     gastoSchema,
@@ -26,5 +27,5 @@ router.post("/", validateBody(gastoSchema), crearGasto)
 router.delete("/:id", eliminarGasto)
 router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
 router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
-
+router.delete("/eliminar-todo", eliminarTodosLosGastos);
 export default router;

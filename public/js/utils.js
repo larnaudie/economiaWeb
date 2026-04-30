@@ -87,3 +87,8 @@ function updateSelectAllState(items, checkbox, filterFn = () => true) {
   checkbox.indeterminate =
     seleccionados.length > 0 && seleccionados.length < visibles.length;
 }
+
+function formatMoney(value) {
+  const num = Number(value) || 0;
+  return num.toFixed(2);
+}

@@ -1,7 +1,7 @@
 requireAuth();
 renderHeader({ title: "Cargar Excel Personal" });
 
-  
+
 const importButton = document.getElementById("importButton");
 const fileInput = document.getElementById("fileInput");
 const importError = document.getElementById("importError");
@@ -41,7 +41,7 @@ let cuentasCache = [];
 let importedRows = [];
 
 vaciarTablaButton.addEventListener("click", vaciarTabla);
- 
+
 importButton.addEventListener("click", () => fileInput.click());
 crearTodosButton.addEventListener("click", crearTodosLosGastos);
 aplicarTodosButton.addEventListener("click", aplicarCambiosATodos);
@@ -261,7 +261,7 @@ async function cargarCategorias() {
 async function cargarCuentas() {
     const token = getToken();
     const data = await apiRequest("/cuentas", "GET", null, token);
-    cuentasCache = data.cuentas || [];
+    cuentasCache = getApiData(data);
     renderBulkCuentas();
 }
 
@@ -972,8 +972,18 @@ function aplicarCambiosATodos() {
 
     let filasActualizadas = 0;
 
-    importedRows.forEach((row) => {
-        if (row.created || !row.selected) return;
+    const filasObjetivo = importedRows.filter((row) =>
+        !row.created &&
+        row.selected === true &&
+        row.isEditing === true
+    );
+
+    if (!filasObjetivo.length) {
+        bulkError.textContent = "No hay filas seleccionadas en modo edición.";
+        return;
+    }
+
+    filasObjetivo.forEach((row) => {
 
         if (hayFecha) row.fecha = fecha;
         if (hayDescripcion) row.descripcion = descripcion;

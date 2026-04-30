@@ -1,9 +1,9 @@
 requireAuth();
-renderHeader({ title: "Crear Categoría" });;
+renderHeader({ title: "Crear Subategoría" });;
 
 const token = getToken();
 
-  
+
 const gestionError = document.getElementById("gestionError");
 
 const selectAllCategorias = document.getElementById("selectAllCategorias");
@@ -17,6 +17,11 @@ const modalCategoriaForm = document.getElementById("modalCategoriaForm");
 const modalCategoriaNombre = document.getElementById("modalCategoriaNombre");
 const modalCategoriaError = document.getElementById("modalCategoriaError");
 
+const modalCategoriaGrupo = document.getElementById("modalCategoriaGrupo");
+const bulkCategoriaGrupo = document.getElementById("bulkCategoriaGrupo");
+const aplicarBulkCategoriasGrupoBtn = document.getElementById("aplicarBulkCategoriasGrupoBtn");
+
+let categoriasGrupoCache = [];
 let categoriasCache = [];
 
 function getAuthToken() {
@@ -44,6 +49,54 @@ function renderList(containerId, items, renderItem) {
   }
 
   container.innerHTML = items.map(renderItem).join("");
+}
+
+async function cargarCategoriasGrupo() {
+  const authToken = getAuthToken();
+  if (!authToken) return;
+
+  const data = await apiRequest("/categorias-grupo", "GET", null, authToken);
+  categoriasGrupoCache = getApiData(data);
+
+  renderCategoriasGrupoSelect();
+}
+
+function renderCategoriasGrupoSelect(selectedValue = "") {
+  const options =
+    '<option value="">Sin categoría principal</option>' +
+    categoriasGrupoCache
+      .map(grupo => `
+        <option value="${grupo._id}" ${selectedValue === grupo._id ? "selected" : ""}>
+          ${grupo.nombre}
+        </option>
+      `)
+      .join("");
+
+  modalCategoriaGrupo.innerHTML = options;
+
+  if (bulkCategoriaGrupo) {
+    bulkCategoriaGrupo.innerHTML = options;
+  }
+}
+
+async function cargarCategoriasGrupo() {
+  const authToken = getAuthToken();
+  if (!authToken) return;
+
+  const data = await apiRequest("/categorias-grupo", "GET", null, authToken);
+  categoriasGrupoCache = getApiData(data);
+
+  renderCategoriasGrupoSelect();
+}
+
+async function cargarCategoriasGrupo() {
+  const authToken = getAuthToken();
+  if (!authToken) return;
+
+  const data = await apiRequest("/categorias-grupo", "GET", null, authToken);
+  categoriasGrupoCache = getApiData(data);
+
+  renderCategoriasGrupoSelect();
 }
 
 function escapeQuotes(value) {
@@ -92,6 +145,42 @@ function attachCategoriaEvents() {
   });
 }
 
+async function aplicarBulkCategoriaGrupo() {
+  const authToken = getAuthToken();
+  if (!authToken) return;
+
+  bulkCategoriasError.textContent = "";
+  bulkCategoriasSuccess.textContent = "";
+
+  const seleccionadas = categoriasCache.filter(categoria => categoria.selected);
+
+  if (!seleccionadas.length) {
+    bulkCategoriasError.textContent = "No hay subcategorías seleccionadas.";
+    return;
+  }
+
+  const categoriaGrupo = bulkCategoriaGrupo.value || null;
+
+  try {
+    for (const categoria of seleccionadas) {
+      await apiRequest(
+        `/categorias/${categoria._id}`,
+        "PATCH",
+        {
+          nombre: categoria.nombre,
+          categoriaGrupo
+        },
+        authToken
+      );
+    }
+
+    bulkCategoriasSuccess.textContent = `Se actualizaron ${seleccionadas.length} subcategoría(s).`;
+    await cargarCategorias();
+  } catch (error) {
+    bulkCategoriasError.textContent = error.message || "Error al actualizar subcategorías.";
+  }
+}
+
 async function cargarCategorias() {
   const authToken = getAuthToken();
   if (!authToken) return;
@@ -107,19 +196,20 @@ async function cargarCategorias() {
     renderTableRows({
       containerId: "categoriasList",
       items: categoriasCache,
-      colspan: 3,
+      colspan: 4,
       renderItem: categoria => `
-      <tr>
-        <td>
-          <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
-        </td>
-        <td>${categoria.nombre}</td>
-        <td>
-          <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
-          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
-        </td>
-      </tr>
-    `
+  <tr>
+    <td>
+      <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
+    </td>
+    <td>${categoria.nombre}</td>
+    <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+    <td>
+      <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
+      <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+    </td>
+  </tr>
+`
     });
 
     actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
@@ -129,19 +219,19 @@ async function cargarCategorias() {
   }
 }
 
-async function editarCategoria(id, nombreActual) {
-  const authToken = getAuthToken();
-  if (!authToken) return;
+function editarCategoria(id) {
+  const categoria = categoriasCache.find(c => c._id === id);
+  if (!categoria) return;
 
-  const nuevoNombre = prompt("Nuevo nombre de la categoría:", nombreActual);
-  if (!nuevoNombre || !nuevoNombre.trim()) return;
+  modalCategoriaForm.dataset.editingId = categoria._id;
+  modalCategoriaNombre.value = categoria.nombre;
+  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  renderCategoriasGrupoSelect(grupoId);
 
-  try {
-    await apiRequest(`/categorias/${id}`, "PATCH", { nombre: nuevoNombre.trim() }, authToken);
-    await cargarCategorias();
-  } catch (error) {
-    gestionError.textContent = error.message || "Error al editar categoría";
-  }
+  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  renderCategoriasGrupoSelect(grupoId);
+
+  openModal(categoriaModal);
 }
 
 async function eliminarCategoria(id) {
@@ -214,18 +304,33 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  const payload = {
+    nombre,
+    categoriaGrupo: modalCategoriaGrupo.value || null
+  };
+
   try {
-    await apiRequest("/categorias", "POST", { nombre }, authToken);
+    const editingId = modalCategoriaForm.dataset.editingId;
+
+    if (editingId) {
+      await apiRequest(`/categorias/${editingId}`, "PATCH", payload, authToken);
+      delete modalCategoriaForm.dataset.editingId;
+    } else {
+      await apiRequest("/categorias", "POST", payload, authToken);
+    }
+
     modalCategoriaForm.reset();
+    renderCategoriasGrupoSelect();
     closeModal(categoriaModal);
     await cargarCategorias();
   } catch (error) {
-    modalCategoriaError.textContent = error.message || "Error al crear categoría";
+    modalCategoriaError.textContent = error.message || "Error al guardar subcategoría";
   }
 });
 
 openCategoriaModalBtn.addEventListener("click", () => {
-  modalCategoriaError.textContent = "";
+  modalCategoriaForm.reset();
+  renderCategoriasGrupoSelect();
   openModal(categoriaModal);
 });
 
@@ -257,7 +362,7 @@ selectAllCategorias.addEventListener("change", (e) => {
       </td>
       <td>${categoria.nombre}</td>
       <td>
-        <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
+        <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
         <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
       </td>
     </tr>
@@ -269,11 +374,12 @@ selectAllCategorias.addEventListener("change", (e) => {
 });
 
 eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas);
- 
+aplicarBulkCategoriasGrupoBtn?.addEventListener("click", aplicarBulkCategoriaGrupo);
 
 window.editarCategoria = editarCategoria;
 window.eliminarCategoria = eliminarCategoria;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await cargarCategoriasGrupo();
   await cargarCategorias();
 });

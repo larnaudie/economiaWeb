@@ -13,6 +13,7 @@ if (!cuentaId || cuentaId === "undefined" || cuentaId === "null") {
 }
 const modoFiltroGastosCuenta = document.getElementById("modoFiltroGastosCuenta");
 const categoriaGastosCuenta = document.getElementById("categoriaGastosCuenta");
+const busquedaGastosCuenta = document.getElementById("busquedaGastosCuenta");
 const mesGastosCuenta = document.getElementById("mesGastosCuenta");
 const anioGastosCuenta = document.getElementById("anioGastosCuenta");
 const desdeGastosCuenta = document.getElementById("desdeGastosCuenta");
@@ -105,6 +106,9 @@ async function calcularTotalPaginasGastosCuenta() {
     if (fechaDesde) params.set("fechaDesde", fechaDesde);
     if (fechaHasta) params.set("fechaHasta", fechaHasta);
     if (categoriaGastosCuenta.value) params.set("categoria", categoriaGastosCuenta.value);
+    if (busquedaGastosCuenta?.value.trim()) {
+      params.set("busqueda", busquedaGastosCuenta.value.trim());
+    }
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
     const gastosPagina = getApiData(data);
@@ -137,6 +141,9 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
     if (fechaDesde) params.set("fechaDesde", fechaDesde);
     if (fechaHasta) params.set("fechaHasta", fechaHasta);
     if (categoriaGastosCuenta.value) params.set("categoria", categoriaGastosCuenta.value);
+    if (busquedaGastosCuenta?.value.trim()) {
+      params.set("busqueda", busquedaGastosCuenta.value.trim());
+    }
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
     const gastosPagina = getApiData(data);
@@ -179,9 +186,9 @@ function renderResumenTotalesCuenta(gastos) {
     }
   });
 
-  document.getElementById("gastoBancarioTotal").textContent = gastoBancario.toFixed(2);
-  document.getElementById("gastoRealTotal").textContent = gastoReal.toFixed(2);
-  document.getElementById("saldoBancarioTotal").textContent = saldoBancario.toFixed(2);
+  document.getElementById("gastoBancarioTotal").textContent = formatMoney(gastoBancario)
+  document.getElementById("gastoRealTotal").textContent = formatMoney(gastoReal);
+  document.getElementById("saldoBancarioTotal").textContent = formatMoney(saldoBancario);
 }
 
 function obtenerGastosParaDesglose(tipo) {
@@ -236,8 +243,8 @@ function renderDesgloseGastosCuenta(tipo) {
         <td>${g.fecha ? formatFechaUTC(g.fecha) : "N/A"}</td>
         <td>${g.descripcion || "N/A"}</td>
         <td>${g.categoria?.nombre || "Sin categoría"}</td>
-        <td>${monto.toFixed(2)}</td>
-        <td>${acumulado.toFixed(2)}</td>
+        <td>${formatMoney(monto)}</td>
+        <td>${formatMoney(acumulado)}</td>
         <td>
           <button type="button" onclick="editarGastoCuenta('${g._id}')">Editar</button>
           <button type="button" onclick="eliminarGastoCuenta('${g._id}')">Eliminar</button>
@@ -411,7 +418,7 @@ function renderTotalesCategoriasCuenta(gastos) {
   body.innerHTML = filas.map(f => `
     <tr>
       <td>${f.nombre}</td>
-      <td>${f.total.toFixed(2)}</td>
+      <td>${formatMoney(f.total)}</td>
     </tr>
   `).join("");
 }
@@ -586,6 +593,9 @@ async function cargarGastosCuenta() {
     if (fechaDesde) params.set("fechaDesde", fechaDesde);
     if (fechaHasta) params.set("fechaHasta", fechaHasta);
     if (categoriaGastosCuenta.value) params.set("categoria", categoriaGastosCuenta.value);
+    if (busquedaGastosCuenta?.value.trim()) {
+      params.set("busqueda", busquedaGastosCuenta.value.trim());
+    }
 
     const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, token);
 
@@ -633,7 +643,7 @@ function attachGastosCuentaEvents() {
     row.querySelector(".row-flujo")?.addEventListener("input", e => {
       gasto.flujoBancario = Number(e.target.value);
 
-      if (Number(gasto.flujoBancario) === 0) {
+      if (Number(formatMoney(gasto.flujoBancario)) === 0) {
         gasto.incluirEnGastoBancario = false;
       }
 
@@ -645,9 +655,9 @@ function attachGastosCuentaEvents() {
     });
 
     row.querySelector(".row-economia")?.addEventListener("input", e => {
-      gasto.economiaReal = Number(e.target.value);
+      gasto.economiaReal = formatMoney(Number(e.target.value));
 
-      if (Number(gasto.economiaReal) === 0) {
+      if (Number(formatMoney(gasto.economiaReal)) === 0) {
         gasto.incluirEnGastoReal = false;
       }
 
@@ -659,7 +669,7 @@ function attachGastosCuentaEvents() {
     });
 
     row.querySelector(".row-incluir-bancario")?.addEventListener("change", e => {
-      gasto.incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
+      gasto.incluirEnGastoBancario = Number(formatMoney(gasto.flujoBancario)) !== 0
         ? e.target.checked
         : false;
 
@@ -672,7 +682,7 @@ function attachGastosCuentaEvents() {
     });
 
     row.querySelector(".row-incluir-real")?.addEventListener("change", e => {
-      gasto.incluirEnGastoReal = Number(gasto.economiaReal) !== 0
+      gasto.incluirEnGastoReal = Number(formatMoney(gasto.economiaReal)) !== 0
         ? e.target.checked
         : false;
 
@@ -697,11 +707,11 @@ async function guardarFilaGastoCuenta(id) {
   const gasto = gastosCuentaCache.find(g => g._id === id);
   if (!gasto) return;
 
-  const incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
+  const incluirEnGastoBancario = Number(formatMoney(gasto.flujoBancario)) !== 0
     ? gasto.incluirEnGastoBancario
     : false;
 
-  const incluirEnGastoReal = Number(gasto.economiaReal) !== 0
+  const incluirEnGastoReal = Number(formatMoney(gasto.economiaReal)) !== 0
     ? gasto.incluirEnGastoReal
     : false;
 
@@ -712,9 +722,9 @@ async function guardarFilaGastoCuenta(id) {
       {
         fecha: gasto.fecha,
         descripcion: String(gasto.descripcion || "").trim(),
-        flujoBancario: Number(gasto.flujoBancario),
+        flujoBancario: Number(formatMoney(gasto.flujoBancario)),
         porcentajeEconomiaReal: Number(gasto.porcentajeEconomiaReal),
-        economiaReal: Number(gasto.economiaReal),
+        economiaReal: Number(formatMoney(gasto.economiaReal)),
         categoria: gasto.categoria?._id || gasto.categoria,
         cuenta: cuentaId,
         incluirEnGastoBancario,
@@ -815,7 +825,7 @@ function actualizarEconomiaEditarGastoCuenta() {
     return;
   }
 
-  editarGastoCuentaEconomia.value = (flujo * (porcentaje / 100)).toFixed(2);
+  editarGastoCuentaEconomia.value = formatMoney(flujo * (porcentaje / 100));
 }
 
 async function editarGastoCuenta(id) {
@@ -833,7 +843,7 @@ async function editarGastoCuenta(id) {
   editarGastoCuentaDescripcion.value = gasto.descripcion || "";
   editarGastoCuentaFlujo.value = gasto.flujoBancario ?? "";
   editarGastoCuentaPorcentaje.value = gasto.porcentajeEconomiaReal ?? 0;
-  editarGastoCuentaEconomia.value = gasto.economiaReal ?? 0;
+  editarGastoCuentaEconomia.value = formatMoney(gasto.economiaReal) ?? 0;
   editarGastoCuentaCategoria.value = gasto.categoria?._id || gasto.categoria || "";
 
   openModal(editarGastoCuentaModal);
@@ -969,15 +979,15 @@ async function aplicarBulkGastosCuenta() {
   for (const gasto of seleccionados) {
     try {
       let nuevoPorcentaje = Number(gasto.porcentajeEconomiaReal);
-      let nuevaEconomia = Number(gasto.economiaReal);
+      let nuevaEconomia = Number(formatMoney(gasto.economiaReal));
 
       if (hayPorcentaje) {
-        if (Number(gasto.flujoBancario) === 0) {
+        if (Number(formatMoney(gasto.flujoBancario)) === 0) {
           nuevoPorcentaje = 0;
-          nuevaEconomia = Number(gasto.economiaReal); // mantener valor original
+          nuevaEconomia = Number(formatMoney(gasto.economiaReal)); // mantener valor original
         } else {
           nuevoPorcentaje = Number(porcentajeRaw);
-          nuevaEconomia = Number((Number(gasto.flujoBancario) * (nuevoPorcentaje / 100)).toFixed(2));
+          nuevaEconomia = Number((Number(formatMoney(gasto.flujoBancario)) * (nuevoPorcentaje / 100)).toFixed(2));
         }
       }
 
@@ -987,7 +997,7 @@ async function aplicarBulkGastosCuenta() {
         {
           fecha: new Date(gasto.fecha).toISOString().slice(0, 10),
           descripcion: gasto.descripcion,
-          flujoBancario: Number(gasto.flujoBancario),
+          flujoBancario: Number(formatMoney(gasto.flujoBancario)),
           porcentajeEconomiaReal: nuevoPorcentaje,
           economiaReal: nuevaEconomia,
           categoria: hayCategoria ? categoria : (gasto.categoria?._id || gasto.categoria),

@@ -4,7 +4,8 @@ import {
     obtenerCuentaPorId,
     actualizarCuenta,
     eliminarCuenta,
-    crearCuenta
+    crearCuenta,
+    eliminarTodasLasCuentas
 } from "../controllers/cuentas.controller.js";
 import { cuentaSchema,cuentaUpdateSchema  } from "../validators/cuenta.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
@@ -17,5 +18,6 @@ router.get("/:id", obtenerCuentaPorId)
 router.patch("/:id", validateBody(cuentaUpdateSchema), actualizarCuenta);
 router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.delete("/:id", eliminarCuenta)
+router.delete("/eliminar-todo", eliminarTodasLasCuentas);
 
 export default router;

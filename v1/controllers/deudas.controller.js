@@ -4,7 +4,8 @@ import {
   obtenerDeudaPorIdService,
   actualizarDeudaService,
   eliminarDeudaService,
-  pagarCuotaDeudaService
+  pagarCuotaDeudaService,
+  eliminarTodosLasDeudasService
 } from "../services/deudas.service.js";
 
 import { successResponse } from "../utils/apiResponse.js";
@@ -86,4 +87,13 @@ export const pagarCuotaDeuda = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const eliminarTodosLasDeudas = async (req, res, next) => {
+    try {
+        await eliminarTodosLasDeudasService(req.user.id);
+        successResponse(res, "Todas las deudas eliminadas exitosamente", null);
+    } catch (error) {
+        next(error);
+    }
 };
