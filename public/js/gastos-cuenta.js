@@ -1,5 +1,20 @@
 requireAuth();
 renderHeader({ title: "Gastos por Cuenta" });
+const crearGastoCuentaForm = document.getElementById("crearGastoCuentaForm");
+const crearGastoFecha = document.getElementById("crearGastoFecha");
+const crearGastoDescripcion = document.getElementById("crearGastoDescripcion");
+const crearGastoFlujo = document.getElementById("crearGastoFlujo");
+const crearGastoPorcentaje = document.getElementById("crearGastoPorcentaje");
+const crearGastoEconomia = document.getElementById("crearGastoEconomia");
+
+const crearGastoCategoria = document.getElementById("crearGastoCategoria");
+
+const crearGastoIncluirBancario = document.getElementById(
+  "crearGastoIncluirBancario",
+);
+const crearGastoIncluirReal = document.getElementById("crearGastoIncluirReal");
+
+const crearGastoError = document.getElementById("crearGastoError");
 const ordenGastosCuenta = document.getElementById("ordenGastosCuenta");
 const params = new URLSearchParams(window.location.search);
 const cuentaId = params.get("cuenta");
@@ -81,6 +96,15 @@ const bulkCategoriaGastosCuenta = document.getElementById(
 const bulkPorcentajeGastosCuenta = document.getElementById(
   "bulkPorcentajeGastosCuenta",
 );
+
+const bulkIncluirBancarioGastosCuenta = document.getElementById(
+  "bulkIncluirBancarioGastosCuenta",
+);
+
+const bulkIncluirRealGastosCuenta = document.getElementById(
+  "bulkIncluirRealGastosCuenta",
+);
+
 const aplicarBulkGastosCuentaBtn = document.getElementById(
   "aplicarBulkGastosCuentaBtn",
 );
@@ -149,6 +173,22 @@ const desgloseGastosCuentaBody = document.getElementById(
   "desgloseGastosCuentaBody",
 );
 
+const categoriaFiltroDesglose = document.getElementById(
+  "categoriaFiltroDesglose",
+);
+
+const busquedaFiltroDesglose = document.getElementById(
+  "busquedaFiltroDesglose",
+);
+
+const ordenDesgloseCuenta = document.getElementById("ordenDesgloseCuenta");
+
+const filtrarDesgloseBtn = document.getElementById("filtrarDesgloseBtn");
+
+const limpiarFiltroDesgloseBtn = document.getElementById(
+  "limpiarFiltroDesgloseBtn",
+);
+
 const selectAllDesglose = document.getElementById("selectAllDesglose");
 const eliminarSeleccionadosDesgloseBtn = document.getElementById(
   "eliminarSeleccionadosDesgloseBtn",
@@ -171,8 +211,6 @@ const guardarSeleccionadosDesgloseBtn = document.getElementById(
 const guardarOrdenDesgloseBtn = document.getElementById(
   "guardarOrdenDesgloseBtn",
 );
-
-
 
 function openModal(modal) {
   if (!modal) return;
@@ -347,7 +385,20 @@ function renderResumenTotalesCuenta(gastos) {
 }
 
 function obtenerGastosParaDesglose(tipo) {
+  const categoriaFiltro = categoriaFiltroDesglose?.value || "";
+  const busqueda = busquedaFiltroDesglose?.value.trim().toLowerCase() || "";
+
   const gastos = gastosCuentaTodos.filter((g) => {
+    if (categoriaFiltro) {
+      const categoriaId = g.categoria?._id || g.categoria;
+      if (categoriaId !== categoriaFiltro) return false;
+    }
+
+    if (busqueda) {
+      const descripcion = String(g.descripcion || "").toLowerCase();
+      if (!descripcion.includes(busqueda)) return false;
+    }
+
     if (tipo === "bancario") {
       return debeContarGastoBancario(g);
     }
@@ -359,7 +410,7 @@ function obtenerGastosParaDesglose(tipo) {
     return false;
   });
 
-  const orden = ordenGastosCuenta?.value || "manual";
+  const orden = ordenDesgloseCuenta?.value || "manual";
 
   return gastos.sort((a, b) => {
     if (orden === "manual") {
@@ -630,7 +681,8 @@ async function aplicarBulkDesglose() {
   }
 
   if (!hayCategoria && !hayPorcentaje) {
-    bulkDesgloseError.textContent = "Seleccioná al menos un valor para aplicar.";
+    bulkDesgloseError.textContent =
+      "Seleccioná al menos un valor para aplicar.";
     return;
   }
 
@@ -872,10 +924,12 @@ function renderTotalesCategoriasCuenta(gastos) {
 
 async function cargarResumenYTotalesCuenta() {
   try {
-    gastosCuentaTodos = await obtenerTodosLosGastosCuentaFiltrados();
+    const gastosTotales = await obtenerGastosTotalesCuentaFiltrados();
 
-    renderResumenTotalesCuenta(gastosCuentaTodos);
-    renderTotalesCategoriasCuenta(gastosCuentaTodos);
+    gastosCuentaTodos = gastosTotales;
+
+    renderResumenTotalesCuenta(gastosTotales);
+    renderTotalesCategoriasCuenta(gastosTotales);
   } catch (error) {
     console.error(error);
   }
@@ -1039,6 +1093,12 @@ async function cargarCategoriasParaGastosCuenta() {
     ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
   `;
   }
+  if (categoriaFiltroDesglose) {
+    categoriaFiltroDesglose.innerHTML = `
+    <option value="">Todas</option>
+    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+  `;
+  }
 }
 
 function buildCategoriaOptions(selectedValue = "") {
@@ -1177,7 +1237,7 @@ function attachGastosCuentaEvents() {
                 <button type="button" class="combo-option" data-id="${c._id}" data-name="${escapeHtml(c.nombre)}">
                   ${escapeHtml(c.nombre)}
                 </button>
-              `
+              `,
             )
             .join("")
         : `<div class="combo-empty">Sin resultados</div>`;
@@ -1226,21 +1286,27 @@ function attachGastosCuentaEvents() {
       gasto.categoria = e.target.value;
     });
 
-    row.querySelector(".row-incluir-bancario")?.addEventListener("change", (e) => {
-      gasto.incluirEnGastoBancario =
-        Number(formatMoney(gasto.flujoBancario)) !== 0 ? e.target.checked : false;
+    row
+      .querySelector(".row-incluir-bancario")
+      ?.addEventListener("change", (e) => {
+        gasto.incluirEnGastoBancario =
+          Number(formatMoney(gasto.flujoBancario)) !== 0
+            ? e.target.checked
+            : false;
 
-      const gastoEnTodos = gastosCuentaTodos.find((g) => g._id === id);
-      if (gastoEnTodos) {
-        gastoEnTodos.incluirEnGastoBancario = gasto.incluirEnGastoBancario;
-      }
+        const gastoEnTodos = gastosCuentaTodos.find((g) => g._id === id);
+        if (gastoEnTodos) {
+          gastoEnTodos.incluirEnGastoBancario = gasto.incluirEnGastoBancario;
+        }
 
-      renderResumenTotalesCuenta(gastosCuentaTodos);
-    });
+        renderResumenTotalesCuenta(gastosCuentaTodos);
+      });
 
     row.querySelector(".row-incluir-real")?.addEventListener("change", (e) => {
       gasto.incluirEnGastoReal =
-        Number(formatMoney(gasto.economiaReal)) !== 0 ? e.target.checked : false;
+        Number(formatMoney(gasto.economiaReal)) !== 0
+          ? e.target.checked
+          : false;
 
       const gastoEnTodos = gastosCuentaTodos.find((g) => g._id === id);
       if (gastoEnTodos) {
@@ -1718,18 +1784,28 @@ async function aplicarBulkGastosCuenta() {
   bulkGastosCuentaSuccess.textContent = "";
 
   const seleccionados = getSelectedItems(gastosCuentaCache);
+
   const categoria = bulkCategoriaGastosCuenta.value;
   const porcentajeRaw = bulkPorcentajeGastosCuenta.value;
+  const incluirBancarioRaw = bulkIncluirBancarioGastosCuenta.value;
+  const incluirRealRaw = bulkIncluirRealGastosCuenta.value;
 
   const hayCategoria = categoria !== "";
   const hayPorcentaje = porcentajeRaw !== "";
+  const hayIncluirBancario = incluirBancarioRaw !== "";
+  const hayIncluirReal = incluirRealRaw !== "";
 
   if (!seleccionados.length) {
     bulkGastosCuentaError.textContent = "No hay gastos seleccionados.";
     return;
   }
 
-  if (!hayCategoria && !hayPorcentaje) {
+  if (
+    !hayCategoria &&
+    !hayPorcentaje &&
+    !hayIncluirBancario &&
+    !hayIncluirReal
+  ) {
     bulkGastosCuentaError.textContent =
       "Seleccioná al menos un valor para aplicar.";
     return;
@@ -1746,7 +1822,7 @@ async function aplicarBulkGastosCuenta() {
       if (hayPorcentaje) {
         if (Number(formatMoney(gasto.flujoBancario)) === 0) {
           nuevoPorcentaje = 0;
-          nuevaEconomia = Number(formatMoney(gasto.economiaReal)); // mantener valor original
+          nuevaEconomia = Number(formatMoney(gasto.economiaReal));
         } else {
           nuevoPorcentaje = Number(porcentajeRaw);
           nuevaEconomia = Number(
@@ -1756,6 +1832,25 @@ async function aplicarBulkGastosCuenta() {
             ).toFixed(2),
           );
         }
+      }
+
+      let incluirEnGastoBancario = gasto.incluirEnGastoBancario;
+      let incluirEnGastoReal = gasto.incluirEnGastoReal;
+
+      if (hayIncluirBancario) {
+        incluirEnGastoBancario = incluirBancarioRaw === "true";
+      }
+
+      if (hayIncluirReal) {
+        incluirEnGastoReal = incluirRealRaw === "true";
+      }
+
+      if (Number(formatMoney(gasto.flujoBancario)) === 0) {
+        incluirEnGastoBancario = false;
+      }
+
+      if (Number(formatMoney(nuevaEconomia)) === 0) {
+        incluirEnGastoReal = false;
       }
 
       await apiRequest(
@@ -1771,6 +1866,8 @@ async function aplicarBulkGastosCuenta() {
             ? categoria
             : gasto.categoria?._id || gasto.categoria,
           cuenta: cuentaId,
+          incluirEnGastoBancario,
+          incluirEnGastoReal,
         },
         token,
       );
@@ -1783,6 +1880,10 @@ async function aplicarBulkGastosCuenta() {
 
   await cargarGastosCuenta();
   await cargarResumenYTotalesCuenta();
+
+  if (tipoDesgloseActual) {
+    renderDesgloseGastosCuenta(tipoDesgloseActual);
+  }
 
   if (actualizados > 0) {
     bulkGastosCuentaSuccess.textContent = `Se actualizaron ${actualizados} gasto(s).`;
@@ -1806,6 +1907,25 @@ verDesgloseBancarioBtn.addEventListener("click", () => {
 
 verDesgloseRealBtn.addEventListener("click", () => {
   tipoDesgloseActual = "real";
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+filtrarDesgloseBtn?.addEventListener("click", () => {
+  if (!tipoDesgloseActual) return;
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+limpiarFiltroDesgloseBtn?.addEventListener("click", () => {
+  if (categoriaFiltroDesglose) categoriaFiltroDesglose.value = "";
+  if (busquedaFiltroDesglose) busquedaFiltroDesglose.value = "";
+  if (ordenDesgloseCuenta) ordenDesgloseCuenta.value = "manual";
+
+  if (!tipoDesgloseActual) return;
+  renderDesgloseGastosCuenta(tipoDesgloseActual);
+});
+
+ordenDesgloseCuenta?.addEventListener("change", () => {
+  if (!tipoDesgloseActual) return;
   renderDesgloseGastosCuenta(tipoDesgloseActual);
 });
 
@@ -1834,6 +1954,8 @@ document.querySelectorAll("[data-open-modal]").forEach((btn) => {
     if (modalId === "crearGastoModal") {
       await cargarCategoriasModalCrearGasto();
       crearGastoFecha.value = new Date().toISOString().slice(0, 10);
+      crearGastoIncluirBancario.checked = true;
+      crearGastoIncluirReal.checked = true;
       actualizarEconomiaCrearGastoCuenta();
     }
 
@@ -1996,8 +2118,10 @@ crearGastoCuentaForm?.addEventListener("submit", async (e) => {
         economiaReal,
         categoria: crearGastoCategoria.value,
         cuenta: cuentaId,
-        incluirEnGastoBancario: flujoBancario !== 0,
-        incluirEnGastoReal: economiaReal !== 0,
+        incluirEnGastoBancario:
+          flujoBancario !== 0 ? crearGastoIncluirBancario.checked : false,
+        incluirEnGastoReal:
+          economiaReal !== 0 ? crearGastoIncluirReal.checked : false,
       },
       token,
     );
@@ -2068,8 +2192,10 @@ editarGastoCuentaForm.addEventListener("submit", async (e) => {
         economiaReal,
         categoria,
         cuenta: cuentaId,
-        incluirEnGastoBancario: flujoBancario !== 0,
-        incluirEnGastoReal: economiaReal !== 0,
+        incluirEnGastoBancario:
+          flujoBancario !== 0 ? crearGastoIncluirBancario.checked : false,
+        incluirEnGastoReal:
+          economiaReal !== 0 ? crearGastoIncluirReal.checked : false,
       },
       token,
     );
@@ -2092,11 +2218,11 @@ modoFiltroTotalesCuenta.addEventListener(
   actualizarVisibilidadFiltrosTotalesCuenta,
 );
 
-filtrarTotalesCuentaBtn.addEventListener("click", async () => {
+filtrarTotalesCuentaBtn?.addEventListener("click", async () => {
   await cargarSoloTotalesCategoriasCuenta();
 });
 
-limpiarFiltroTotalesCuentaBtn.addEventListener("click", async () => {
+limpiarFiltroTotalesCuentaBtn?.addEventListener("click", async () => {
   resetFiltrosTotalesCuenta();
   await cargarSoloTotalesCategoriasCuenta();
 });

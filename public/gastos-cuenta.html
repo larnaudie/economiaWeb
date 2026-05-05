@@ -136,6 +136,7 @@
                 <th>Total</th>
               </tr>
             </thead>
+
             <tbody id="totalesCategoriasCuentaBody">
               <tr>
                 <td colspan="2">No hay datos</td>
@@ -187,6 +188,46 @@
           <summary>
             <h2 id="desgloseGastosCuentaTitulo">Desglose de Gastos</h2>
           </summary>
+
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <div>
+              <label for="categoriaFiltroDesglose">Subcategoría:</label>
+              <select id="categoriaFiltroDesglose">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="busquedaFiltroDesglose">Buscar descripción:</label>
+              <input
+                type="text"
+                id="busquedaFiltroDesglose"
+                placeholder="Ej: supermercado"
+              />
+            </div>
+
+            <div>
+              <label for="ordenDesgloseCuenta">Ordenar por:</label>
+              <select id="ordenDesgloseCuenta">
+                <option value="manual">Orden manual</option>
+                <option value="fechaAsc">Fecha ↑</option>
+                <option value="fechaDesc">Fecha ↓</option>
+                <option value="gastoBancarioAsc">Gasto bancario menor</option>
+                <option value="gastoBancarioDesc">Gasto bancario mayor</option>
+                <option value="gastoRealAsc">Gasto real menor</option>
+                <option value="gastoRealDesc">Gasto real mayor</option>
+                <option value="descripcionAsc">Descripción A-Z</option>
+                <option value="descripcionDesc">Descripción Z-A</option>
+              </select>
+            </div>
+
+            <button type="button" id="filtrarDesgloseBtn">
+              Aplicar filtro
+            </button>
+
+            <button type="button" id="limpiarFiltroDesgloseBtn">Limpiar</button>
+          </div>
+
           <div class="inline-group" style="margin-bottom: 1rem">
             <div>
               <label for="bulkCategoriaDesglose">Subcategoría:</label>
@@ -196,9 +237,9 @@
             </div>
 
             <div>
-              <label for="bulkPorcentajeDesglose"
-                >Porcentaje Economía Real:</label
-              >
+              <label for="bulkPorcentajeDesglose">
+                Porcentaje Economía Real:
+              </label>
               <input
                 type="number"
                 id="bulkPorcentajeDesglose"
@@ -228,6 +269,7 @@
 
           <div id="bulkDesgloseError" class="error"></div>
           <div id="bulkDesgloseSuccess" style="color: green"></div>
+
           <table>
             <thead>
               <tr>
@@ -242,9 +284,10 @@
                 <th>Acciones</th>
               </tr>
             </thead>
+
             <tbody id="desgloseGastosCuentaBody">
               <tr>
-                <td colspan="6">No hay datos</td>
+                <td colspan="7">No hay datos</td>
               </tr>
             </tbody>
           </table>
@@ -364,6 +407,26 @@
                 step="0.01"
                 placeholder="No cambiar"
               />
+            </div>
+
+            <div>
+              <label for="bulkIncluirBancarioGastosCuenta"
+                >Incluir Bancario:</label
+              >
+              <select id="bulkIncluirBancarioGastosCuenta">
+                <option value="">No cambiar</option>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="bulkIncluirRealGastosCuenta">Incluir Real:</label>
+              <select id="bulkIncluirRealGastosCuenta">
+                <option value="">No cambiar</option>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
             </div>
 
             <div>
@@ -579,7 +642,15 @@
             <select id="crearGastoCategoria" required>
               <option value="">Seleccionar subcategoría</option>
             </select>
+            <label>
+              <input type="checkbox" id="crearGastoIncluirBancario" checked />
+              Incluir en Gasto Bancario
+            </label>
 
+            <label>
+              <input type="checkbox" id="crearGastoIncluirReal" checked />
+              Incluir en Gasto Real
+            </label>
             <div id="crearGastoError" class="error"></div>
 
             <div class="modal-actions">
@@ -588,7 +659,7 @@
           </form>
         </div>
       </div>
-      
+
       <div id="editarGastoCuentaModal" class="modal hidden">
         <div class="modal-content">
           <button
