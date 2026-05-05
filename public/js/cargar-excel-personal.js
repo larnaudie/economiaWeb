@@ -234,21 +234,7 @@ function excelDateToISO(value) {
 }
 
 function parseNumber(value) {
-    if (value == null || value === "") return null;
-
-    if (typeof value === "number") return value;
-
-    if (typeof value === "string") {
-        const normalized = value
-            .trim()
-            .replace(/\./g, "")
-            .replace(",", ".");
-
-        const num = Number(normalized);
-        return Number.isNaN(num) ? null : num;
-    }
-
-    return null;
+    return parseMoneyValue(value);
 }
 
 async function cargarCategorias() {

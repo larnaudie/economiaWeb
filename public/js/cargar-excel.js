@@ -11,6 +11,8 @@ const crearTodosButton = document.getElementById("crearTodosButton");
 const crearTodosError = document.getElementById("crearTodosError");
 const crearTodosSuccess = document.getElementById("crearTodosSuccess");
 const bulkCategoria = document.getElementById("bulkCategoria");
+const bulkCategoriaSearch = document.getElementById("bulkCategoriaSearch");
+const crearCategoriaDesdeBulkBtn = document.getElementById("crearCategoriaDesdeBulkBtn");
 const bulkCuenta = document.getElementById("bulkCuenta");
 const bulkIncluirGastoBancario = document.getElementById("bulkIncluirGastoBancario");
 const bulkIncluirGastoReal = document.getElementById("bulkIncluirGastoReal");
@@ -25,6 +27,8 @@ const bulkDescripcion = document.getElementById("bulkDescripcion");
 const bulkFlujo = document.getElementById("bulkFlujo");
 const bulkEconomia = document.getElementById("bulkEconomia");
 const vaciarTablaButton = document.getElementById("vaciarTablaButton");
+const editarSeleccionadosButton = document.getElementById("editarSeleccionadosButton");
+const bloquearSeleccionadosButton = document.getElementById("bloquearSeleccionadosButton");
 
 let categoriasCache = [];
 let cuentasCache = [];
@@ -65,6 +69,8 @@ crearTodosButton.addEventListener("click", crearTodosLosGastos);
 aplicarTodosButton.addEventListener("click", aplicarCambiosATodos);
 eliminarSeleccionadosButton.addEventListener("click", eliminarSeleccionados);
 vaciarTablaButton.addEventListener("click", vaciarTabla);
+editarSeleccionadosButton.addEventListener("click", editarSeleccionados);
+bloquearSeleccionadosButton.addEventListener("click", bloquearSeleccionados);
 fileInput.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -86,6 +92,66 @@ fileInput.addEventListener("change", async (event) => {
 document.querySelectorAll(".delete-row-btn").forEach((button) => {
     button.addEventListener("click", handleDeleteRow);
 });
+
+bulkCategoriaSearch.addEventListener("input", () => {
+    renderBulkCategorias(bulkCategoriaSearch.value);
+});
+
+crearCategoriaDesdeBulkBtn.addEventListener("click", crearCategoriaDesdeBulk);
+
+async function crearCategoriaDesdeBulk() {
+    const token = getToken();
+    if (!token) return;
+
+    const nombre = bulkCategoriaSearch.value.trim();
+
+    if (!nombre) {
+        bulkError.textContent = "Escribí el nombre de la subcategoría.";
+        return;
+    }
+
+    const existente = categoriasCache.find(c =>
+        c.nombre.toLowerCase() === nombre.toLowerCase()
+    );
+
+    if (existente) {
+        bulkCategoria.value = existente._id;
+        bulkSuccess.textContent = "La subcategoría ya existía y fue seleccionada.";
+        return;
+    }
+
+    try {
+        const data = await apiRequest(
+            "/categorias",
+            "POST",
+            {
+                nombre,
+                categoriaGrupo: null
+            },
+            token
+        );
+
+        await cargarCategorias();
+
+        const categoriaCreada = getApiData(data)?.categoria || getApiData(data);
+
+        const encontrada = categoriasCache.find(c =>
+            c.nombre.toLowerCase() === nombre.toLowerCase()
+        );
+
+        if (encontrada) {
+            renderBulkCategorias(nombre);
+            bulkCategoria.value = encontrada._id;
+
+            renderPreview();
+        }
+
+        bulkError.textContent = "";
+        bulkSuccess.textContent = "Subcategoría creada correctamente.";
+    } catch (error) {
+        bulkError.textContent = error.message || "Error al crear subcategoría.";
+    }
+}
 
 function excelDateToISO(value) {
     if (value == null || value === "") return "";
@@ -128,21 +194,7 @@ function excelDateToISO(value) {
 }
 
 function parseNumber(value) {
-    if (value == null || value === "") return null;
-
-    if (typeof value === "number") return value;
-
-    if (typeof value === "string") {
-        const normalized = value
-            .trim()
-            .replace(/\./g, "")
-            .replace(",", ".");
-
-        const num = Number(normalized);
-        return Number.isNaN(num) ? null : num;
-    }
-
-    return null;
+    return parseMoneyValue(value);
 }
 
 function buildFlujo(gValue, iValue) {
@@ -165,7 +217,7 @@ async function cargarCategorias() {
 async function cargarCuentas() {
     const token = getToken();
     const data = await apiRequest("/cuentas", "GET", null, token);
-    cuentasCache = data.cuentas || [];
+    cuentasCache = getApiData(data);
     renderBulkCuentas();
 }
 
@@ -196,62 +248,61 @@ async function procesarArchivoExcelNoPersonal(file) {
         throw new Error("No se encontró una hoja válida en el archivo.");
     }
 
-    const rows = XLSX.utils.sheet_to_json(sheet, {
-        header: 1,
-        raw: true,
-        defval: ""
-    });
+    const range = XLSX.utils.decode_range(sheet["!ref"]);
+    const filas = [];
 
-    const sliced = rows.slice(15);
+    for (let rowIndex = 15; rowIndex <= range.e.r; rowIndex++) {
+        const excelRowNumber = rowIndex + 1;
 
-    importedRows = sliced
-        .map((row, index) => {
-            const fechaRaw = row[1];
-            const descripcionRaw = row[3];
-            const gRaw = row[6];
-            const iRaw = row[8];
+        const fechaRaw = sheet[`B${excelRowNumber}`]?.v ?? "";
+        const descripcionRaw = sheet[`D${excelRowNumber}`]?.v ?? "";
+        const gRaw = sheet[`G${excelRowNumber}`]?.v ?? "";
+        const iRaw = sheet[`I${excelRowNumber}`]?.v ?? "";
 
-            const fecha = excelDateToISO(fechaRaw);
-            const descripcion = String(descripcionRaw || "").trim();
-            const flujoBancario = buildFlujo(gRaw, iRaw);
+        const fecha = excelDateToISO(fechaRaw);
+        const descripcion = String(descripcionRaw || "").trim();
+        const flujoBancario = buildFlujo(gRaw, iRaw);
 
-            const isEmptyRow =
-                !fecha &&
-                !descripcion &&
-                (flujoBancario == null || flujoBancario === 0);
+        const isEmptyRow =
+            !fecha &&
+            !descripcion &&
+            (flujoBancario == null || flujoBancario === 0);
 
-            if (isEmptyRow) return null;
+        if (isEmptyRow) continue;
 
-            const porcentajeEconomiaReal = 100;
-            const economiaReal = flujoBancario
-                ? Number(flujoBancario.toFixed(2))
-                : 0;
+        const porcentajeEconomiaReal = 100;
+        const economiaReal = flujoBancario
+            ? Number(flujoBancario.toFixed(2))
+            : 0;
+        const flags = resolverFlagsGastoPorCategoria(descripcion);
+        filas.push({
+            localId: `row-${Date.now()}-${rowIndex}`,
+            fecha,
+            descripcion,
+            flujoBancario: flujoBancario ?? 0,
+            porcentajeEconomiaReal,
+            economiaReal,
+            categoria: "",
+            cuenta: "",
+            incluirEnGastoBancario: flags.incluirEnGastoBancario,
+            incluirEnGastoReal: flags.incluirEnGastoReal,
+            selected: true,
+            isEditing: false,
+            created: false
+        });
+    }
 
-            return {
-                localId: `row-${Date.now()}-${index}`,
-                fecha,
-                descripcion,
-                flujoBancario: flujoBancario ?? 0,
-                porcentajeEconomiaReal,
-                economiaReal,
-                categoria: "",
-                cuenta: "",
-                incluirEnGastoBancario: Number(flujoBancario ?? 0) !== 0,
-                incluirEnGastoReal: Number(economiaReal ?? 0) !== 0,
-                selected: true,
-                isEditing: false,
-                created: false
-            };
-        })
-        .filter(Boolean);
-
+    importedRows = filas;
     renderPreview();
 }
 
-function categoriasOptions(selectedValue = "") {
+function categoriasOptions(selectedValue = "", filtro = "") {
     let options = '<option value="">Seleccionar categoría</option>';
 
+    const texto = filtro.trim().toLowerCase();
+
     options += categoriasCache
+        .filter(categoria => categoria.nombre.toLowerCase().includes(texto))
         .map((categoria) => `
       <option value="${categoria._id}" ${selectedValue === categoria._id ? "selected" : ""}>
         ${categoria.nombre}
@@ -274,6 +325,11 @@ function cuentasOptions(selectedValue = "") {
         .join("");
 
     return options;
+}
+
+function getCategoriaNombre(id) {
+    const categoria = categoriasCache.find(c => c._id === id);
+    return categoria?.nombre || "";
 }
 
 function renderPreview() {
@@ -328,11 +384,19 @@ function renderPreview() {
               readonly>
           </td>
 
-          <td>
-            <select class="row-categoria">
-              ${categoriasOptions(row.categoria)}
-            </select>
-          </td>
+          <td class="combo-cell">
+  <input
+    type="text"
+    class="row-categoria-search"
+    data-id="${row.localId}"
+    placeholder="Buscar subcategoría"
+    value="${getCategoriaNombre(row.categoria)}"
+  >
+
+  <div class="row-categoria-results hidden"></div>
+
+  <input type="hidden" class="row-categoria" value="${row.categoria || ""}">
+</td>
 
           <td>
             <select class="row-cuenta">
@@ -422,8 +486,50 @@ function attachRowEvents() {
             recalcularEconomiaRow(localId);
         });
 
-        rowElement.querySelector(".row-categoria")?.addEventListener("change", (e) => {
-            updateRow(localId, "categoria", e.target.value);
+        const searchInput = rowElement.querySelector(".row-categoria-search");
+        const resultsBox = rowElement.querySelector(".row-categoria-results");
+
+        searchInput?.addEventListener("input", (e) => {
+            const texto = e.target.value.trim().toLowerCase();
+
+            if (!texto) {
+                resultsBox.classList.add("hidden");
+                return;
+            }
+
+            const resultados = categoriasCache
+                .filter(c => c.nombre.toLowerCase().includes(texto))
+                .slice(0, 20);
+
+            if (!resultados.length) {
+                resultsBox.innerHTML = `<div class="combo-empty">Sin resultados</div>`;
+            } else {
+                resultsBox.innerHTML = resultados.map(c => `
+            <button type="button" class="combo-option"
+                data-id="${c._id}"
+                data-name="${escapeHtml(c.nombre)}">
+                ${escapeHtml(c.nombre)}
+            </button>
+        `).join("");
+            }
+
+            resultsBox.classList.remove("hidden");
+        });
+
+
+        resultsBox?.addEventListener("click", (e) => {
+            const option = e.target.closest(".combo-option");
+            if (!option) return;
+
+            updateRow(localId, "categoria", option.dataset.id);
+            searchInput.value = option.dataset.name;
+            resultsBox.classList.add("hidden");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!rowElement.contains(e.target)) {
+                resultsBox.classList.add("hidden");
+            }
         });
 
         rowElement.querySelector(".row-cuenta")?.addEventListener("change", (e) => {
@@ -640,11 +746,21 @@ async function crearTodosLosGastos() {
     }
 }
 
-function renderBulkCategorias() {
+function renderBulkCategorias(filtro = "") {
+    const texto = filtro.trim().toLowerCase();
+
+    const categoriasFiltradas = categoriasCache.filter(categoria =>
+        categoria.nombre.toLowerCase().includes(texto)
+    );
+
     bulkCategoria.innerHTML = '<option value="">No cambiar</option>';
 
-    bulkCategoria.innerHTML += categoriasCache
-        .map((categoria) => `<option value="${categoria._id}">${categoria.nombre}</option>`)
+    bulkCategoria.innerHTML += categoriasFiltradas
+        .map((categoria) => `
+            <option value="${categoria._id}">
+                ${categoria.nombre}
+            </option>
+        `)
         .join("");
 }
 
@@ -656,10 +772,50 @@ function renderBulkCuentas() {
         .join("");
 }
 
+function editarSeleccionados() {
+    let afectados = 0;
+
+    importedRows.forEach((row) => {
+        if (!row.created && row.selected) {
+            row.isEditing = true;
+            afectados++;
+        }
+    });
+
+    renderPreview();
+
+    bulkError.textContent = "";
+    bulkSuccess.textContent = afectados
+        ? `Se habilitó edición para ${afectados} fila(s).`
+        : "No hay filas seleccionadas para editar.";
+}
+
+function bloquearSeleccionados() {
+    let afectados = 0;
+
+    importedRows.forEach((row) => {
+        if (!row.created && row.selected) {
+            row.isEditing = false;
+            afectados++;
+        }
+    });
+
+    renderPreview();
+
+    bulkError.textContent = "";
+    bulkSuccess.textContent = afectados
+        ? `Se bloquearon ${afectados} fila(s).`
+        : "No hay filas seleccionadas para bloquear.";
+}
+
 function aplicarCambiosATodos() {
     bulkError.textContent = "";
     bulkSuccess.textContent = "";
 
+    const fecha = bulkFecha.value;
+    const descripcion = bulkDescripcion.value.trim();
+    const flujoRaw = bulkFlujo.value;
+    const economiaRaw = bulkEconomia.value;
     const categoria = bulkCategoria.value;
     const cuenta = bulkCuenta.value;
     const porcentajeRaw = bulkPorcentaje.value;
@@ -670,6 +826,10 @@ function aplicarCambiosATodos() {
     const hayCategoria = categoria !== "";
     const hayCuenta = cuenta !== "";
     const hayPorcentaje = porcentajeRaw !== "";
+    const hayFecha = fecha !== "";
+    const hayDescripcion = descripcion !== "";
+    const hayFlujo = flujoRaw !== "";
+    const hayEconomia = economiaRaw !== "";
     const hayIncluirBancario = incluirBancarioRaw !== "";
     const hayIncluirReal = incluirRealRaw !== "";
 

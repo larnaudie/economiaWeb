@@ -2,7 +2,8 @@ import {
   crearCategoriaGrupoService,
   obtenerCategoriasGrupoService,
   actualizarCategoriaGrupoService,
-  eliminarCategoriaGrupoService
+  eliminarCategoriaGrupoService,
+  eliminarTodosLasCategoriasGrupoService
 } from "../services/categoriaGrupo.service.js";
 
 export async function crearCategoriaGrupo(req, res, next) {

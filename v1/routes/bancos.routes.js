@@ -14,9 +14,9 @@ const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/bancos
 router.get("/", obtenerBancos)
+router.post("/", validateBody(bancoSchema), crearBanco)
 router.get("/:id", obtenerBancoPorId)
 router.patch("/:id", validateBody(bancoSchema), actualizarBanco)
-router.post("/", validateBody(bancoSchema), crearBanco)
 router.delete("/:id", eliminarBanco)
 router.delete("/eliminar-todo", eliminarTodosLosBancos)
 

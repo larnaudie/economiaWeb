@@ -14,12 +14,12 @@ import { validateBody } from "../middlewares/validateBody.middleware.js";
 const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/categorias
+router.post("/", validateBody(categoriaSchema), crearCategoria)
 router.get("/", obtenerCategorias)
+router.delete("/eliminar-todo", eliminarTodosLasCategorias);
 router.get("/totales", obtenerTotalesPorCategoria)
 router.get("/:id", obtenerCategoriaPorId)
 router.patch("/:id", validateBody(categoriaSchema), actualizarCategoria)
-router.post("/", validateBody(categoriaSchema), crearCategoria)
 router.delete("/:id", eliminarCategoria);
-router.delete("/eliminar-todo", eliminarTodosLasCategorias);
 
 export default router;

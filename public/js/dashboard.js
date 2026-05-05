@@ -118,9 +118,15 @@ function filtrarMesActual(gastos) {
   });
 }
 
-function esTransferenciaDashboard(gasto) {
-  const categoria = String(gasto?.categoria?.nombre || "").toLowerCase();
-  return categoria.includes("transf");
+function esTransferenciaDashboard(g) {
+  const nombre = g.categoria?.nombre?.toLowerCase() || "";
+
+  return (
+    nombre.includes("transf") ||
+    nombre.includes("ahorro") ||
+    nombre.includes("movimiento") ||
+    nombre.includes("balance")
+  );
 }
 
 function renderGastoRealPorCategoria(gastos) {

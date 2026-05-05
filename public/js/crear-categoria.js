@@ -1,13 +1,14 @@
 requireAuth();
-renderHeader({ title: "Crear Subategoría" });;
+renderHeader({ title: "Crear Subategoría" });
 
 const token = getToken();
-
 
 const gestionError = document.getElementById("gestionError");
 
 const selectAllCategorias = document.getElementById("selectAllCategorias");
-const eliminarCategoriasSeleccionadasBtn = document.getElementById("eliminarCategoriasSeleccionadasBtn");
+const eliminarCategoriasSeleccionadasBtn = document.getElementById(
+  "eliminarCategoriasSeleccionadasBtn",
+);
 const bulkCategoriasError = document.getElementById("bulkCategoriasError");
 const bulkCategoriasSuccess = document.getElementById("bulkCategoriasSuccess");
 
@@ -19,7 +20,9 @@ const modalCategoriaError = document.getElementById("modalCategoriaError");
 
 const modalCategoriaGrupo = document.getElementById("modalCategoriaGrupo");
 const bulkCategoriaGrupo = document.getElementById("bulkCategoriaGrupo");
-const aplicarBulkCategoriasGrupoBtn = document.getElementById("aplicarBulkCategoriasGrupoBtn");
+const aplicarBulkCategoriasGrupoBtn = document.getElementById(
+  "aplicarBulkCategoriasGrupoBtn",
+);
 
 let categoriasGrupoCache = [];
 let categoriasCache = [];
@@ -44,7 +47,8 @@ function renderList(containerId, items, renderItem) {
   const container = document.getElementById(containerId);
 
   if (!items || items.length === 0) {
-    container.innerHTML = '<tr><td colspan="3">No hay elementos registrados.</td></tr>';
+    container.innerHTML =
+      '<tr><td colspan="3">No hay elementos registrados.</td></tr>';
     return;
   }
 
@@ -65,11 +69,13 @@ function renderCategoriasGrupoSelect(selectedValue = "") {
   const options =
     '<option value="">Sin categoría principal</option>' +
     categoriasGrupoCache
-      .map(grupo => `
+      .map(
+        (grupo) => `
         <option value="${grupo._id}" ${selectedValue === grupo._id ? "selected" : ""}>
           ${grupo.nombre}
         </option>
-      `)
+      `,
+      )
       .join("");
 
   modalCategoriaGrupo.innerHTML = options;
@@ -110,7 +116,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
     return;
   }
 
-  const seleccionados = items.filter(item => item.selected);
+  const seleccionados = items.filter((item) => item.selected);
 
   if (seleccionados.length === 0) {
     checkbox.checked = false;
@@ -129,7 +135,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
 }
 
 function toggleSelectAll(items, checked) {
-  items.forEach(item => {
+  items.forEach((item) => {
     item.selected = checked;
   });
 }
@@ -138,7 +144,7 @@ function attachCategoriaEvents() {
   document.querySelectorAll(".categoria-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const categoria = categoriasCache.find(c => c._id === id);
+      const categoria = categoriasCache.find((c) => c._id === id);
       if (categoria) categoria.selected = e.target.checked;
       actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
     });
@@ -152,7 +158,9 @@ async function aplicarBulkCategoriaGrupo() {
   bulkCategoriasError.textContent = "";
   bulkCategoriasSuccess.textContent = "";
 
-  const seleccionadas = categoriasCache.filter(categoria => categoria.selected);
+  const seleccionadas = categoriasCache.filter(
+    (categoria) => categoria.selected,
+  );
 
   if (!seleccionadas.length) {
     bulkCategoriasError.textContent = "No hay subcategorías seleccionadas.";
@@ -168,16 +176,17 @@ async function aplicarBulkCategoriaGrupo() {
         "PATCH",
         {
           nombre: categoria.nombre,
-          categoriaGrupo
+          categoriaGrupo,
         },
-        authToken
+        authToken,
       );
     }
 
     bulkCategoriasSuccess.textContent = `Se actualizaron ${seleccionadas.length} subcategoría(s).`;
     await cargarCategorias();
   } catch (error) {
-    bulkCategoriasError.textContent = error.message || "Error al actualizar subcategorías.";
+    bulkCategoriasError.textContent =
+      error.message || "Error al actualizar subcategorías.";
   }
 }
 
@@ -188,16 +197,16 @@ async function cargarCategorias() {
   try {
     const data = await apiRequest("/categorias", "GET", null, authToken);
 
-    categoriasCache = (getApiData(data)).map(categoria => ({
+    categoriasCache = getApiData(data).map((categoria) => ({
       ...categoria,
-      selected: false
+      selected: false,
     }));
 
     renderTableRows({
       containerId: "categoriasList",
       items: categoriasCache,
       colspan: 4,
-      renderItem: categoria => `
+      renderItem: (categoria) => `
   <tr>
     <td>
       <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
@@ -209,26 +218,29 @@ async function cargarCategorias() {
       <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
     </td>
   </tr>
-`
+`,
     });
 
     actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
     attachCategoriaEvents();
   } catch (error) {
-    gestionError.textContent = error.message || "Error al cargar las categorías";
+    gestionError.textContent =
+      error.message || "Error al cargar las categorías";
   }
 }
 
 function editarCategoria(id) {
-  const categoria = categoriasCache.find(c => c._id === id);
+  const categoria = categoriasCache.find((c) => c._id === id);
   if (!categoria) return;
 
   modalCategoriaForm.dataset.editingId = categoria._id;
   modalCategoriaNombre.value = categoria.nombre;
-  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  const grupoId =
+    categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
   renderCategoriasGrupoSelect(grupoId);
 
-  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  const grupoId =
+    categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
   renderCategoriasGrupoSelect(grupoId);
 
   openModal(categoriaModal);
@@ -256,14 +268,18 @@ async function eliminarCategoriasSeleccionadas() {
   bulkCategoriasError.textContent = "";
   bulkCategoriasSuccess.textContent = "";
 
-  const seleccionadas = categoriasCache.filter(categoria => categoria.selected);
+  const seleccionadas = categoriasCache.filter(
+    (categoria) => categoria.selected,
+  );
 
   if (!seleccionadas.length) {
     bulkCategoriasError.textContent = "No hay categorías seleccionadas.";
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionadas.length} categoría(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionadas.length} categoría(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminadas = 0;
@@ -271,7 +287,12 @@ async function eliminarCategoriasSeleccionadas() {
 
   for (const categoria of seleccionadas) {
     try {
-      await apiRequest(`/categorias/${categoria._id}`, "DELETE", null, authToken);
+      await apiRequest(
+        `/categorias/${categoria._id}`,
+        "DELETE",
+        null,
+        authToken,
+      );
       eliminadas++;
     } catch {
       errores++;
@@ -306,7 +327,7 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
 
   const payload = {
     nombre,
-    categoriaGrupo: modalCategoriaGrupo.value || null
+    categoriaGrupo: modalCategoriaGrupo.value || null,
   };
 
   try {
@@ -324,7 +345,8 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
     closeModal(categoriaModal);
     await cargarCategorias();
   } catch (error) {
-    modalCategoriaError.textContent = error.message || "Error al guardar subcategoría";
+    modalCategoriaError.textContent =
+      error.message || "Error al guardar subcategoría";
   }
 });
 
@@ -355,7 +377,7 @@ selectAllCategorias.addEventListener("change", (e) => {
     containerId: "categoriasList",
     items: categoriasCache,
     colspan: 3,
-    renderItem: categoria => `
+    renderItem: (categoria) => `
     <tr>
       <td>
         <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
@@ -366,15 +388,21 @@ selectAllCategorias.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
       </td>
     </tr>
-  `
+  `,
   });
 
   attachCategoriaEvents();
   actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
 });
 
-eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas);
-aplicarBulkCategoriasGrupoBtn?.addEventListener("click", aplicarBulkCategoriaGrupo);
+eliminarCategoriasSeleccionadasBtn.addEventListener(
+  "click",
+  eliminarCategoriasSeleccionadas,
+);
+aplicarBulkCategoriasGrupoBtn?.addEventListener(
+  "click",
+  aplicarBulkCategoriaGrupo,
+);
 
 window.editarCategoria = editarCategoria;
 window.eliminarCategoria = eliminarCategoria;

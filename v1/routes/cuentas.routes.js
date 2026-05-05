@@ -13,11 +13,11 @@ import { validateBody } from "../middlewares/validateBody.middleware.js";
 const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/cuentas
+router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.get("/", obtenerCuentas)
+router.delete("/eliminar-todo", eliminarTodasLasCuentas);
 router.get("/:id", obtenerCuentaPorId)
 router.patch("/:id", validateBody(cuentaUpdateSchema), actualizarCuenta);
-router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.delete("/:id", eliminarCuenta)
-router.delete("/eliminar-todo", eliminarTodasLasCuentas);
 
 export default router;

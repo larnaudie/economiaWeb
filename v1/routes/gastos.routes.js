@@ -7,6 +7,7 @@ import {
     crearGasto,
     crearGastosBulk,
     actualizarGastosBulk,
+    actualizarOrdenGastosCuenta,
     eliminarTodosLosGastos
 } from "../controllers/gastos.controller.js";
 import {
@@ -20,12 +21,13 @@ import { validateBody } from "../middlewares/validateBody.middleware.js";
 const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/gastos
+router.post("/", validateBody(gastoSchema), crearGasto)
 router.get("/", obtenerGastos)
+router.patch("/orden-cuenta", actualizarOrdenGastosCuenta);
+router.delete("/eliminar-todo", eliminarTodosLosGastos);
 router.get("/:id", obtenerGastoPorId)
 router.patch("/:id", validateBody(gastoUpdateSchema), actualizarGasto);
-router.post("/", validateBody(gastoSchema), crearGasto)
 router.delete("/:id", eliminarGasto)
 router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
 router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
-router.delete("/eliminar-todo", eliminarTodosLosGastos);
 export default router;

@@ -75,7 +75,7 @@ export const obtenerGastosService = async (
         },
         { $unwind: { path: "$cuenta", preserveNullAndEmptyArrays: true } },
 
-        { $sort: { fecha: -1 } }
+        { $sort: { ordenCuenta: 1, fecha: -1 } }
     );
 
     const skip = pagina ? (parseInt(pagina) - 1) * 20 : 0;
@@ -201,6 +201,29 @@ export const actualizarGastosBulkService = async ({ usuarioId, gastos }) => {
     return resultado;
 };
 
+export const actualizarOrdenGastosCuentaService = async ({ usuarioId, gastos }) => {
+  if (!Array.isArray(gastos) || gastos.length === 0) {
+    throw new Error("No se recibieron gastos para ordenar");
+  }
+
+  const operaciones = gastos.map((gasto, index) => ({
+    updateOne: {
+      filter: {
+        _id: gasto.id,
+        usuario: usuarioId
+      },
+      update: {
+        $set: {
+          ordenCuenta: index + 1
+        }
+      }
+    }
+  }));
+
+  return await Gasto.bulkWrite(operaciones);
+};
+
 export const eliminarTodosLosGastosService = async () => {
     await Gasto.deleteMany({});
 }
+

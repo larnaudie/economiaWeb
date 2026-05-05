@@ -35,6 +35,37 @@ function calcularEconomiaReal(flujo, porcentaje) {
   return (flujoNum * (porcentajeNum / 100)).toFixed(2);
 }
 
+function parseMoneyValue(value) {
+  if (value == null || value === "") return null;
+
+  if (typeof value === "number") return value;
+
+  if (typeof value !== "string") return null;
+
+  let normalized = value
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/[^0-9,.\-+]/g, "");
+
+  if (!normalized) return null;
+
+  const lastComma = normalized.lastIndexOf(",");
+  const lastDot = normalized.lastIndexOf(".");
+
+  if (lastComma >= 0 && lastDot >= 0) {
+    if (lastComma > lastDot) {
+      normalized = normalized.replace(/\./g, "").replace(",", ".");
+    } else {
+      normalized = normalized.replace(/,/g, "");
+    }
+  } else if (lastComma >= 0) {
+    normalized = normalized.replace(",", ".");
+  }
+
+  const num = Number(normalized);
+  return Number.isNaN(num) ? null : num;
+}
+
 function getApiData(response, fallback = []) {
   if (!response) return fallback;
 
@@ -92,3 +123,75 @@ function formatMoney(value) {
   const num = Number(value) || 0;
   return num.toFixed(2);
 }
+
+const PALABRAS_TRANSFERENCIA = [
+  "transf.",
+  "transferencia",
+  "transf",
+];
+
+function esSubcategoriaTransferencia(categoria, descripcion = "") {
+  // Caso 1: categoria es objeto
+  if (categoria && typeof categoria === "object") {
+    const nombre = String(categoria.nombre || "").toLowerCase();
+
+    if (PALABRAS_TRANSFERENCIA.some((palabra) => nombre.includes(palabra))) {
+      return true;
+    }
+  }
+
+  // Caso 2: categoria es string (id), usar descripcion.
+  const desc = String(descripcion || "").toLowerCase();
+
+  return PALABRAS_TRANSFERENCIA.some((palabra) => desc.includes(palabra));
+}
+
+function debeContarGastoBancario(gasto) {
+  const flujo = Number(gasto.flujoBancario) || 0;
+
+  return (
+    flujo < 0 &&
+    gasto.incluirEnGastoBancario === true &&
+    !esSubcategoriaTransferencia(gasto.categoria, gasto.descripcion)
+  );
+}
+
+function debeContarGastoReal(gasto) {
+  const real = Number(gasto.economiaReal) || 0;
+
+  return (
+    real < 0 &&
+    gasto.incluirEnGastoReal === true &&
+    !esSubcategoriaTransferencia(gasto.categoria, gasto.descripcion)
+  );
+}
+
+function formatMoney(value) {
+  return (Number(value) || 0).toFixed(2);
+}
+
+function esSubcategoriaTransferencia(categoria) {
+  const nombre = String(categoria?.nombre || "").toLowerCase();
+  return nombre.includes("transf");
+}
+
+function debeContarGastoBancario(gasto) {
+  const flujo = Number(gasto.flujoBancario) || 0;
+
+  return (
+    flujo < 0 &&
+    gasto.incluirEnGastoBancario === true &&
+    !esSubcategoriaTransferencia(gasto.categoria)
+  );
+}
+
+function debeContarGastoReal(gasto) {
+  const real = Number(gasto.economiaReal) || 0;
+
+  return (
+    real < 0 &&
+    gasto.incluirEnGastoReal === true &&
+    !esSubcategoriaTransferencia(gasto.categoria)
+  );
+}
+

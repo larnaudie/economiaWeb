@@ -22,8 +22,8 @@ router.get("/me/bancos", obtenerBancosUsuario)
 router.get("/me/cuentas", obtenerCuentasUsuario)
 router.get("/me/categorias", obtenerCategoriasUsuario)
 router.get("/me/gastos", obtenerGastosUsuario)
+router.delete("/eliminar-todo", eliminarTodosLosUsuarios)
 router.get("/:id", obtenerUsuarioPorId)
 router.patch("/:id", actualizarUsuario)
-router.delete("/eliminar-todo", eliminarTodosLosUsuarios)
 
 export default router;

@@ -13,10 +13,10 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
-router.get("/", obtenerCategoriasGrupo);
 router.post("/", crearCategoriaGrupo);
+router.get("/", obtenerCategoriasGrupo);
+router.delete("/eliminar-todo", eliminarTodosLasCategoriasGrupo);
 router.patch("/:id", actualizarCategoriaGrupo);
 router.delete("/:id", eliminarCategoriaGrupo);
-router.delete("/eliminar-todo", eliminarTodosLasCategoriasGrupo);
 
 export default router;

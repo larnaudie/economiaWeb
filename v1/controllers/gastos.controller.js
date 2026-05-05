@@ -6,6 +6,7 @@ import {
     crearGastoService,
     crearGastosBulkService,
     actualizarGastosBulkService,
+    actualizarOrdenGastosCuentaService,
     eliminarTodosLosGastosService
 } from "../services/gasto.service.js";
 import { successResponse } from "../utils/apiResponse.js";
@@ -120,6 +121,23 @@ export const actualizarGastosBulk = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+};
+
+export const actualizarOrdenGastosCuenta = async (req, res, next) => {
+  try {
+    const resultado = await actualizarOrdenGastosCuentaService({
+      usuarioId: req.user.id,
+      gastos: req.body.gastos
+    });
+
+    res.json({
+      success: true,
+      message: "Orden de gastos actualizado",
+      data: resultado
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const eliminarTodosLosGastos = async (req, res, next) => {
