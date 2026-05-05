@@ -1,87 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crear Subcategorías - Economía Web</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <header></header>
 
     <main>
-        <section>
-            <button type="button" id="openCategoriaModal">Crear Subcategoría</button>
-        </section>
-        <section>
-            <h2>Mis Subcategorías</h2>
+      <section>
+        <button type="button" id="openCategoriaModal">
+          Crear Subcategoría
+        </button>
+      </section>
+      <section>
+        <h2>Mis Subcategorías</h2>
 
-            <div class="inline-group" style="margin-bottom: 1rem;">
-                <div>
-                    <label for="bulkCategoriaGrupo">Categoría principal:</label>
-                    <select id="bulkCategoriaGrupo">
-                        <option value="">Sin categoría principal</option>
-                    </select>
-                </div>
+        <div class="inline-group" style="margin-bottom: 1rem">
+          <div>
+            <label for="bulkCategoriaGrupo">Categoría principal:</label>
+            <select id="bulkCategoriaGrupo">
+              <option value="">Sin categoría principal</option>
+            </select>
+          </div>
 
-                <div>
-                    <button type="button" id="aplicarBulkCategoriasGrupoBtn">
-                        Aplicar a seleccionadas
-                    </button>
-                </div>
+          <div>
+            <button type="button" id="aplicarBulkCategoriasGrupoBtn">
+              Aplicar a seleccionadas
+            </button>
+          </div>
 
-                <div>
-                    <button type="button" id="eliminarCategoriasSeleccionadasBtn">
-                        Eliminar Seleccionadas
-                    </button>
-                </div>
-            </div>
-
-            <div id="bulkCategoriasError" class="error"></div>
-            <div id="bulkCategoriasSuccess" style="color: green; margin-top: 0.75rem;"></div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="selectAllCategorias"></th>
-                        <th>Nombre</th>
-                        <th>Categoría principal</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="categoriasList">
-                    <tr>
-                        <td colspan="4">No hay elementos registrados.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <div id="gestionError" class="error"></div>
-
-        <div id="categoriaModal" class="modal hidden">
-            <div class="modal-content">
-                <button type="button" class="close-modal" data-close="categoriaModal">&times;</button>
-                <h2>Nueva Subcategoría</h2>
-
-                <form id="modalCategoriaForm">
-                    <label for="modalCategoriaNombre">Nombre</label>
-                    <input type="text" id="modalCategoriaNombre" required placeholder="Ej: Supermercado">
-                    <label for="modalCategoriaGrupo">Categoría principal</label>
-                    <select id="modalCategoriaGrupo">
-                        <option value="">Sin categoría principal</option>
-                    </select>
-
-                    <div id="modalCategoriaError" class="error"></div>
-
-                    <div class="modal-actions">
-                        <button type="submit">Guardar subcategoría</button>
-                    </div>
-                </form>
-            </div>
+          <div>
+            <button type="button" id="eliminarCategoriasSeleccionadasBtn">
+              Eliminar Seleccionadas
+            </button>
+          </div>
         </div>
+
+        <div id="bulkCategoriasError" class="error"></div>
+        <div
+          id="bulkCategoriasSuccess"
+          style="color: green; margin-top: 0.75rem"
+        ></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox" id="selectAllCategorias" />
+              </th>
+              <th>Nombre</th>
+              <th>Categoría principal</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="categoriasList">
+            <tr>
+              <td colspan="4">No hay elementos registrados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div id="gestionError" class="error"></div>
+
+      <div id="categoriaModal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" class="close-modal" data-close="categoriaModal">
+            &times;
+          </button>
+          <h2>Nueva Subcategoría</h2>
+
+          <form id="modalCategoriaForm">
+            <label for="modalCategoriaNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCategoriaNombre"
+              required
+              placeholder="Ej: Supermercado"
+            />
+            <label for="modalCategoriaGrupo">Categoría principal</label>
+            <select id="modalCategoriaGrupo">
+              <option value="">Sin categoría principal</option>
+            </select>
+
+            <div id="modalCategoriaError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar subcategoría</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </main>
 
     <script src="/js/api.js"></script>
@@ -89,6 +102,5 @@
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
     <script src="/js/crear-categoria.js"></script>
-</body>
-
+  </body>
 </html>

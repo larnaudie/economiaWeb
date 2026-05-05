@@ -1,5 +1,5 @@
 requireAuth();
-renderHeader({ title: "Gestión de Creaciones" });;
+renderHeader({ title: "Gestión de Creaciones" });
 
 const token = getToken();
 
@@ -11,7 +11,9 @@ const gastosPaginaActual = document.getElementById("gastosPaginaActual");
 
 // Bulk bancos
 const selectAllBancos = document.getElementById("selectAllBancos");
-const eliminarBancosSeleccionadosBtn = document.getElementById("eliminarBancosSeleccionadosBtn");
+const eliminarBancosSeleccionadosBtn = document.getElementById(
+  "eliminarBancosSeleccionadosBtn",
+);
 const bulkBancosError = document.getElementById("bulkBancosError");
 const bulkBancosSuccess = document.getElementById("bulkBancosSuccess");
 
@@ -19,23 +21,31 @@ const bulkBancosSuccess = document.getElementById("bulkBancosSuccess");
 const selectAllCuentas = document.getElementById("selectAllCuentas");
 const bulkCuentaBanco = document.getElementById("bulkCuentaBanco");
 const aplicarBulkCuentasBtn = document.getElementById("aplicarBulkCuentasBtn");
-const eliminarCuentasSeleccionadasBtn = document.getElementById("eliminarCuentasSeleccionadasBtn");
+const eliminarCuentasSeleccionadasBtn = document.getElementById(
+  "eliminarCuentasSeleccionadasBtn",
+);
 const bulkCuentasError = document.getElementById("bulkCuentasError");
 const bulkCuentasSuccess = document.getElementById("bulkCuentasSuccess");
 
 // Bulk gastos
 const selectAllGastos = document.getElementById("selectAllGastos");
-const eliminarGastosSeleccionadosBtn = document.getElementById("eliminarGastosSeleccionadosBtn");
+const eliminarGastosSeleccionadosBtn = document.getElementById(
+  "eliminarGastosSeleccionadosBtn",
+);
 const bulkGastosError = document.getElementById("bulkGastosError");
 const bulkGastosSuccess = document.getElementById("bulkGastosSuccess");
 
 const filtroFechaDesde = document.getElementById("filtroFechaDesde");
 const filtroFechaHasta = document.getElementById("filtroFechaHasta");
 const filtrarGastosBtn = document.getElementById("filtrarGastosBtn");
-const limpiarFiltroGastosBtn = document.getElementById("limpiarFiltroGastosBtn");
+const limpiarFiltroGastosBtn = document.getElementById(
+  "limpiarFiltroGastosBtn",
+);
 
 const selectAllCategorias = document.getElementById("selectAllCategorias");
-const eliminarCategoriasSeleccionadasBtn = document.getElementById("eliminarCategoriasSeleccionadasBtn");
+const eliminarCategoriasSeleccionadasBtn = document.getElementById(
+  "eliminarCategoriasSeleccionadasBtn",
+);
 const bulkCategoriasError = document.getElementById("bulkCategoriasError");
 const bulkCategoriasSuccess = document.getElementById("bulkCategoriasSuccess");
 
@@ -70,7 +80,9 @@ const modalGastoEconomia = document.getElementById("modalGastoEconomia");
 const modalGastoCategoria = document.getElementById("modalGastoCategoria");
 const modalGastoCuenta = document.getElementById("modalGastoCuenta");
 
-const modalGastoIncluirBancario = document.getElementById("modalGastoIncluirBancario");
+const modalGastoIncluirBancario = document.getElementById(
+  "modalGastoIncluirBancario",
+);
 const modalGastoIncluirReal = document.getElementById("modalGastoIncluirReal");
 
 const modalBancoError = document.getElementById("modalBancoError");
@@ -82,7 +94,9 @@ const editarGastoModal = document.getElementById("editarGastoModal");
 const editarGastoForm = document.getElementById("editarGastoForm");
 const editarGastoId = document.getElementById("editarGastoId");
 const editarGastoFecha = document.getElementById("editarGastoFecha");
-const editarGastoDescripcion = document.getElementById("editarGastoDescripcion");
+const editarGastoDescripcion = document.getElementById(
+  "editarGastoDescripcion",
+);
 const editarGastoFlujo = document.getElementById("editarGastoFlujo");
 const editarGastoPorcentaje = document.getElementById("editarGastoPorcentaje");
 const editarGastoEconomia = document.getElementById("editarGastoEconomia");
@@ -104,13 +118,19 @@ const grupoHastaGastos = document.getElementById("grupoHastaGastos");
 
 const filtroCategoriaGastos = document.getElementById("filtroCategoriaGastos");
 const filtroCuentaGastos = document.getElementById("filtroCuentaGastos");
+const ordenGastosGestion = document.getElementById("ordenGastosGestion");
 
-const editarSeleccionadosGastosBtn = document.getElementById("editarSeleccionadosGastosBtn");
-const bloquearSeleccionadosGastosBtn = document.getElementById("bloquearSeleccionadosGastosBtn");
+const editarSeleccionadosGastosBtn = document.getElementById(
+  "editarSeleccionadosGastosBtn",
+);
+const bloquearSeleccionadosGastosBtn = document.getElementById(
+  "bloquearSeleccionadosGastosBtn",
+);
 
-const bulkGastoIncluirBancario = document.getElementById("bulkGastoIncluirBancario");
+const bulkGastoIncluirBancario = document.getElementById(
+  "bulkGastoIncluirBancario",
+);
 const bulkGastoIncluirReal = document.getElementById("bulkGastoIncluirReal");
-
 
 let paginaGastosActual = 1;
 let totalPaginasGastos = 1;
@@ -123,7 +143,7 @@ let categoriasCache = [];
 async function cargarBancos() {
   const token = getAuthToken();
   const data = await apiRequest("/bancos", "GET", null, token);
-  bancosCache = getApiData(data)
+  bancosCache = getApiData(data);
 }
 
 async function cargarCuentas() {
@@ -144,7 +164,7 @@ async function cargarCategoriasGrupo() {
   const token = getAuthToken();
   if (!token) return;
 
-  const data = await apiRequest("/categorias-grupo", "GET", null, token);
+  const data = await apiRequest("/usuarios/me/categorias-grupo", "GET", null, token);
   categoriasGrupoCache = getApiData(data);
 
   renderCategoriasGrupoSelect();
@@ -156,11 +176,13 @@ function renderCategoriasGrupoSelect(selectedValue = "") {
   modalCategoriaGrupo.innerHTML =
     '<option value="">Sin categoría principal</option>' +
     categoriasGrupoCache
-      .map(grupo => `
+      .map(
+        (grupo) => `
         <option value="${grupo._id}" ${selectedValue === grupo._id ? "selected" : ""}>
           ${grupo.nombre}
         </option>
-      `)
+      `,
+      )
       .join("");
 }
 
@@ -173,7 +195,7 @@ function editarSeleccionadosGastos() {
   }
 
   bulkGastosError.textContent = "";
-  seleccionados.forEach(g => g.isEditing = true);
+  seleccionados.forEach((g) => (g.isEditing = true));
   renderGastosPaginados();
 }
 
@@ -186,7 +208,7 @@ function bloquearSeleccionadosGastos() {
   }
 
   bulkGastosError.textContent = "";
-  seleccionados.forEach(g => g.isEditing = false);
+  seleccionados.forEach((g) => (g.isEditing = false));
   renderGastosPaginados();
 }
 
@@ -244,7 +266,7 @@ function buildDateRangeGestion(modo, mes, anio, desde, hasta) {
 
     return {
       fechaDesde: `${anio}-01-01`,
-      fechaHasta: `${anio}-12-31`
+      fechaHasta: `${anio}-12-31`,
     };
   }
 
@@ -258,7 +280,7 @@ function buildDateRangeGestion(modo, mes, anio, desde, hasta) {
 
   return {
     fechaDesde: desde,
-    fechaHasta: hasta
+    fechaHasta: hasta,
   };
 }
 
@@ -269,7 +291,7 @@ function getFiltrosTodosLosGastos() {
       fechaHasta: "",
       categoria: filtroCategoriaGastos.value,
       cuenta: filtroCuentaGastos.value,
-      busqueda: busquedaGastos.value.trim()
+      busqueda: busquedaGastos.value.trim(),
     };
   }
 
@@ -278,7 +300,7 @@ function getFiltrosTodosLosGastos() {
     mesGastos.value,
     anioGastos.value,
     filtroFechaDesde.value,
-    filtroFechaHasta.value
+    filtroFechaHasta.value,
   );
 
   return {
@@ -286,7 +308,7 @@ function getFiltrosTodosLosGastos() {
     fechaHasta,
     categoria: filtroCategoriaGastos.value,
     cuenta: filtroCuentaGastos.value,
-    busqueda: busquedaGastos.value.trim()
+    busqueda: busquedaGastos.value.trim(),
   };
 }
 
@@ -304,12 +326,12 @@ function resetFiltrosTodosLosGastos() {
 function renderFiltrosGastos() {
   filtroCategoriaGastos.innerHTML = `
     <option value="">Todas</option>
-    ${categoriasCache.map(c => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categoriasCache.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
   `;
 
   filtroCuentaGastos.innerHTML = `
     <option value="">Todas</option>
-    ${cuentasCache.map(c => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${cuentasCache.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
   `;
 }
 
@@ -331,25 +353,32 @@ function getAuthToken() {
   return token;
 }
 
-function renderEditarGastoSelects(categoriaSeleccionada = "", cuentaSeleccionada = "") {
+function renderEditarGastoSelects(
+  categoriaSeleccionada = "",
+  cuentaSeleccionada = "",
+) {
   editarGastoCategoria.innerHTML =
     '<option value="">Seleccionar categoría</option>' +
     categoriasCache
-      .map(categoria => `
+      .map(
+        (categoria) => `
         <option value="${categoria._id}" ${categoriaSeleccionada === categoria._id ? "selected" : ""}>
           ${categoria.nombre}
         </option>
-      `)
+      `,
+      )
       .join("");
 
   editarGastoCuenta.innerHTML =
     '<option value="">Seleccionar cuenta</option>' +
     cuentasCache
-      .map(cuenta => `
+      .map(
+        (cuenta) => `
         <option value="${cuenta._id}" ${cuentaSeleccionada === cuenta._id ? "selected" : ""}>
           ${cuenta.nombre}
         </option>
-      `)
+      `,
+      )
       .join("");
 }
 
@@ -372,9 +401,10 @@ function actualizarEconomiaEditarGasto() {
 }
 
 function renderBulkBancosSelect() {
-  bulkCuentaBanco.innerHTML = '<option value="">No cambiar</option>' +
+  bulkCuentaBanco.innerHTML =
+    '<option value="">No cambiar</option>' +
     bancosCache
-      .map(banco => `<option value="${banco._id}">${banco.nombre}</option>`)
+      .map((banco) => `<option value="${banco._id}">${banco.nombre}</option>`)
       .join("");
 }
 
@@ -385,7 +415,8 @@ async function calcularTotalPaginasGastos() {
   let pagina = 1;
   let seguir = true;
 
-  const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } = getFiltrosTodosLosGastos();
+  const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } =
+    getFiltrosTodosLosGastos();
 
   while (seguir) {
     const params = new URLSearchParams();
@@ -396,7 +427,12 @@ async function calcularTotalPaginasGastos() {
     if (categoria) params.set("categoria", categoria);
     if (busqueda) params.set("busqueda", busqueda);
 
-    const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
+    const data = await apiRequest(
+      `/usuarios/me/gastos?${params.toString()}`,
+      "GET",
+      null,
+      authToken,
+    );
     const gastosPagina = getApiData(data);
 
     if (gastosPagina.length < 20) {
@@ -416,15 +452,19 @@ async function cargarRecursosBulk() {
   try {
     const [bancos, categorias] = await Promise.all([
       apiRequest("/usuarios/me/bancos", "GET", null, authToken),
-      apiRequest("/usuarios/me/categorias", "GET", null, authToken)
+      apiRequest("/usuarios/me/categorias", "GET", null, authToken),
     ]);
 
-    bancosCache = (getApiData(bancos)).map(b => ({ ...b, selected: b.selected ?? false }));
+    bancosCache = getApiData(bancos).map((b) => ({
+      ...b,
+      selected: b.selected ?? false,
+    }));
     categoriasCache = getApiData(categorias);
 
     renderBulkBancosSelect();
   } catch (error) {
-    gestionError.textContent = error.message || "Error al cargar recursos auxiliares";
+    gestionError.textContent =
+      error.message || "Error al cargar recursos auxiliares";
   }
 }
 
@@ -432,7 +472,7 @@ function attachBancoEvents() {
   document.querySelectorAll(".banco-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const banco = bancosCache.find(b => b._id === id);
+      const banco = bancosCache.find((b) => b._id === id);
       if (banco) banco.selected = e.target.checked;
       updateSelectAllState(bancosCache, selectAllBancos);
     });
@@ -443,7 +483,7 @@ function attachCuentaEvents() {
   document.querySelectorAll(".cuenta-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const cuenta = cuentasCache.find(c => c._id === id);
+      const cuenta = cuentasCache.find((c) => c._id === id);
       if (cuenta) cuenta.selected = e.target.checked;
       updateSelectAllState(cuentasCache, selectAllCuentas);
     });
@@ -454,7 +494,7 @@ function attachGastoEvents() {
   document.querySelectorAll(".gasto-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const gasto = gastosCache.find(g => g._id === id);
+      const gasto = gastosCache.find((g) => g._id === id);
       if (gasto) gasto.selected = e.target.checked;
       updateSelectAllState(gastosCache, selectAllGastos);
     });
@@ -463,24 +503,22 @@ function attachGastoEvents() {
   document.querySelectorAll(".gasto-incluir-bancario").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const gasto = gastosCache.find(g => g._id === id);
+      const gasto = gastosCache.find((g) => g._id === id);
       if (!gasto) return;
 
-      gasto.incluirEnGastoBancario = Number(gasto.flujoBancario) !== 0
-        ? e.target.checked
-        : false;
+      gasto.incluirEnGastoBancario =
+        Number(gasto.flujoBancario) !== 0 ? e.target.checked : false;
     });
   });
 
   document.querySelectorAll(".gasto-incluir-real").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const gasto = gastosCache.find(g => g._id === id);
+      const gasto = gastosCache.find((g) => g._id === id);
       if (!gasto) return;
 
-      gasto.incluirEnGastoReal = Number(gasto.economiaReal) !== 0
-        ? e.target.checked
-        : false;
+      gasto.incluirEnGastoReal =
+        Number(gasto.economiaReal) !== 0 ? e.target.checked : false;
     });
   });
 }
@@ -490,7 +528,8 @@ async function cargarGastosPaginados() {
   if (!authToken) return;
 
   try {
-    const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } = getFiltrosTodosLosGastos();
+    const { fechaDesde, fechaHasta, categoria, cuenta, busqueda } =
+      getFiltrosTodosLosGastos();
 
     const params = new URLSearchParams();
     params.set("pagina", paginaGastosActual);
@@ -501,12 +540,17 @@ async function cargarGastosPaginados() {
     if (cuenta) params.set("cuenta", cuenta);
     if (busqueda) params.set("busqueda", busqueda);
 
-    const data = await apiRequest(`/usuarios/me/gastos?${params.toString()}`, "GET", null, authToken);
+    const data = await apiRequest(
+      `/usuarios/me/gastos?${params.toString()}`,
+      "GET",
+      null,
+      authToken,
+    );
 
-    gastosCache = getApiData(data).map(gasto => ({
+    gastosCache = getApiData(data).map((gasto) => ({
       ...gasto,
       selected: false,
-      isEditing: false
+      isEditing: false,
     }));
 
     renderGastosPaginados();
@@ -527,19 +571,19 @@ async function cargarListas() {
       apiRequest("/categorias-grupo", "GET", null, authToken)
     ]);
 
-    bancosCache = (getApiData(bancos)).map(banco => ({
+    bancosCache = getApiData(bancos).map((banco) => ({
       ...banco,
-      selected: false
+      selected: false,
     }));
 
-    cuentasCache = (getApiData(cuentas)).map(cuenta => ({
+    cuentasCache = getApiData(cuentas).map((cuenta) => ({
       ...cuenta,
-      selected: false
+      selected: false,
     }));
 
-    categoriasCache = (getApiData(categorias)).map(categoria => ({
+    categoriasCache = getApiData(categorias).map((categoria) => ({
       ...categoria,
-      selected: false
+      selected: false,
     }));
     categoriasGrupoCache = getApiData(categoriasGrupo);
     renderCategoriasGrupoSelect();
@@ -547,27 +591,55 @@ async function cargarListas() {
     renderTableRows({
       containerId: "bancosList",
       items: bancosCache,
+      colspan: 3,
+      renderItem: (banco) => `
+    <tr>
+      <td>
+        <input
+          type="checkbox"
+          class="banco-checkbox"
+          data-id="${banco._id}"
+          ${banco.selected ? "checked" : ""}
+        >
+      </td>
+      <td>${banco.nombre}</td>
+      <td>
+        <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
+        <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
+      </td>
+    </tr>
+  `,
+    });
+
+    renderTableRows({
+      containerId: "categoriasList",
+      items: categoriasCache,
       colspan: 4,
-      renderItem: categoria => `
-  <tr>
-    <td>
-      <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
-    </td>
-    <td>${categoria.nombre}</td>
-    <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
-    <td>
-      <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
-      <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
-    </td>
-  </tr>
-`
+      renderItem: (categoria) => `
+    <tr>
+      <td>
+        <input
+          type="checkbox"
+          class="categoria-checkbox"
+          data-id="${categoria._id}"
+          ${categoria.selected ? "checked" : ""}
+        >
+      </td>
+      <td>${categoria.nombre}</td>
+      <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+      <td>
+        <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
+        <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+      </td>
+    </tr>
+  `,
     });
 
     renderTableRows({
       containerId: "cuentasList",
       items: cuentasCache,
       colspan: 4,
-      renderItem: cuenta => `
+      renderItem: (cuenta) => `
   <tr>
     <td>
       <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
@@ -588,23 +660,7 @@ async function cargarListas() {
       <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
     </td>
   </tr>
-`
-    });
-
-    renderTableRows({
-      containerId: "categoriasList",
-      items: categoriasCache,
-      colspan: 3,
-      renderItem: categoria => `
-      <tr>
-        <td><input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}></td>
-        <td>${categoria.nombre}</td>
-        <td>
-          <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
-          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
-        </td>
-      </tr>
-    `
+`,
     });
 
     updateSelectAllState(bancosCache, selectAllBancos);
@@ -626,7 +682,7 @@ function attachCategoriaEvents() {
   document.querySelectorAll(".categoria-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const categoria = categoriasCache.find(c => c._id === id);
+      const categoria = categoriasCache.find((c) => c._id === id);
       if (categoria) categoria.selected = e.target.checked;
       updateSelectAllState(categoriasCache, selectAllCategorias);
     });
@@ -634,13 +690,14 @@ function attachCategoriaEvents() {
 }
 
 async function editarCategoria(id) {
-  const categoria = categoriasCache.find(c => c._id === id);
+  const categoria = categoriasCache.find((c) => c._id === id);
   if (!categoria) return;
 
   modalCategoriaForm.dataset.editingId = categoria._id;
   modalCategoriaNombre.value = categoria.nombre;
 
-  const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+  const grupoId =
+    categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
   renderCategoriasGrupoSelect(grupoId);
 
   openModal(categoriaModal);
@@ -668,14 +725,18 @@ async function eliminarCategoriasSeleccionadas() {
   bulkCategoriasError.textContent = "";
   bulkCategoriasSuccess.textContent = "";
 
-  const seleccionadas = categoriasCache.filter(categoria => categoria.selected);
+  const seleccionadas = categoriasCache.filter(
+    (categoria) => categoria.selected,
+  );
 
   if (!seleccionadas.length) {
     bulkCategoriasError.textContent = "No hay categorías seleccionadas.";
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionadas.length} categoría(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionadas.length} categoría(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminadas = 0;
@@ -683,7 +744,12 @@ async function eliminarCategoriasSeleccionadas() {
 
   for (const categoria of seleccionadas) {
     try {
-      await apiRequest(`/categorias/${categoria._id}`, "DELETE", null, authToken);
+      await apiRequest(
+        `/categorias/${categoria._id}`,
+        "DELETE",
+        null,
+        authToken,
+      );
       eliminadas++;
     } catch {
       errores++;
@@ -709,7 +775,12 @@ async function editarBanco(id, nombreActual) {
   if (!nuevoNombre || !nuevoNombre.trim()) return;
 
   try {
-    await apiRequest(`/bancos/${id}`, "PATCH", { nombre: nuevoNombre.trim() }, authToken);
+    await apiRequest(
+      `/bancos/${id}`,
+      "PATCH",
+      { nombre: nuevoNombre.trim() },
+      authToken,
+    );
     await cargarListas();
   } catch (error) {
     gestionError.textContent = error.message || "Error al editar banco";
@@ -761,9 +832,9 @@ async function editarCuenta(id, nombreActual, bancoActual) {
       "PATCH",
       {
         nombre: nuevoNombre.trim(),
-        banco: bancoSeleccionado._id
+        banco: bancoSeleccionado._id,
       },
-      authToken
+      authToken,
     );
 
     await cargarListas();
@@ -796,7 +867,12 @@ async function editarGasto(id) {
   try {
     await cargarRecursosBulk();
 
-    const gastoActual = await apiRequest(`/gastos/${id}`, "GET", null, authToken);
+    const gastoActual = await apiRequest(
+      `/gastos/${id}`,
+      "GET",
+      null,
+      authToken,
+    );
     const gasto = getApiData(gastoActual, null);
 
     editarGastoId.value = gasto._id;
@@ -808,13 +884,14 @@ async function editarGasto(id) {
 
     renderEditarGastoSelects(
       gasto.categoria?._id || gasto.categoria || "",
-      gasto.cuenta?._id || gasto.cuenta || ""
+      gasto.cuenta?._id || gasto.cuenta || "",
     );
 
     actualizarEconomiaEditarGasto();
     openModal(editarGastoModal);
   } catch (error) {
-    gestionError.textContent = error.message || "Error al cargar el gasto para editar";
+    gestionError.textContent =
+      error.message || "Error al cargar el gasto para editar";
   }
 }
 
@@ -855,7 +932,9 @@ async function eliminarBancosSeleccionados() {
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionados.length} banco(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionados.length} banco(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminados = 0;
@@ -890,7 +969,7 @@ async function aplicarBulkCuentas() {
   bulkCuentasSuccess.textContent = "";
 
   const banco = bulkCuentaBanco.value;
-  const seleccionadas = cuentasCache.filter(cuenta => cuenta.selected);
+  const seleccionadas = cuentasCache.filter((cuenta) => cuenta.selected);
 
   if (!seleccionadas.length) {
     bulkCuentasError.textContent = "No hay cuentas seleccionadas.";
@@ -912,9 +991,9 @@ async function aplicarBulkCuentas() {
         "PATCH",
         {
           nombre: cuenta.nombre,
-          banco
+          banco,
         },
-        authToken
+        authToken,
       );
       actualizadas++;
     } catch {
@@ -940,14 +1019,16 @@ async function eliminarCuentasSeleccionadas() {
   bulkCuentasError.textContent = "";
   bulkCuentasSuccess.textContent = "";
 
-  const seleccionadas = cuentasCache.filter(cuenta => cuenta.selected);
+  const seleccionadas = cuentasCache.filter((cuenta) => cuenta.selected);
 
   if (!seleccionadas.length) {
     bulkCuentasError.textContent = "No hay cuentas seleccionadas.";
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionadas.length} cuenta(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionadas.length} cuenta(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminadas = 0;
@@ -1065,7 +1146,9 @@ async function eliminarGastosSeleccionados() {
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionados.length} gasto(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionados.length} gasto(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminados = 0;
@@ -1095,7 +1178,6 @@ async function eliminarGastosSeleccionados() {
     bulkGastosError.textContent = `No se pudieron eliminar ${errores} gasto(s).`;
   }
 }
-
 
 function gastoPasaFiltroFecha(gasto) {
   const desde = filtroFechaDesde.value;
@@ -1128,12 +1210,65 @@ function gastoPasaFiltroFecha(gasto) {
   return true;
 }
 
+function aplicarOrdenGastosGestion() {
+  const orden = ordenGastosGestion?.value || "fechaDesc";
+
+  gastosCache.sort((a, b) => {
+    if (orden === "fechaAsc") return new Date(a.fecha) - new Date(b.fecha);
+    if (orden === "fechaDesc") return new Date(b.fecha) - new Date(a.fecha);
+
+    if (orden === "gastoBancarioAsc") {
+      return (Number(a.flujoBancario) || 0) - (Number(b.flujoBancario) || 0);
+    }
+
+    if (orden === "gastoBancarioDesc") {
+      return (Number(b.flujoBancario) || 0) - (Number(a.flujoBancario) || 0);
+    }
+
+    if (orden === "gastoRealAsc") {
+      return (Number(a.economiaReal) || 0) - (Number(b.economiaReal) || 0);
+    }
+
+    if (orden === "gastoRealDesc") {
+      return (Number(b.economiaReal) || 0) - (Number(a.economiaReal) || 0);
+    }
+
+    if (orden === "descripcionAsc") {
+      return String(a.descripcion || "").localeCompare(
+        String(b.descripcion || ""),
+      );
+    }
+
+    if (orden === "descripcionDesc") {
+      return String(b.descripcion || "").localeCompare(
+        String(a.descripcion || ""),
+      );
+    }
+
+    if (orden === "cuentaAsc") {
+      return String(a.cuenta?.nombre || "").localeCompare(
+        String(b.cuenta?.nombre || ""),
+      );
+    }
+
+    if (orden === "categoriaAsc") {
+      return String(a.categoria?.nombre || "").localeCompare(
+        String(b.categoria?.nombre || ""),
+      );
+    }
+
+    return 0;
+  });
+}
+
 function renderGastosPaginados() {
+  aplicarOrdenGastosGestion();
+
   renderTableRows({
     containerId: "gastosList",
     items: gastosCache,
     colspan: 11,
-    renderItem: gasto => `
+    renderItem: (gasto) => `
     <tr>
       <td>
         <input
@@ -1177,7 +1312,7 @@ function renderGastosPaginados() {
         <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
       </td>
     </tr>
-  `
+  `,
   });
 
   gastosPaginaActual.textContent = `${paginaGastosActual} / ${totalPaginasGastos}`;
@@ -1189,16 +1324,30 @@ function renderGastosPaginados() {
 }
 
 function renderModalCuentaBancos() {
-  modalCuentaBanco.innerHTML = '<option value="">Seleccionar banco</option>' +
-    bancosCache.map(banco => `<option value="${banco._id}">${banco.nombre}</option>`).join("");
+  modalCuentaBanco.innerHTML =
+    '<option value="">Seleccionar banco</option>' +
+    bancosCache
+      .map((banco) => `<option value="${banco._id}">${banco.nombre}</option>`)
+      .join("");
 }
 
 function renderModalGastoSelects() {
-  modalGastoCategoria.innerHTML = '<option value="">Seleccionar categoría</option>' +
-    categoriasCache.map(categoria => `<option value="${categoria._id}">${categoria.nombre}</option>`).join("");
+  modalGastoCategoria.innerHTML =
+    '<option value="">Seleccionar categoría</option>' +
+    categoriasCache
+      .map(
+        (categoria) =>
+          `<option value="${categoria._id}">${categoria.nombre}</option>`,
+      )
+      .join("");
 
-  modalGastoCuenta.innerHTML = '<option value="">Seleccionar cuenta</option>' +
-    cuentasCache.map(cuenta => `<option value="${cuenta._id}">${cuenta.nombre}</option>`).join("");
+  modalGastoCuenta.innerHTML =
+    '<option value="">Seleccionar cuenta</option>' +
+    cuentasCache
+      .map(
+        (cuenta) => `<option value="${cuenta._id}">${cuenta.nombre}</option>`,
+      )
+      .join("");
 }
 
 function actualizarEconomiaModalGasto() {
@@ -1291,7 +1440,7 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
 
   const payload = {
     nombre,
-    categoriaGrupo: modalCategoriaGrupo.value || null
+    categoriaGrupo: modalCategoriaGrupo.value || null,
   };
 
   try {
@@ -1309,7 +1458,8 @@ modalCategoriaForm.addEventListener("submit", async (e) => {
     closeModal(categoriaModal);
     await cargarListas();
   } catch (error) {
-    modalCategoriaError.textContent = error.message || "Error al guardar subcategoría";
+    modalCategoriaError.textContent =
+      error.message || "Error al guardar subcategoría";
   }
 });
 
@@ -1346,7 +1496,8 @@ modalGastoForm.addEventListener("submit", async (e) => {
   }
 
   if (descripcion.length < 5 || descripcion.length > 500) {
-    modalGastoError.textContent = "La descripción debe tener entre 5 y 500 caracteres.";
+    modalGastoError.textContent =
+      "La descripción debe tener entre 5 y 500 caracteres.";
     return;
   }
 
@@ -1367,10 +1518,12 @@ modalGastoForm.addEventListener("submit", async (e) => {
         porcentajeEconomiaReal,
         categoria,
         cuenta,
-        incluirEnGastoBancario: Number(flujoBancario) !== 0 && modalGastoIncluirBancario.checked,
-        incluirEnGastoReal: Number(economiaReal) !== 0 && modalGastoIncluirReal.checked
+        incluirEnGastoBancario:
+          Number(flujoBancario) !== 0 && modalGastoIncluirBancario.checked,
+        incluirEnGastoReal:
+          Number(economiaReal) !== 0 && modalGastoIncluirReal.checked,
       },
-      authToken
+      authToken,
     );
 
     modalGastoForm.reset();
@@ -1407,7 +1560,7 @@ selectAllBancos.addEventListener("change", (e) => {
     containerId: "bancosList",
     items: bancosCache,
     colspan: 3,
-    renderItem: banco => `
+    renderItem: (banco) => `
     <tr>
       <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
       <td>${banco.nombre}</td>
@@ -1416,7 +1569,7 @@ selectAllBancos.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
       </td>
     </tr>
-  `
+  `,
   });
   attachBancoEvents();
   updateSelectAllState(bancosCache, selectAllBancos);
@@ -1428,7 +1581,7 @@ selectAllCuentas.addEventListener("change", (e) => {
     containerId: "cuentasList",
     items: cuentasCache,
     colspan: 4,
-    renderItem: cuenta => `
+    renderItem: (cuenta) => `
     <tr>
       <td><input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}></td>
       <td>${cuenta.nombre}</td>
@@ -1438,7 +1591,7 @@ selectAllCuentas.addEventListener("change", (e) => {
         <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
       </td>
     </tr>
-  `
+  `,
   });
   attachCuentaEvents();
   updateSelectAllState(cuentasCache, selectAllCuentas);
@@ -1450,13 +1603,20 @@ selectAllGastos.addEventListener("change", (e) => {
 });
 
 // Listeners bulk
-eliminarBancosSeleccionadosBtn.addEventListener("click", eliminarBancosSeleccionados);
+eliminarBancosSeleccionadosBtn.addEventListener(
+  "click",
+  eliminarBancosSeleccionados,
+);
 aplicarBulkCuentasBtn.addEventListener("click", aplicarBulkCuentas);
-eliminarCuentasSeleccionadasBtn.addEventListener("click", eliminarCuentasSeleccionadas);
+eliminarCuentasSeleccionadasBtn.addEventListener(
+  "click",
+  eliminarCuentasSeleccionadas,
+);
 //aplicarBulkGastosBtn.addEventListener("click", aplicarBulkGastos);
-eliminarGastosSeleccionadosBtn.addEventListener("click", eliminarGastosSeleccionados);
-
-
+eliminarGastosSeleccionadosBtn.addEventListener(
+  "click",
+  eliminarGastosSeleccionados,
+);
 
 window.editarBanco = editarBanco;
 window.eliminarBanco = eliminarBanco;
@@ -1486,23 +1646,35 @@ selectAllCategorias.addEventListener("change", (e) => {
   renderTableRows({
     containerId: "categoriasList",
     items: categoriasCache,
-    colspan: 3,
-    renderItem: categoria => `
-    <tr>
-      <td><input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}></td>
-      <td>${categoria.nombre}</td>
-      <td>
-        <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
-        <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
-      </td>
-    </tr>
-  `});
+    colspan: 4,
+    renderItem: (categoria) => `
+      <tr>
+        <td>
+          <input
+            type="checkbox"
+            class="categoria-checkbox"
+            data-id="${categoria._id}"
+            ${categoria.selected ? "checked" : ""}
+          >
+        </td>
+        <td>${categoria.nombre}</td>
+        <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+        <td>
+          <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
+          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+        </td>
+      </tr>
+    `,
+  });
 
   attachCategoriaEvents();
   updateSelectAllState(categoriasCache, selectAllCategorias);
 });
 
-eliminarCategoriasSeleccionadasBtn.addEventListener("click", eliminarCategoriasSeleccionadas)
+eliminarCategoriasSeleccionadasBtn.addEventListener(
+  "click",
+  eliminarCategoriasSeleccionadas,
+);
 
 openCuentaModalBtn.addEventListener("click", async () => {
   modalCuentaError.textContent = "";
@@ -1534,10 +1706,22 @@ openBancoModalBtn.addEventListener("click", () => {
 });
 
 editarGastoFlujo.addEventListener("input", actualizarEconomiaEditarGasto);
+
 editarGastoPorcentaje.addEventListener("input", actualizarEconomiaEditarGasto);
 
-editarSeleccionadosGastosBtn.addEventListener("click", editarSeleccionadosGastos);
-bloquearSeleccionadosGastosBtn.addEventListener("click", bloquearSeleccionadosGastos);
+editarSeleccionadosGastosBtn.addEventListener(
+  "click",
+  editarSeleccionadosGastos,
+);
+
+bloquearSeleccionadosGastosBtn.addEventListener(
+  "click",
+  bloquearSeleccionadosGastos,
+);
+
+ordenGastosGestion?.addEventListener("change", () => {
+  renderGastosPaginados();
+});
 
 modoFiltroGastos.addEventListener("change", () => {
   if (modoFiltroGastos.value === "mes" && !mesGastos.value) {
@@ -1582,7 +1766,8 @@ editarGastoForm.addEventListener("submit", async (e) => {
   }
 
   if (descripcion.length < 5 || descripcion.length > 500) {
-    editarGastoError.textContent = "La descripción debe tener entre 5 y 500 caracteres.";
+    editarGastoError.textContent =
+      "La descripción debe tener entre 5 y 500 caracteres.";
     return;
   }
 
@@ -1604,9 +1789,9 @@ editarGastoForm.addEventListener("submit", async (e) => {
         categoria,
         cuenta,
         incluirEnGastoBancario: Number(flujoBancario) !== 0,
-        incluirEnGastoReal: Number(economiaReal) !== 0
+        incluirEnGastoReal: Number(economiaReal) !== 0,
       },
-      authToken
+      authToken,
     );
 
     closeModal(editarGastoModal);

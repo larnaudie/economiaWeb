@@ -1,416 +1,555 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestionar Creaciones - Economía Web</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <header></header>
 
-    <main>
-        <section>
-            <div class="inline-group">
-                <button type="button" id="openBancoModal">Crear Banco</button>
-                <button type="button" id="openCuentaModal">Crear Cuenta</button>
-                <button type="button" id="openCategoriaModal">Crear Subcategoría</button>
-                <button type="button" id="openGastoModal">Crear Gasto</button>
-            </div>
-        </section>
-        <section>
+    <main class="main-wide">
+      <section>
+        <details open>
+          <summary>
+            <h2>Acciones rápidas</h2>
+          </summary>
+
+          <div class="inline-group">
+            <button type="button" id="openBancoModal">Crear Banco</button>
+            <button type="button" id="openCuentaModal">Crear Cuenta</button>
+            <button type="button" id="openCategoriaModal">
+              Crear Subcategoría
+            </button>
+            <button type="button" id="openGastoModal">Crear Gasto</button>
+          </div>
+        </details>
+      </section>
+      <section>
+        <details open>
+          <summary>
             <h2>Mis Bancos</h2>
+          </summary>
 
-            <div class="inline-group" style="margin-bottom: 1rem;">
-                <button type="button" id="eliminarBancosSeleccionadosBtn">Eliminar Seleccionados</button>
-            </div>
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <button type="button" id="eliminarBancosSeleccionadosBtn">
+              Eliminar Seleccionados
+            </button>
+          </div>
 
-            <div id="bulkBancosError" class="error"></div>
-            <div id="bulkBancosSuccess" style="color: green; margin-top: 0.75rem;"></div>
+          <div id="bulkBancosError" class="error"></div>
+          <div
+            id="bulkBancosSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>
-                            <input type="checkbox" id="selectAllBancos">
-                        </th>
-                        <th>Nombre</th>
-                        <th>Categoría principal</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="bancosList">
-                    <tr>
-                        <td colspan="4">No hay elementos registrados.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="selectAllBancos" />
+                </th>
+                <th>Nombre</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="bancosList">
+              <tr>
+                <td colspan="3">No hay elementos registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+      </section>
 
-        <section>
+      <section>
+        <details open>
+          <summary>
             <h2>Mis Cuentas</h2>
+          </summary>
 
-            <div class="inline-group" style="margin-bottom: 1rem;">
-                <div>
-                    <label for="bulkCuentaBanco">Cambiar banco:</label>
-                    <select id="bulkCuentaBanco">
-                        <option value="">No cambiar</option>
-                    </select>
-                </div>
-
-                <div>
-                    <button type="button" id="aplicarBulkCuentasBtn">Aplicar a Seleccionadas</button>
-                </div>
-
-                <div>
-                    <button type="button" id="eliminarCuentasSeleccionadasBtn">Eliminar Seleccionadas</button>
-                </div>
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <div>
+              <label for="bulkCuentaBanco">Cambiar banco:</label>
+              <select id="bulkCuentaBanco">
+                <option value="">No cambiar</option>
+              </select>
             </div>
 
-            <div id="bulkCuentasError" class="error"></div>
-            <div id="bulkCuentasSuccess" style="color: green; margin-top: 0.75rem;"></div>
+            <div>
+              <button type="button" id="aplicarBulkCuentasBtn">
+                Aplicar a Seleccionadas
+              </button>
+            </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>
-                            <input type="checkbox" id="selectAllCuentas">
-                        </th>
-                        <th>Nombre</th>
-                        <th>Banco</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="cuentasList">
-                    <tr>
-                        <td colspan="4">No hay elementos registrados.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+            <div>
+              <button type="button" id="eliminarCuentasSeleccionadasBtn">
+                Eliminar Seleccionadas
+              </button>
+            </div>
+          </div>
 
-        <section>
+          <div id="bulkCuentasError" class="error"></div>
+          <div
+            id="bulkCuentasSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="selectAllCuentas" />
+                </th>
+                <th>Nombre</th>
+                <th>Banco</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuentasList">
+              <tr>
+                <td colspan="4">No hay elementos registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+      </section>
+
+      <section>
+        <details open>
+          <summary>
             <h2>Mis Subcategorías</h2>
+          </summary>
 
-            <div class="inline-group" style="margin-bottom: 1rem;">
-                <button type="button" id="eliminarCategoriasSeleccionadasBtn">Eliminar Seleccionadas</button>
-            </div>
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <button type="button" id="eliminarCategoriasSeleccionadasBtn">
+              Eliminar Seleccionadas
+            </button>
+          </div>
 
-            <div id="bulkCategoriasError" class="error"></div>
-            <div id="bulkCategoriasSuccess" style="color: green; margin-top: 0.75rem;"></div>
+          <div id="bulkCategoriasError" class="error"></div>
+          <div
+            id="bulkCategoriasSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>
-                            <input type="checkbox" id="selectAllCategorias">
-                        </th>
-                        <th>Nombre</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="categoriasList">
-                    <tr>
-                        <td colspan="3">No hay elementos registrados.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="selectAllCategorias" />
+                </th>
+                <th>Nombre</th>
+                <th>Categoría principal</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categoriasList">
+              <tr>
+                <td colspan="4">No hay elementos registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+      </section>
 
-        <section>
+      <section>
+        <details open>
+          <summary>
             <h2>Todos Mis Gastos</h2>
-            <div class="inline-group" style="margin-bottom: 1rem;">
-                <div>
-                    <label for="modoFiltroGastos">Tipo de filtro:</label>
-                    <select id="modoFiltroGastos">
-                        <option value="todos">Todos</option>
-                        <option value="mes">Mes</option>
-                        <option value="anio">Año</option>
-                        <option value="rango">Rango</option>
-                    </select>
-                </div>
-
-                <div id="grupoMesGastos">
-                    <label for="mesGastos">Mes:</label>
-                    <select id="mesGastos">
-                        <option value="todos">Todos</option>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
-                </div>
-
-                <div id="grupoAnioGastos">
-                    <label for="anioGastos">Año:</label>
-                    <input type="number" id="anioGastos" placeholder="2026">
-                </div>
-
-                <div id="grupoDesdeGastos" style="display:none;">
-                    <label for="filtroFechaDesde">Desde:</label>
-                    <input type="date" id="filtroFechaDesde">
-                </div>
-
-                <div id="grupoHastaGastos" style="display:none;">
-                    <label for="filtroFechaHasta">Hasta:</label>
-                    <input type="date" id="filtroFechaHasta">
-                </div>
-
-                <div>
-                    <label for="filtroCategoriaGastos">Subcategoría:</label>
-                    <select id="filtroCategoriaGastos">
-                        <option value="">Todas</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="filtroCuentaGastos">Cuenta:</label>
-                    <select id="filtroCuentaGastos">
-                        <option value="">Todas</option>
-                    </select>
-                    <div>
-                        <label for="busquedaGastos">Buscar descripción:</label>
-                        <input type="text" id="busquedaGastos" placeholder="Ej: supermercado">
-                    </div>
-                </div>
-
-                <div>
-                    <button type="button" id="filtrarGastosBtn">Filtrar</button>
-                </div>
-
-                <div>
-                    <button type="button" id="limpiarFiltroGastosBtn">Limpiar filtro</button>
-                </div>
-
-                <div>
-                    <button type="button" id="editarSeleccionadosGastosBtn">Editar Seleccionados</button>
-                </div>
-
-                <div>
-                    <button type="button" id="bloquearSeleccionadosGastosBtn">Bloquear Seleccionados</button>
-                </div>
-                <div>
-                    <button type="button" id="eliminarGastosSeleccionadosBtn">Eliminar Seleccionados</button>
-                </div>
-
-                <div>
-                    <label for="bulkGastoIncluirBancario">Incluir en Gasto Bancario:</label>
-                    <select id="bulkGastoIncluirBancario">
-                        <option value="">No cambiar</option>
-                        <option value="true">Sí</option>
-                        <option value="false">No</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label for="bulkGastoIncluirReal">Incluir en Gasto Real:</label>
-                    <select id="bulkGastoIncluirReal">
-                        <option value="">No cambiar</option>
-                        <option value="true">Sí</option>
-                        <option value="false">No</option>
-                    </select>
-                </div>
-
-                <div id="bulkGastosError" class="error"></div>
-                <div id="bulkGastosSuccess" style="color: green; margin-top: 0.75rem;"></div>
+          </summary>
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <div>
+              <label for="modoFiltroGastos">Tipo de filtro:</label>
+              <select id="modoFiltroGastos">
+                <option value="todos">Todos</option>
+                <option value="mes">Mes</option>
+                <option value="anio">Año</option>
+                <option value="rango">Rango</option>
+              </select>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>
-                            <input type="checkbox" id="selectAllGastos">
-                        </th>
-                        <th>Fecha</th>
-                        <th>Descripción</th>
-                        <th>Cuenta</th>
-                        <th>Subcategoría</th>
-                        <th>Gasto Bancario</th>
-                        <th>% Gasto Real</th>
-                        <th>Gasto Real</th>
-                        <th>Incluir Bancario</th>
-                        <th>Incluir Real</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="gastosList">
-                    <tr>
-                        <td colspan="11">No hay elementos registrados.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div id="gastosPaginacion" class="inline-group" style="margin-top: 1rem;">
-                <button type="button" id="prevGastosBtn">Anterior</button>
-                <span id="gastosPaginaActual">1 / 1</span>
-                <button type="button" id="nextGastosBtn">Siguiente</button>
+            <div id="grupoMesGastos">
+              <label for="mesGastos">Mes:</label>
+              <select id="mesGastos">
+                <option value="todos">Todos</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+              </select>
             </div>
-        </section>
 
-        <div id="gestionError" class="error"></div>
-
-        <div id="bancoModal" class="modal hidden">
-            <div class="modal-content">
-                <button type="button" class="close-modal" data-close="bancoModal">&times;</button>
-                <h2>Nuevo Banco</h2>
-
-                <form id="modalBancoForm">
-                    <label for="modalBancoNombre">Nombre</label>
-                    <input type="text" id="modalBancoNombre" required placeholder="Ej: Santander">
-
-                    <div id="modalBancoError" class="error"></div>
-
-                    <div class="modal-actions">
-                        <button type="submit">Guardar banco</button>
-                    </div>
-                </form>
+            <div id="grupoAnioGastos">
+              <label for="anioGastos">Año:</label>
+              <input type="number" id="anioGastos" placeholder="2026" />
             </div>
+
+            <div id="grupoDesdeGastos" style="display: none">
+              <label for="filtroFechaDesde">Desde:</label>
+              <input type="date" id="filtroFechaDesde" />
+            </div>
+
+            <div id="grupoHastaGastos" style="display: none">
+              <label for="filtroFechaHasta">Hasta:</label>
+              <input type="date" id="filtroFechaHasta" />
+            </div>
+
+            <div>
+              <label for="filtroCategoriaGastos">Subcategoría:</label>
+              <select id="filtroCategoriaGastos">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="filtroCuentaGastos">Cuenta:</label>
+              <select id="filtroCuentaGastos">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="ordenGastosGestion">Ordenar por:</label>
+              <select id="ordenGastosGestion">
+                <option value="fechaDesc">Fecha ↓</option>
+                <option value="fechaAsc">Fecha ↑</option>
+                <option value="gastoBancarioAsc">Gasto bancario menor</option>
+                <option value="gastoBancarioDesc">Gasto bancario mayor</option>
+                <option value="gastoRealAsc">Gasto real menor</option>
+                <option value="gastoRealDesc">Gasto real mayor</option>
+                <option value="descripcionAsc">Descripción A-Z</option>
+                <option value="descripcionDesc">Descripción Z-A</option>
+                <option value="cuentaAsc">Cuenta A-Z</option>
+                <option value="categoriaAsc">Subcategoría A-Z</option>
+              </select>
+            </div>
+
+            <div>
+              <div>
+                <label for="busquedaGastos">Buscar descripción:</label>
+                <input
+                  type="text"
+                  id="busquedaGastos"
+                  placeholder="Ej: supermercado"
+                />
+              </div>
+            </div>
+
+            <div>
+              <button type="button" id="filtrarGastosBtn">Filtrar</button>
+            </div>
+
+            <div>
+              <button type="button" id="limpiarFiltroGastosBtn">
+                Limpiar filtro
+              </button>
+            </div>
+
+            <div>
+              <button type="button" id="editarSeleccionadosGastosBtn">
+                Editar Seleccionados
+              </button>
+            </div>
+
+            <div>
+              <button type="button" id="bloquearSeleccionadosGastosBtn">
+                Bloquear Seleccionados
+              </button>
+            </div>
+            <div>
+              <button type="button" id="eliminarGastosSeleccionadosBtn">
+                Eliminar Seleccionados
+              </button>
+            </div>
+
+            <div>
+              <label for="bulkGastoIncluirBancario"
+                >Incluir en Gasto Bancario:</label
+              >
+              <select id="bulkGastoIncluirBancario">
+                <option value="">No cambiar</option>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="bulkGastoIncluirReal">Incluir en Gasto Real:</label>
+              <select id="bulkGastoIncluirReal">
+                <option value="">No cambiar</option>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div id="bulkGastosError" class="error"></div>
+            <div
+              id="bulkGastosSuccess"
+              style="color: green; margin-top: 0.75rem"
+            ></div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <input type="checkbox" id="selectAllGastos" />
+                </th>
+                <th>Fecha</th>
+                <th>Descripción</th>
+                <th>Cuenta</th>
+                <th>Subcategoría</th>
+                <th>Gasto Bancario</th>
+                <th>% Gasto Real</th>
+                <th>Gasto Real</th>
+                <th>Incluir Bancario</th>
+                <th>Incluir Real</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="gastosList">
+              <tr>
+                <td colspan="11">No hay elementos registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div
+            id="gastosPaginacion"
+            class="inline-group"
+            style="margin-top: 1rem"
+          >
+            <button type="button" id="prevGastosBtn">Anterior</button>
+            <span id="gastosPaginaActual">1 / 1</span>
+            <button type="button" id="nextGastosBtn">Siguiente</button>
+          </div>
+        </details>
+      </section>
+
+      <div id="gestionError" class="error"></div>
+
+      <div id="bancoModal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" class="close-modal" data-close="bancoModal">
+            &times;
+          </button>
+          <h2>Nuevo Banco</h2>
+
+          <form id="modalBancoForm">
+            <label for="modalBancoNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalBancoNombre"
+              required
+              placeholder="Ej: Santander"
+            />
+
+            <div id="modalBancoError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar banco</button>
+            </div>
+          </form>
         </div>
+      </div>
 
-        <div id="cuentaModal" class="modal hidden">
-            <div class="modal-content">
-                <button type="button" class="close-modal" data-close="cuentaModal">&times;</button>
-                <h2>Nueva Cuenta</h2>
+      <div id="cuentaModal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" class="close-modal" data-close="cuentaModal">
+            &times;
+          </button>
+          <h2>Nueva Cuenta</h2>
 
-                <form id="modalCuentaForm">
-                    <label for="modalCuentaNombre">Nombre</label>
-                    <input type="text" id="modalCuentaNombre" required placeholder="Ej: Caja Ahorro USD">
+          <form id="modalCuentaForm">
+            <label for="modalCuentaNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCuentaNombre"
+              required
+              placeholder="Ej: Caja Ahorro USD"
+            />
 
-                    <label for="modalCuentaBanco">Banco</label>
-                    <select id="modalCuentaBanco" required>
-                        <option value="">Seleccionar banco</option>
-                    </select>
+            <label for="modalCuentaBanco">Banco</label>
+            <select id="modalCuentaBanco" required>
+              <option value="">Seleccionar banco</option>
+            </select>
 
-                    <div id="modalCuentaError" class="error"></div>
+            <div id="modalCuentaError" class="error"></div>
 
-                    <div class="modal-actions">
-                        <button type="submit">Guardar cuenta</button>
-                    </div>
-                </form>
+            <div class="modal-actions">
+              <button type="submit">Guardar cuenta</button>
             </div>
+          </form>
         </div>
+      </div>
 
-        <div id="categoriaModal" class="modal hidden">
-            <div class="modal-content">
-                <button class="close-modal" data-close="categoriaModal">&times;</button>
-                <h2>Nueva Subcategoría</h2>
+      <div id="categoriaModal" class="modal hidden">
+        <div class="modal-content">
+          <button class="close-modal" data-close="categoriaModal">
+            &times;
+          </button>
+          <h2>Nueva Subcategoría</h2>
 
-                <form id="modalCategoriaForm">
-                    <label for="modalCategoriaGrupo">Categoría principal</label>
-                    <select id="modalCategoriaGrupo">
-                        <option value="">Sin categoría principal</option>
-                    </select>
+          <form id="modalCategoriaForm">
+            <label for="modalCategoriaNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCategoriaNombre"
+              required
+              minlength="2"
+              placeholder="Ej: Supermercado"
+            />
 
-                    <div id="modalCategoriaError" class="error"></div>
+            <label for="modalCategoriaGrupo">Categoría principal</label>
+            <select id="modalCategoriaGrupo">
+              <option value="">Sin categoría principal</option>
+            </select>
 
-                    <div class="modal-actions">
-                        <button type="submit">Guardar Subcategoría</button>
-                    </div>
-                </form>
+            <div id="modalCategoriaError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar Subcategoría</button>
             </div>
+          </form>
         </div>
+      </div>
 
-        <div id="gastoModal" class="modal hidden">
-            <div class="modal-content">
-                <button class="close-modal" data-close="gastoModal">&times;</button>
-                <h2>Nuevo Gasto</h2>
+      <div id="gastoModal" class="modal hidden">
+        <div class="modal-content">
+          <button class="close-modal" data-close="gastoModal">&times;</button>
+          <h2>Nuevo Gasto</h2>
 
-                <form id="modalGastoForm">
-                    <label for="modalGastoFecha">Fecha</label>
-                    <input type="date" id="modalGastoFecha" required>
+          <form id="modalGastoForm">
+            <label for="modalGastoFecha">Fecha</label>
+            <input type="date" id="modalGastoFecha" required />
 
-                    <label for="modalGastoDescripcion">Descripción</label>
-                    <textarea id="modalGastoDescripcion" maxlength="500" required></textarea>
+            <label for="modalGastoDescripcion">Descripción</label>
+            <textarea
+              id="modalGastoDescripcion"
+              maxlength="500"
+              required
+            ></textarea>
 
-                    <label for="modalGastoFlujo">Gasto Bancario</label>
-                    <input type="number" id="modalGastoFlujo" step="0.01" required>
+            <label for="modalGastoFlujo">Gasto Bancario</label>
+            <input type="number" id="modalGastoFlujo" step="0.01" required />
 
-                    <label for="modalGastoPorcentaje">Porcentaje Gasto Real</label>
-                    <input type="number" id="modalGastoPorcentaje" min="0" max="100" step="0.01" value="100" required>
+            <label for="modalGastoPorcentaje">Porcentaje Gasto Real</label>
+            <input
+              type="number"
+              id="modalGastoPorcentaje"
+              min="0"
+              max="100"
+              step="0.01"
+              value="100"
+              required
+            />
 
-                    <label for="modalGastoEconomia">Gasto Real</label>
-                    <input type="number" id="modalGastoEconomia" step="0.01" readonly>
+            <label for="modalGastoEconomia">Gasto Real</label>
+            <input type="number" id="modalGastoEconomia" step="0.01" readonly />
 
-                    <label>
-                        <input type="checkbox" id="modalGastoIncluirBancario" checked>
-                        Incluir en Gasto Bancario
-                    </label>
+            <label>
+              <input type="checkbox" id="modalGastoIncluirBancario" checked />
+              Incluir en Gasto Bancario
+            </label>
 
-                    <label>
-                        <input type="checkbox" id="modalGastoIncluirReal" checked>
-                        Incluir en Gasto Real
-                    </label>
+            <label>
+              <input type="checkbox" id="modalGastoIncluirReal" checked />
+              Incluir en Gasto Real
+            </label>
 
-                    <label for="modalGastoCategoria">Subcategoría</label>
-                    <select id="modalGastoCategoria" required>
-                        <option value="">Seleccionar Subcategoría</option>
-                    </select>
+            <label for="modalGastoCategoria">Subcategoría</label>
+            <select id="modalGastoCategoria" required>
+              <option value="">Seleccionar Subcategoría</option>
+            </select>
 
-                    <label for="modalGastoCuenta">Cuenta</label>
-                    <select id="modalGastoCuenta" required>
-                        <option value="">Seleccionar cuenta</option>
-                    </select>
+            <label for="modalGastoCuenta">Cuenta</label>
+            <select id="modalGastoCuenta" required>
+              <option value="">Seleccionar cuenta</option>
+            </select>
 
-                    <div id="modalGastoError" class="error"></div>
+            <div id="modalGastoError" class="error"></div>
 
-                    <div class="modal-actions">
-                        <button type="submit">Guardar gasto</button>
-                    </div>
-                </form>
+            <div class="modal-actions">
+              <button type="submit">Guardar gasto</button>
             </div>
+          </form>
         </div>
+      </div>
 
-        <div id="editarGastoModal" class="modal hidden">
-            <div class="modal-content">
-                <button type="button" class="close-modal" data-close="editarGastoModal">&times;</button>
-                <h2>Editar Gasto</h2>
+      <div id="editarGastoModal" class="modal hidden">
+        <div class="modal-content">
+          <button
+            type="button"
+            class="close-modal"
+            data-close="editarGastoModal"
+          >
+            &times;
+          </button>
+          <h2>Editar Gasto</h2>
 
-                <form id="editarGastoForm">
-                    <input type="hidden" id="editarGastoId">
+          <form id="editarGastoForm">
+            <input type="hidden" id="editarGastoId" />
 
-                    <label for="editarGastoFecha">Fecha</label>
-                    <input type="date" id="editarGastoFecha" required>
+            <label for="editarGastoFecha">Fecha</label>
+            <input type="date" id="editarGastoFecha" required />
 
-                    <label for="editarGastoDescripcion">Descripción</label>
-                    <textarea id="editarGastoDescripcion" maxlength="500" required></textarea>
+            <label for="editarGastoDescripcion">Descripción</label>
+            <textarea
+              id="editarGastoDescripcion"
+              maxlength="500"
+              required
+            ></textarea>
 
-                    <label for="editarGastoFlujo">Gasto Bancario</label>
-                    <input type="number" id="editarGastoFlujo" step="0.01" required>
+            <label for="editarGastoFlujo">Gasto Bancario</label>
+            <input type="number" id="editarGastoFlujo" step="0.01" required />
 
-                    <label for="editarGastoPorcentaje">Porcentaje Gasto Real</label>
-                    <input type="number" id="editarGastoPorcentaje" min="0" max="100" step="0.01" required>
+            <label for="editarGastoPorcentaje">Porcentaje Gasto Real</label>
+            <input
+              type="number"
+              id="editarGastoPorcentaje"
+              min="0"
+              max="100"
+              step="0.01"
+              required
+            />
 
-                    <label for="editarGastoEconomia">Gasto Real</label>
-                    <input type="number" id="editarGastoEconomia" step="0.01" readonly>
+            <label for="editarGastoEconomia">Gasto Real</label>
+            <input
+              type="number"
+              id="editarGastoEconomia"
+              step="0.01"
+              readonly
+            />
 
-                    <label for="editarGastoCategoria">Subcategoría</label>
-                    <select id="editarGastoCategoria" required>
-                        <option value="">Seleccionar Subcategoría</option>
-                    </select>
+            <label for="editarGastoCategoria">Subcategoría</label>
+            <select id="editarGastoCategoria" required>
+              <option value="">Seleccionar Subcategoría</option>
+            </select>
 
-                    <label for="editarGastoCuenta">Cuenta</label>
-                    <select id="editarGastoCuenta" required>
-                        <option value="">Seleccionar cuenta</option>
-                    </select>
+            <label for="editarGastoCuenta">Cuenta</label>
+            <select id="editarGastoCuenta" required>
+              <option value="">Seleccionar cuenta</option>
+            </select>
 
-                    <div id="editarGastoError" class="error"></div>
+            <div id="editarGastoError" class="error"></div>
 
-                    <div class="modal-actions">
-                        <button type="submit">Guardar cambios</button>
-                    </div>
-                </form>
+            <div class="modal-actions">
+              <button type="submit">Guardar cambios</button>
             </div>
+          </form>
         </div>
+      </div>
     </main>
 
     <script src="/js/api.js"></script>
@@ -418,6 +557,5 @@
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
     <script src="/js/gestionar-creaciones.js"></script>
-</body>
-
+  </body>
 </html>
