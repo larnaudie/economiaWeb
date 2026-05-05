@@ -1,67 +1,104 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Categorías Principales - Economía Web</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Categorías Principales - Economía Web</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
-  <header></header>
+  <body>
+    <header></header>
 
-  <main>
-    <section>
-      <button type="button" id="openCategoriaGrupoModal">Crear Categoría Principal</button>
-    </section>
+    <main>
+      <section>
+        <button type="button" id="openCategoriaGrupoModal">
+          Crear Categoría Principal
+        </button>
+      </section>
 
-    <section>
-      <h2>Mis Categorías Principales</h2>
+      <section>
+        <details open>
+          <summary>
+            <h2>Mis Categorías Principales</h2>
+          </summary>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-
-        <tbody id="categoriasGrupoList">
-          <tr>
-            <td colspan="2">Cargando...</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div id="categoriaGrupoError" class="error"></div>
-      <div id="categoriaGrupoSuccess" style="color: green; margin-top: 0.75rem;"></div>
-    </section>
-
-    <div id="categoriaGrupoModal" class="modal hidden">
-      <div class="modal-content">
-        <button type="button" class="close-modal" data-close="categoriaGrupoModal">&times;</button>
-        <h2 id="categoriaGrupoModalTitle">Nueva Categoría Principal</h2>
-
-        <form id="categoriaGrupoForm">
-          <input type="hidden" id="categoriaGrupoId">
-
-          <label for="categoriaGrupoNombre">Nombre</label>
-          <input type="text" id="categoriaGrupoNombre" required placeholder="Ej: Unipersonal">
-
-          <div id="categoriaGrupoModalError" class="error"></div>
-
-          <div class="modal-actions">
-            <button type="submit">Guardar</button>
+          <div class="inline-group" style="margin-bottom: 1rem">
+            <div>
+              <label for="ordenCategoriasGrupo">Ordenar por:</label>
+              <select id="ordenCategoriasGrupo">
+                <option value="nombreAsc">Categoría A-Z</option>
+                <option value="nombreDesc">Categoría Z-A</option>
+                <option value="cantidadSubcategoriasDesc">
+                  Más subcategorías
+                </option>
+                <option value="cantidadSubcategoriasAsc">
+                  Menos subcategorías
+                </option>
+              </select>
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
-  </main>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/utils.js"></script>
-  <script src="/js/header.js"></script>
-  <script src="/js/categorias-grupo.js"></script>
-</body>
+          <table>
+            <thead>
+              <tr>
+                <th>Categoría principal</th>
+                <th>Subcategorías</th>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+
+            <tbody id="categoriasGrupoList">
+              <tr>
+                <td colspan="3">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="categoriaGrupoError" class="error"></div>
+          <div
+            id="categoriaGrupoSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
+        </details>
+      </section>
+
+      <div id="categoriaGrupoModal" class="modal hidden">
+        <div class="modal-content">
+          <button
+            type="button"
+            class="close-modal"
+            data-close="categoriaGrupoModal"
+          >
+            &times;
+          </button>
+          <h2 id="categoriaGrupoModalTitle">Nueva Categoría Principal</h2>
+
+          <form id="categoriaGrupoForm">
+            <input type="hidden" id="categoriaGrupoId" />
+
+            <label for="categoriaGrupoNombre">Nombre</label>
+            <input
+              type="text"
+              id="categoriaGrupoNombre"
+              required
+              placeholder="Ej: Unipersonal"
+            />
+
+            <div id="categoriaGrupoModalError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/header.js"></script>
+    <script src="/js/categorias-grupo.js"></script>
+  </body>
 </html>

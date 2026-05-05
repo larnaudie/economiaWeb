@@ -55,16 +55,6 @@ function renderList(containerId, items, renderItem) {
   container.innerHTML = items.map(renderItem).join("");
 }
 
-async function cargarCategoriasGrupo() {
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  const data = await apiRequest("/categorias-grupo", "GET", null, authToken);
-  categoriasGrupoCache = getApiData(data);
-
-  renderCategoriasGrupoSelect();
-}
-
 function renderCategoriasGrupoSelect(selectedValue = "") {
   const options =
     '<option value="">Sin categoría principal</option>' +
@@ -83,16 +73,6 @@ function renderCategoriasGrupoSelect(selectedValue = "") {
   if (bulkCategoriaGrupo) {
     bulkCategoriaGrupo.innerHTML = options;
   }
-}
-
-async function cargarCategoriasGrupo() {
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  const data = await apiRequest("/categorias-grupo", "GET", null, authToken);
-  categoriasGrupoCache = getApiData(data);
-
-  renderCategoriasGrupoSelect();
 }
 
 async function cargarCategoriasGrupo() {
@@ -235,12 +215,10 @@ function editarCategoria(id) {
 
   modalCategoriaForm.dataset.editingId = categoria._id;
   modalCategoriaNombre.value = categoria.nombre;
-  const grupoId =
-    categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
-  renderCategoriasGrupoSelect(grupoId);
 
   const grupoId =
     categoria.categoriaGrupo?._id || categoria.categoriaGrupo || "";
+
   renderCategoriasGrupoSelect(grupoId);
 
   openModal(categoriaModal);
@@ -376,19 +354,25 @@ selectAllCategorias.addEventListener("change", (e) => {
   renderTableRows({
     containerId: "categoriasList",
     items: categoriasCache,
-    colspan: 3,
+    colspan: 4,
     renderItem: (categoria) => `
-    <tr>
-      <td>
-        <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
-      </td>
-      <td>${categoria.nombre}</td>
-      <td>
-        <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
-        <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
-      </td>
-    </tr>
-  `,
+      <tr>
+        <td>
+          <input
+            type="checkbox"
+            class="categoria-checkbox"
+            data-id="${categoria._id}"
+            ${categoria.selected ? "checked" : ""}
+          >
+        </td>
+        <td>${categoria.nombre}</td>
+        <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+        <td>
+          <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
+          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+        </td>
+      </tr>
+    `,
   });
 
   attachCategoriaEvents();
@@ -399,6 +383,7 @@ eliminarCategoriasSeleccionadasBtn.addEventListener(
   "click",
   eliminarCategoriasSeleccionadas,
 );
+
 aplicarBulkCategoriasGrupoBtn?.addEventListener(
   "click",
   aplicarBulkCategoriaGrupo,

@@ -15,7 +15,10 @@ const categoriaGrupoError = document.getElementById("categoriaGrupoError");
 const categoriaGrupoSuccess = document.getElementById("categoriaGrupoSuccess");
 const categoriaGrupoModalError = document.getElementById("categoriaGrupoModalError");
 
+const ordenCategoriasGrupo = document.getElementById("ordenCategoriasGrupo");
+
 let categoriasGrupoCache = [];
+let categoriasCache = [];
 
 function openModal(modal) {
   if (!modal) return;
@@ -34,34 +37,105 @@ function limpiarModalCategoriaGrupo() {
   categoriaGrupoModalTitle.textContent = "Nueva Categoría Principal";
 }
 
+function renderCategoriasGrupoTabla() {
+  if (!categoriasGrupoList) return;
+
+  const grupos = categoriasGrupoCache.map((grupo) => {
+    const subcategorias = categoriasCache.filter((categoria) => {
+      const grupoId = categoria.categoriaGrupo?._id || categoria.categoriaGrupo;
+      return grupoId === grupo._id;
+    });
+
+    return {
+      ...grupo,
+      subcategorias,
+    };
+  });
+
+  const orden = ordenCategoriasGrupo?.value || "nombreAsc";
+
+  grupos.sort((a, b) => {
+    if (orden === "nombreAsc") {
+      return String(a.nombre || "").localeCompare(String(b.nombre || ""));
+    }
+
+    if (orden === "nombreDesc") {
+      return String(b.nombre || "").localeCompare(String(a.nombre || ""));
+    }
+
+    if (orden === "cantidadSubcategoriasDesc") {
+      return b.subcategorias.length - a.subcategorias.length;
+    }
+
+    if (orden === "cantidadSubcategoriasAsc") {
+      return a.subcategorias.length - b.subcategorias.length;
+    }
+
+    return 0;
+  });
+
+  if (!grupos.length) {
+    categoriasGrupoList.innerHTML = `
+      <tr>
+        <td colspan="3">No hay categorías principales registradas.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  categoriasGrupoList.innerHTML = grupos
+    .map((grupo) => {
+      const filasSubcategorias = grupo.subcategorias.length
+        ? grupo.subcategorias
+            .map(
+              (subcategoria) => `
+                <tr>
+                  <td></td>
+                  <td>↳ ${subcategoria.nombre}</td>
+                  <td></td>
+                </tr>
+              `,
+            )
+            .join("")
+        : `
+          <tr>
+            <td></td>
+            <td>Sin subcategorías</td>
+            <td></td>
+          </tr>
+        `;
+
+      return `
+        <tr>
+          <td><strong>${grupo.nombre}</strong></td>
+          <td><strong>Subcategorías asociadas</strong></td>
+          <td><strong>${grupo.subcategorias.length}</strong></td>
+        </tr>
+
+        ${filasSubcategorias}
+      `;
+    })
+    .join("");
+}
+
+
 async function cargarCategoriasGrupo() {
   categoriaGrupoError.textContent = "";
 
   try {
-    const data = await apiRequest("/categorias-grupo", "GET", null, token);
-    categoriasGrupoCache = getApiData(data);
+    const [grupos, categorias] = await Promise.all([
+      apiRequest("/categorias-grupo", "GET", null, token),
+      apiRequest("/categorias", "GET", null, token),
+    ]);
 
-    renderCategoriasGrupo();
+    categoriasGrupoCache = getApiData(grupos);
+    categoriasCache = getApiData(categorias);
+
+    renderCategoriasGrupoTabla();
   } catch (error) {
-    categoriaGrupoError.textContent = error.message || "Error al cargar categorías principales.";
+    categoriaGrupoError.textContent =
+      error.message || "Error al cargar categorías principales.";
   }
-}
-
-function renderCategoriasGrupo() {
-  renderTableRows({
-    containerId: "categoriasGrupoList",
-    items: categoriasGrupoCache,
-    colspan: 2,
-    renderItem: categoriaGrupo => `
-      <tr>
-        <td>${categoriaGrupo.nombre}</td>
-        <td>
-          <button type="button" onclick="editarCategoriaGrupo('${categoriaGrupo._id}')">Editar</button>
-          <button type="button" onclick="eliminarCategoriaGrupo('${categoriaGrupo._id}')">Eliminar</button>
-        </td>
-      </tr>
-    `
-  });
 }
 
 function editarCategoriaGrupo(id) {
@@ -140,6 +214,11 @@ window.addEventListener("click", (e) => {
   if (e.target.classList.contains("modal")) {
     closeModal(e.target);
   }
+});
+
+
+ordenCategoriasGrupo?.addEventListener("change", () => {
+  renderCategoriasGrupoTabla();
 });
 
 document.addEventListener("DOMContentLoaded", cargarCategoriasGrupo);
