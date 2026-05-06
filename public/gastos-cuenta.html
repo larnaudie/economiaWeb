@@ -61,10 +61,18 @@
             <div>
               <label for="modoFiltroTotalesCuenta">Tipo de filtro:</label>
               <select id="modoFiltroTotalesCuenta">
-                <option value="mes">Mes</option>
-                <option value="anio">Año</option>
-                <option value="rango">Rango</option>
+                <option value="rango">Rango de Dias</option>
               </select>
+            </div>
+
+            <div id="grupoDesdeTotalesCuenta" style="display: none">
+              <label for="desdeTotalesCuenta">Desde:</label>
+              <input type="date" id="desdeTotalesCuenta" />
+            </div>
+
+            <div id="grupoHastaTotalesCuenta" style="display: none">
+              <label for="hastaTotalesCuenta">Hasta:</label>
+              <input type="date" id="hastaTotalesCuenta" />
             </div>
 
             <div>
@@ -81,39 +89,6 @@
                 id="busquedaTotalesCuenta"
                 placeholder="Ej: supermercado"
               />
-            </div>
-
-            <div id="grupoMesTotalesCuenta">
-              <label for="mesTotalesCuenta">Mes:</label>
-              <select id="mesTotalesCuenta">
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
-              </select>
-            </div>
-
-            <div id="grupoAnioTotalesCuenta">
-              <label for="anioTotalesCuenta">Año:</label>
-              <input type="number" id="anioTotalesCuenta" placeholder="2026" />
-            </div>
-
-            <div id="grupoDesdeTotalesCuenta" style="display: none">
-              <label for="desdeTotalesCuenta">Desde:</label>
-              <input type="date" id="desdeTotalesCuenta" />
-            </div>
-
-            <div id="grupoHastaTotalesCuenta" style="display: none">
-              <label for="hastaTotalesCuenta">Hasta:</label>
-              <input type="date" id="hastaTotalesCuenta" />
             </div>
 
             <div>

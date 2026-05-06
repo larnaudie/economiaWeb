@@ -309,52 +309,6 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
   return deduplicarPorId(todos);
 }
 
-async function obtenerGastosTotalesCuentaFiltrados() {
-  const token = getToken();
-  if (!token) return [];
-
-  let pagina = 1;
-  let todos = [];
-  let seguir = true;
-
-  const { fechaDesde, fechaHasta } = getFiltrosTotalesCuenta();
-
-  while (seguir) {
-    const params = new URLSearchParams();
-    params.set("cuenta", cuentaId);
-    params.set("pagina", pagina);
-
-    if (fechaDesde) params.set("fechaDesde", fechaDesde);
-    if (fechaHasta) params.set("fechaHasta", fechaHasta);
-
-    if (categoriaTotalesCuenta.value) {
-      params.set("categoria", categoriaTotalesCuenta.value);
-    }
-
-    if (busquedaTotalesCuenta?.value.trim()) {
-      params.set("busqueda", busquedaTotalesCuenta.value.trim());
-    }
-
-    const data = await apiRequest(
-      `/gastos?${params.toString()}`,
-      "GET",
-      null,
-      token,
-    );
-
-    const gastosPagina = getApiData(data);
-    todos = [...todos, ...gastosPagina];
-
-    if (gastosPagina.length < 20) {
-      seguir = false;
-    } else {
-      pagina++;
-    }
-  }
-
-  return deduplicarPorId(todos);
-}
-
 function esTransferencia(gasto) {
   const nombreCategoria = String(gasto?.categoria?.nombre || "").toLowerCase();
   return nombreCategoria.includes("transf");
@@ -933,7 +887,7 @@ function renderTotalesCategoriasCuenta(gastos) {
 async function cargarResumenYTotalesCuenta() {
   try {
     const gastos = deduplicarPorId(
-      await obtenerTodosLosGastosCuentaFiltrados()
+      await obtenerTodosLosGastosCuentaFiltrados(),
     );
 
     gastosCuentaTodos = gastos;
@@ -948,8 +902,15 @@ async function cargarResumenYTotalesCuenta() {
 function filtrarGastosParaTotalesCategorias(gastos) {
   const categoriaId = categoriaTotalesCuenta?.value || "";
   const busqueda = busquedaTotalesCuenta?.value.trim().toLowerCase() || "";
+  const desde = desdeTotalesCuenta?.value || "";
+  const hasta = hastaTotalesCuenta?.value || "";
 
   return gastos.filter((g) => {
+    const fecha = g.fecha?.slice(0, 10);
+
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+
     if (categoriaId) {
       const gastoCategoriaId = g.categoria?._id || g.categoria;
       if (gastoCategoriaId !== categoriaId) return false;
@@ -962,16 +923,6 @@ function filtrarGastosParaTotalesCategorias(gastos) {
 
     return true;
   });
-}
-
-async function cargarSoloTotalesCategoriasCuenta() {
-  try {
-    const gastosFiltrados =
-      filtrarGastosParaTotalesCategorias(gastosCuentaTodos);
-    renderTotalesCategoriasCuenta(gastosFiltrados);
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 function renderGastosCuenta(gastos) {
@@ -1125,6 +1076,12 @@ async function cargarCategoriasParaGastosCuenta() {
   }
   if (categoriaFiltroDesglose) {
     categoriaFiltroDesglose.innerHTML = `
+    <option value="">Todas</option>
+    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+  `;
+  }
+  if (categoriaTotalesCuenta) {
+    categoriaTotalesCuenta.innerHTML = `
     <option value="">Todas</option>
     ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
   `;
@@ -1652,47 +1609,32 @@ function getFiltrosGastosCuenta() {
   );
 }
 
+modoFiltroTotalesCuenta?.addEventListener(
+  "change",
+  actualizarVisibilidadFiltrosTotalesCuenta,
+);
+
 function actualizarVisibilidadFiltrosTotalesCuenta() {
-  if (modoFiltroTotalesCuenta.value === "mes") {
-    grupoMesTotalesCuenta.style.display = "";
-    grupoAnioTotalesCuenta.style.display = "";
-    grupoDesdeTotalesCuenta.style.display = "none";
-    grupoHastaTotalesCuenta.style.display = "none";
-    return;
+  if (!modoFiltroTotalesCuenta) return;
+
+  const esRango = modoFiltroTotalesCuenta.value === "rango";
+
+  if (grupoDesdeTotalesCuenta) {
+    grupoDesdeTotalesCuenta.style.display = esRango ? "" : "none";
   }
 
-  if (modoFiltroTotalesCuenta.value === "anio") {
-    grupoMesTotalesCuenta.style.display = "none";
-    grupoAnioTotalesCuenta.style.display = "";
-    grupoDesdeTotalesCuenta.style.display = "none";
-    grupoHastaTotalesCuenta.style.display = "none";
-    return;
+  if (grupoHastaTotalesCuenta) {
+    grupoHastaTotalesCuenta.style.display = esRango ? "" : "none";
   }
-
-  grupoMesTotalesCuenta.style.display = "none";
-  grupoAnioTotalesCuenta.style.display = "none";
-  grupoDesdeTotalesCuenta.style.display = "";
-  grupoHastaTotalesCuenta.style.display = "";
-}
-
-function getFiltrosTotalesCuenta() {
-  return buildDateRangeCuenta(
-    modoFiltroTotalesCuenta.value,
-    mesTotalesCuenta.value,
-    anioTotalesCuenta.value,
-    desdeTotalesCuenta.value,
-    hastaTotalesCuenta.value,
-  );
 }
 
 function resetFiltrosTotalesCuenta() {
-  modoFiltroTotalesCuenta.value = "mes";
-  mesTotalesCuenta.value = "1";
-  anioTotalesCuenta.value = new Date().getFullYear();
+  modoFiltroTotalesCuenta.value = "rango";
   desdeTotalesCuenta.value = "";
   hastaTotalesCuenta.value = "";
   categoriaTotalesCuenta.value = "";
   busquedaTotalesCuenta.value = "";
+
   actualizarVisibilidadFiltrosTotalesCuenta();
 }
 
@@ -2249,7 +2191,7 @@ modoFiltroTotalesCuenta.addEventListener(
 );
 
 filtrarTotalesCuentaBtn?.addEventListener("click", async () => {
-  await cargarResumenYTotalesCuenta();
+  await cargarSoloTotalesCategoriasCuenta();
 });
 
 limpiarFiltroTotalesCuentaBtn?.addEventListener("click", async () => {
@@ -2437,11 +2379,15 @@ function debugValidarDesgloseContraResumen() {
     .filter(debeContarGastoReal)
     .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
 
-  const desgloseBancario = obtenerGastosParaDesglose("bancario")
-    .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0);
+  const desgloseBancario = obtenerGastosParaDesglose("bancario").reduce(
+    (acc, g) => acc + Number(g.flujoBancario || 0),
+    0,
+  );
 
-  const desgloseReal = obtenerGastosParaDesglose("real")
-    .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
+  const desgloseReal = obtenerGastosParaDesglose("real").reduce(
+    (acc, g) => acc + Number(g.economiaReal || 0),
+    0,
+  );
 
   console.table([
     {
