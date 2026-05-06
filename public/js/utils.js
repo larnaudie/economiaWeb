@@ -124,45 +124,12 @@ function formatMoney(value) {
   return num.toFixed(2);
 }
 
-const PALABRAS_TRANSFERENCIA = [
-  "transf.",
-  "transferencia",
-  "transf",
-];
-
-function esSubcategoriaTransferencia(categoria, descripcion = "") {
-  // Caso 1: categoria es objeto
-  if (categoria && typeof categoria === "object") {
-    const nombre = String(categoria.nombre || "").toLowerCase();
-
-    if (PALABRAS_TRANSFERENCIA.some((palabra) => nombre.includes(palabra))) {
-      return true;
-    }
-  }
-
-  // Caso 2: categoria es string (id), usar descripcion.
-  const desc = String(descripcion || "").toLowerCase();
-
-  return PALABRAS_TRANSFERENCIA.some((palabra) => desc.includes(palabra));
-}
-
-function debeContarGastoBancario(gasto) {
-  const flujo = Number(gasto.flujoBancario) || 0;
-
-  return (
-    flujo < 0 &&
-    gasto.incluirEnGastoBancario === true &&
-    !esSubcategoriaTransferencia(gasto.categoria, gasto.descripcion)
-  );
-}
-
 function debeContarGastoReal(gasto) {
   const real = Number(gasto.economiaReal) || 0;
 
   return (
     real < 0 &&
-    gasto.incluirEnGastoReal === true &&
-    !esSubcategoriaTransferencia(gasto.categoria, gasto.descripcion)
+    gasto.incluirEnGastoReal === true
   );
 }
 
@@ -170,18 +137,12 @@ function formatMoney(value) {
   return (Number(value) || 0).toFixed(2);
 }
 
-function esSubcategoriaTransferencia(categoria) {
-  const nombre = String(categoria?.nombre || "").toLowerCase();
-  return nombre.includes("transf");
-}
-
 function debeContarGastoBancario(gasto) {
   const flujo = Number(gasto.flujoBancario) || 0;
 
   return (
     flujo < 0 &&
-    gasto.incluirEnGastoBancario === true &&
-    !esSubcategoriaTransferencia(gasto.categoria)
+    gasto.incluirEnGastoBancario === true
   );
 }
 
@@ -190,8 +151,7 @@ function debeContarGastoReal(gasto) {
 
   return (
     real < 0 &&
-    gasto.incluirEnGastoReal === true &&
-    !esSubcategoriaTransferencia(gasto.categoria)
+    gasto.incluirEnGastoReal === true
   );
 }
 

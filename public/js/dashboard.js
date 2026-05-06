@@ -1,198 +1,109 @@
+const bancoSeleccionadoDashboard = document.getElementById("bancoSeleccionado");
+const cuentaDashboard = document.getElementById("cuentaDashboard");
+
 const modoFiltroDashboard = document.getElementById("modoFiltroDashboard");
 const mesDashboard = document.getElementById("mesDashboard");
 const anioDashboard = document.getElementById("anioDashboard");
+const filtroDesde = document.getElementById("filtroDesde");
+const filtroHasta = document.getElementById("filtroHasta");
 
 const grupoMesDashboard = document.getElementById("grupoMesDashboard");
 const grupoAnioDashboard = document.getElementById("grupoAnioDashboard");
 const grupoDesdeDashboard = document.getElementById("grupoDesdeDashboard");
 const grupoHastaDashboard = document.getElementById("grupoHastaDashboard");
 
+const tipoAgrupacionCategoria = document.getElementById(
+  "tipoAgrupacionCategoria",
+);
+
 let gastosGlobal = [];
 let deudasGlobal = [];
-const tipoAgrupacionCategoria = document.getElementById("tipoAgrupacionCategoria");
+let cuentasBancoDashboard = [];
+window.charts = window.charts || {};
 
 function actualizarVisibilidadFiltrosDashboard() {
   const modo = modoFiltroDashboard.value;
 
-  if (modo === "todos") {
-    grupoMesDashboard.style.display = "none";
-    grupoAnioDashboard.style.display = "none";
-    grupoDesdeDashboard.style.display = "none";
-    grupoHastaDashboard.style.display = "none";
-    return;
-  }
-
   grupoMesDashboard.style.display = modo === "mes" ? "" : "none";
   grupoAnioDashboard.style.display = modo === "mes" ? "" : "none";
-
   grupoDesdeDashboard.style.display = modo === "rango" ? "" : "none";
   grupoHastaDashboard.style.display = modo === "rango" ? "" : "none";
 }
 
-function getGastosFiltradosDashboard() {
+function getCuentaId(gasto) {
+  if (!gasto?.cuenta) return "";
+  return typeof gasto.cuenta === "object" ? gasto.cuenta._id : gasto.cuenta;
+}
+
+function getFechaKey(gasto) {
+  const fecha = new Date(gasto.fecha);
+  return {
+    anio: fecha.getUTCFullYear(),
+    mes: fecha.getUTCMonth() + 1,
+    key: `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`,
+  };
+}
+
+function filtrarPorBancoYCuenta(gastos) {
+  const cuentaId = cuentaDashboard?.value || "";
+
+  if (cuentaId) {
+    return gastos.filter((g) => getCuentaId(g) === cuentaId);
+  }
+
+  const idsCuentasBanco = cuentasBancoDashboard.map((c) => c._id);
+
+  if (!idsCuentasBanco.length) {
+    return gastos;
+  }
+
+  return gastos.filter((g) => idsCuentasBanco.includes(getCuentaId(g)));
+}
+
+function filtrarPorFechaDashboard(gastos) {
   const modo = modoFiltroDashboard.value;
 
   if (modo === "todos") {
-    return gastosGlobal;
+    return gastos;
   }
 
   if (modo === "mes") {
     const mes = Number(mesDashboard.value);
-    const anio = Number(anioDashboard.value) || new Date().getUTCFullYear();
+    const anio = Number(anioDashboard.value);
 
-    return gastosGlobal.filter(g => {
+    return gastos.filter((g) => {
       if (!g.fecha) return false;
-
-      const fecha = new Date(g.fecha);
-      return (
-        fecha.getUTCMonth() + 1 === mes &&
-        fecha.getUTCFullYear() === anio
-      );
+      const fecha = getFechaKey(g);
+      return fecha.mes === mes && fecha.anio === anio;
     });
   }
 
   if (modo === "rango") {
-    const { desde, hasta } = getRangoFechas();
-    return filtrarGastosPorFecha(gastosGlobal, desde, hasta);
-  }
+    const desde = filtroDesde.value;
+    const hasta = filtroHasta.value;
 
-  return gastosGlobal;
-}
-
-async function cargarDashboard() {
-  const token = getToken();
-  if (!token) return;
-
-  const [gastos, deudasResp] = await Promise.all([
-    obtenerTodosLosGastosDashboard(token),
-    apiRequest("/deudas", "GET", null, token)
-  ]);
-
-  gastosGlobal = gastos;
-  deudasGlobal = getApiData(deudasResp);
-
-  aplicarDashboard();
-}
-
-function filtrarUltimosDosMesesConDatos(gastos) {
-  const meses = [...new Set(
-    gastos
-      .filter(g => g.fecha)
-      .map(g => {
-        const fecha = new Date(g.fecha);
-        return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
-      })
-  )].sort();
-
-  const ultimosDosMeses = meses.slice(-2);
-
-  return gastos.filter(g => {
-    if (!g.fecha) return false;
-
-    const fecha = new Date(g.fecha);
-    const key = `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
-
-    return ultimosDosMeses.includes(key);
-  });
-}
-
-function aplicarDashboard() {
-  const gastos = getGastosFiltradosDashboard();
-
-  renderGastoRealPorCategoria(gastos);
-  renderGastoBancarioPorCategoria(gastos);
-  renderBancarioVsReal(gastos);
-  renderComparativoMensual(gastos);
-  renderSaldoDeudas(deudasGlobal);
-}
-
-function filtrarMesActual(gastos) {
-  const now = new Date();
-  const mes = now.getMonth();
-  const año = now.getFullYear();
-
-  return gastos.filter(g => {
-    if (!g.fecha) return false;
-    const fecha = new Date(g.fecha);
-    return fecha.getMonth() === mes && fecha.getFullYear() === año;
-  });
-}
-
-function esTransferenciaDashboard(g) {
-  const nombre = g.categoria?.nombre?.toLowerCase() || "";
-
-  return (
-    nombre.includes("transf") ||
-    nombre.includes("ahorro") ||
-    nombre.includes("movimiento") ||
-    nombre.includes("balance")
-  );
-}
-
-function renderGastoRealPorCategoria(gastos) {
-  const acumulado = {};
-  const tipoAgrupacion = tipoAgrupacionCategoria?.value || "subcategoria";
-
-  gastos.forEach(g => {
-    if (esTransferenciaDashboard(g)) return;
-    if (g.incluirEnGastoReal !== true) return;
-
-    const valor = Number(g.economiaReal) || 0;
-    if (valor >= 0) return;
-
-    let nombreGrupo = "Sin categoría";
-
-    if (tipoAgrupacion === "categoriaPrincipal") {
-      nombreGrupo =
-        g.categoria?.categoriaGrupo?.nombre ||
-        "Sin categoría principal";
-    } else {
-      nombreGrupo =
-        g.categoria?.nombre ||
-        "Sin subcategoría";
+    if (!desde || !hasta) {
+      alert("Seleccioná desde y hasta.");
+      return gastos;
     }
 
-    acumulado[nombreGrupo] = (acumulado[nombreGrupo] || 0) + Math.abs(valor);
-  });
+    return gastos.filter((g) => {
+      if (!g.fecha) return false;
+      const fecha = g.fecha.slice(0, 10);
+      return fecha >= desde && fecha <= hasta;
+    });
+  }
 
-  const entries = Object.entries(acumulado)
-    .sort((a, b) => b[1] - a[1]);
-
-  const labels = entries.map(e => e[0]);
-  const values = entries.map(e => Number(e[1].toFixed(2)));
-
-  crearChart("gastoRealCategoriaChart", "doughnut", {
-    labels,
-    datasets: [{
-      data: values
-    }]
-  }, {
-    cutout: "60%"
-  });
-
-  renderLegend("gastoRealCategoriaLegend", labels, values);
+  return gastos;
 }
 
-function getRangoFechas() {
-  return {
-    desde: document.getElementById("filtroDesde").value,
-    hasta: document.getElementById("filtroHasta").value
-  };
-}
+function getGastosDashboardFiltrados() {
+  let gastos = deduplicarGastos(gastosGlobal);
 
-function filtrarGastosPorFecha(gastos, desde, hasta) {
-  if (!desde && !hasta) return gastos;
+  gastos = filtrarPorBancoYCuenta(gastos);
+  gastos = filtrarPorFechaDashboard(gastos);
 
-  return gastos.filter(g => {
-    if (!g.fecha) return false;
-
-    const fechaGasto = g.fecha.slice(0, 10);
-
-    if (desde && fechaGasto < desde) return false;
-    if (hasta && fechaGasto > hasta) return false;
-
-    return true;
-  });
+  return gastos;
 }
 
 async function obtenerTodosLosGastosDashboard(token) {
@@ -201,7 +112,12 @@ async function obtenerTodosLosGastosDashboard(token) {
   let seguir = true;
 
   while (seguir) {
-    const data = await apiRequest(`/gastos?pagina=${pagina}`, "GET", null, token);
+    const data = await apiRequest(
+      `/gastos?pagina=${pagina}`,
+      "GET",
+      null,
+      token,
+    );
     const gastosPagina = getApiData(data);
 
     todos = [...todos, ...gastosPagina];
@@ -216,43 +132,157 @@ async function obtenerTodosLosGastosDashboard(token) {
   return todos;
 }
 
-function renderBancarioVsReal(gastos) {
+async function cargarCuentasDashboardPorBanco(bancoId) {
+  const token = getToken();
+  if (!token || !cuentaDashboard || !bancoId) return;
+
+  const data = await apiRequest(
+    `/usuarios/me/cuentas?banco=${bancoId}`,
+    "GET",
+    null,
+    token,
+  );
+  cuentasBancoDashboard = getApiData(data);
+
+  cuentaDashboard.innerHTML = `
+    <option value="">Todas las cuentas del banco</option>
+    ${cuentasBancoDashboard
+      .map(
+        (c) => `
+      <option value="${c._id}">${c.nombre}</option>
+    `,
+      )
+      .join("")}
+  `;
+}
+
+function calcularTotales(gastos) {
   let bancario = 0;
   let real = 0;
 
-  gastos.forEach(g => {
-    if (esTransferenciaDashboard(g)) return;
-
-    const flujo = Number(g.flujoBancario) || 0;
-    const economia = Number(g.economiaReal) || 0;
-
-    if (g.incluirEnGastoBancario === true && flujo < 0) {
-      bancario += Math.abs(flujo);
+  gastos.forEach((g) => {
+    if (debeContarGastoBancario(g)) {
+      bancario += Number(g.flujoBancario) || 0;
     }
 
-    if (g.incluirEnGastoReal === true && economia < 0) {
-      real += Math.abs(economia);
+    if (debeContarGastoReal(g)) {
+      real += Number(g.economiaReal) || 0;
     }
   });
 
-  bancario = Number(bancario.toFixed(2));
-  real = Number(real.toFixed(2));
+  return {
+    bancario: Number(bancario.toFixed(2)),
+    real: Number(real.toFixed(2)),
+  };
+}
+
+function acumularPorCategoria(gastos, tipo) {
+  const acumulado = {};
+  const agrupacion = tipoAgrupacionCategoria?.value || "subcategoria";
+
+  gastos.forEach((g) => {
+    const debeContar =
+      tipo === "bancario" ? debeContarGastoBancario(g) : debeContarGastoReal(g);
+
+    if (!debeContar) return;
+
+    const valor =
+      tipo === "bancario"
+        ? Number(g.flujoBancario) || 0
+        : Number(g.economiaReal) || 0;
+
+    let nombre = "Sin categoría";
+
+    if (agrupacion === "categoriaPrincipal") {
+      nombre = g.categoria?.categoriaGrupo?.nombre || "Sin categoría principal";
+    } else {
+      nombre = g.categoria?.nombre || "Sin subcategoría";
+    }
+
+    acumulado[nombre] = (acumulado[nombre] || 0) + Math.abs(valor);
+  });
+
+  return Object.entries(acumulado).sort((a, b) => b[1] - a[1]);
+}
+
+function renderGastoRealPorCategoria(gastos) {
+  const entries = acumularPorCategoria(gastos, "real");
+  const labels = entries.map((e) => e[0]);
+  const values = entries.map((e) => Number(e[1].toFixed(2)));
+
+  crearChart("gastoRealCategoriaChart", "doughnut", {
+    labels,
+    datasets: [{ data: values }],
+  });
+
+  renderLegend("gastoRealCategoriaLegend", labels, values);
+}
+
+function renderGastoBancarioPorCategoria(gastos) {
+  const entries = acumularPorCategoria(gastos, "bancario");
+  const labels = entries.map((e) => e[0]);
+  const values = entries.map((e) => Number(e[1].toFixed(2)));
+
+  crearChart("gastoBancarioCategoriaChart", "doughnut", {
+    labels,
+    datasets: [{ data: values }],
+  });
+
+  renderLegend("gastoBancarioCategoriaLegend", labels, values);
+}
+
+function renderBancarioVsReal(gastos) {
+  const { bancario, real } = calcularTotales(gastos);
 
   crearChart("bancarioVsRealChart", "bar", {
     labels: ["Gasto Bancario", "Gasto Real"],
-    datasets: [{
-      label: "Total",
-      data: [bancario, real]
-    }]
+    datasets: [
+      {
+        label: "Total",
+        data: [Math.abs(bancario), Math.abs(real)],
+      },
+    ],
   });
 }
 
-function renderComparativoMensual(gastos) {
+function deduplicarGastos(gastos) {
+  const map = new Map();
+
+  gastos.forEach((g) => {
+    const key =
+      g._id ||
+      `${g.fecha}-${g.descripcion}-${g.flujoBancario}-${g.economiaReal}-${getCuentaId(g)}`;
+
+    if (!map.has(key)) {
+      map.set(key, g);
+    }
+  });
+
+  return Array.from(map.values());
+}
+/**
+ * function deduplicarGastos(gastos) {
+  const map = new Map();
+
+  gastos.forEach((g) => {
+    if (!g?._id) return;
+
+    if (!map.has(g._id)) {
+      map.set(g._id, g);
+    }
+  });
+
+  return Array.from(map.values());
+}
+ */
+
+function renderComparativoMensual() {
+  const gastos = deduplicarGastos(filtrarPorBancoYCuenta(gastosGlobal));
+
   const acumulado = {};
 
-  gastos.forEach(g => {
+  gastos.forEach((g) => {
     if (!g.fecha) return;
-    if (esTransferenciaDashboard(g)) return;
 
     const fecha = new Date(g.fecha);
     const key = `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -260,19 +290,18 @@ function renderComparativoMensual(gastos) {
     if (!acumulado[key]) {
       acumulado[key] = {
         bancario: 0,
-        real: 0
+        real: 0,
       };
     }
 
     const flujo = Number(g.flujoBancario) || 0;
-    const economia = Number(g.economiaReal) || 0;
 
-    if (g.incluirEnGastoBancario === true && flujo < 0) {
-      acumulado[key].bancario += Math.abs(flujo);
+    if (debeContarGastoBancario(g)) {
+      acumulado[key].bancario += Number(g.flujoBancario || 0);
     }
 
-    if (g.incluirEnGastoReal === true && economia < 0) {
-      acumulado[key].real += Math.abs(economia);
+    if (debeContarGastoReal(g)) {
+      acumulado[key].real += Number(g.economiaReal || 0);
     }
   });
 
@@ -283,159 +312,102 @@ function renderComparativoMensual(gastos) {
     datasets: [
       {
         label: "Gasto Bancario",
-        data: labels.map(label => Number(acumulado[label].bancario.toFixed(2)))
+        data: labels.map((label) =>
+          Math.abs(Number(acumulado[label].bancario.toFixed(2))),
+        ),
       },
       {
         label: "Gasto Real",
-        data: labels.map(label => Number(acumulado[label].real.toFixed(2)))
-      }
-    ]
+        data: labels.map((label) =>
+          Math.abs(Number(acumulado[label].real.toFixed(2))),
+        ),
+      },
+    ],
   });
 }
 
 function renderSaldoDeudas(deudas) {
-  const activas = deudas.filter(d => d.activa);
-
-  const labels = activas.map(d => d.descripcion);
-
-  const data = activas.map(d => {
-    const pagado = Number(d.montoCuota) * Number(d.cuotaActual);
-    return Math.max(0, Number(d.montoTotal) - pagado);
-  });
+  const activas = deudas.filter((d) => d.activa);
 
   crearChart("deudasSaldoChart", "bar", {
-    labels,
-    datasets: [{
-      label: "Saldo restante",
-      data
-    }]
+    labels: activas.map((d) => d.descripcion),
+    datasets: [
+      {
+        label: "Saldo restante",
+        data: activas.map((d) => {
+          const pagado = Number(d.montoCuota) * Number(d.cuotaActual);
+          return Math.max(0, Number(d.montoTotal) - pagado);
+        }),
+      },
+    ],
   });
+}
+
+function renderLegend(containerId, labels, values) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!labels.length) {
+    container.innerHTML = "<p>No hay datos.</p>";
+    return;
+  }
+
+  container.innerHTML = labels
+    .map(
+      (label, index) => `
+    <div>
+      <strong>${label}</strong>: ${formatMoney(values[index])}
+    </div>
+  `,
+    )
+    .join("");
 }
 
 function crearChart(canvasId, type, data) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
-  if (window.charts) {
-    if (window.charts[canvasId]) {
-      window.charts[canvasId].destroy();
-    }
-  } else {
-    window.charts = {};
+  if (window.charts[canvasId]) {
+    window.charts[canvasId].destroy();
   }
+
   window.charts[canvasId] = new Chart(canvas, {
     type,
     data,
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: type === "doughnut" ? 2 : 1.6,
-      plugins: {
-        legend: {
-          display: type !== "doughnut",
-          position: "bottom",
-          labels: {
-            font: {
-              size: 15,
-              weight: "bold"
-            }
-          }
-        },
-        tooltip: {
-          titleFont: {
-            size: 16
-          },
-          bodyFont: {
-            size: 15
-          },
-          callbacks: {
-            label: function (context) {
-              const value = Number(context.raw || 0).toFixed(2);
-              return `${context.dataset.label}: ${value}`;
-            }
-          }
-        }
-      },
-      scales: type === "doughnut"
-        ? {}
-        : {
-          x: {
-            ticks: {
-              font: {
-                size: 14,
-                weight: "bold"
-              }
-            }
-          },
-          y: {
-            ticks: {
-              font: {
-                size: 14,
-                weight: "bold"
-              },
-              callback: value => value.toLocaleString()
-            }
-          }
-        }
-    }
+      maintainAspectRatio: false,
+    },
   });
 }
 
-function renderLegend(containerId, labels, data) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
+function aplicarDashboard() {
+  const gastos = getGastosDashboardFiltrados();
 
-  container.innerHTML = labels.map((label, i) => `
-    <div class="legend-item">
-      <span>${label}</span>
-      <strong>${Number(data[i]).toFixed(2)}</strong>
-    </div>
-  `).join("");
+  renderGastoRealPorCategoria(gastos);
+  renderGastoBancarioPorCategoria(gastos);
+  renderBancarioVsReal(gastos);
+  renderComparativoMensual();
+  renderSaldoDeudas(deudasGlobal);
 }
 
-function renderGastoBancarioPorCategoria(gastos) {
-  const acumulado = {};
-  const tipoAgrupacion = tipoAgrupacionCategoria?.value || "subcategoria";
+async function cargarDashboard() {
+  const token = getToken();
+  if (!token) return;
 
-  gastos.forEach(g => {
-    if (esTransferenciaDashboard(g)) return;
-    if (g.incluirEnGastoBancario !== true) return;
+  const [gastosResp, deudasResp] = await Promise.all([
+    obtenerTodosLosGastosDashboard(token),
+    apiRequest("/deudas", "GET", null, token),
+  ]);
 
-    const valor = Number(g.flujoBancario) || 0;
-    if (valor >= 0) return;
+  gastosGlobal = gastosResp;
+  deudasGlobal = getApiData(deudasResp);
 
-    let nombreGrupo = "Sin categoría";
+  if (bancoSeleccionadoDashboard?.value) {
+    await cargarCuentasDashboardPorBanco(bancoSeleccionadoDashboard.value);
+  }
 
-    if (tipoAgrupacion === "categoriaPrincipal") {
-      nombreGrupo =
-        g.categoria?.categoriaGrupo?.nombre ||
-        "Sin categoría principal";
-    } else {
-      nombreGrupo =
-        g.categoria?.nombre ||
-        "Sin subcategoría";
-    }
-
-    acumulado[nombreGrupo] =
-      (acumulado[nombreGrupo] || 0) + Math.abs(valor);
-  });
-
-  const entries = Object.entries(acumulado)
-    .sort((a, b) => b[1] - a[1]);
-
-  const labels = entries.map(e => e[0]);
-  const values = entries.map(e => Number(e[1].toFixed(2)));
-
-  crearChart("gastoBancarioCategoriaChart", "doughnut", {
-    labels,
-    datasets: [{
-      data: values
-    }]
-  }, {
-    cutout: "60%"
-  });
-
-  renderLegend("gastoBancarioCategoriaLegend", labels, values);
+  aplicarDashboard();
 }
 
 modoFiltroDashboard?.addEventListener("change", () => {
@@ -443,10 +415,18 @@ modoFiltroDashboard?.addEventListener("change", () => {
   aplicarDashboard();
 });
 
-document.getElementById("aplicarFiltroDashboard")
+document
+  .getElementById("aplicarFiltroDashboard")
   ?.addEventListener("click", aplicarDashboard);
 
 tipoAgrupacionCategoria?.addEventListener("change", aplicarDashboard);
+
+cuentaDashboard?.addEventListener("change", aplicarDashboard);
+
+bancoSeleccionadoDashboard?.addEventListener("change", async () => {
+  await cargarCuentasDashboardPorBanco(bancoSeleccionadoDashboard.value);
+  aplicarDashboard();
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
   const now = new Date();
@@ -455,5 +435,109 @@ document.addEventListener("DOMContentLoaded", async () => {
   anioDashboard.value = now.getUTCFullYear();
 
   actualizarVisibilidadFiltrosDashboard();
-  await cargarDashboard();
+
+  setTimeout(async () => {
+    await cargarDashboard();
+  }, 300);
 });
+
+function debugDiferenciaDashboard(mes, anio) {
+  const gastosMes = gastosGlobal.filter((g) => {
+    if (!g.fecha) return false;
+
+    const fecha = new Date(g.fecha);
+
+    return fecha.getUTCMonth() + 1 === mes && fecha.getUTCFullYear() === anio;
+  });
+
+  console.table(
+    gastosMes.map((g) => ({
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      cuenta: typeof g.cuenta === "object" ? g.cuenta.nombre : g.cuenta,
+      flujoBancario: g.flujoBancario,
+      economiaReal: g.economiaReal,
+      incluirEnGastoBancario: g.incluirEnGastoBancario,
+      incluirEnGastoReal: g.incluirEnGastoReal,
+      cuentaBancario: debeContarGastoBancario(g),
+      cuentaReal: debeContarGastoReal(g),
+    })),
+  );
+
+  const totalBancario = gastosMes
+    .filter(debeContarGastoBancario)
+    .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0);
+
+  const totalReal = gastosMes
+    .filter(debeContarGastoReal)
+    .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
+
+  console.log("Dashboard bancario:", totalBancario);
+  console.log("Dashboard real:", totalReal);
+}
+
+function debugMarzoDashboardDetallado() {
+  const gastosMarzo = deduplicarGastos(
+    filtrarPorBancoYCuenta(gastosGlobal),
+  ).filter((g) => {
+    const fecha = new Date(g.fecha);
+    return fecha.getUTCMonth() + 1 === 3 && fecha.getUTCFullYear() === 2026;
+  });
+
+  const incluidosBancario = gastosMarzo.filter(debeContarGastoBancario);
+  const incluidosReal = gastosMarzo.filter(debeContarGastoReal);
+
+  console.log("Cuenta seleccionada:", cuentaDashboard.value);
+  console.log("Cantidad marzo filtrada:", gastosMarzo.length);
+
+  console.table(
+    gastosMarzo.map((g) => ({
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      cuenta: typeof g.cuenta === "object" ? g.cuenta.nombre : g.cuenta,
+      cuentaId: typeof g.cuenta === "object" ? g.cuenta._id : g.cuenta,
+      flujoBancario: g.flujoBancario,
+      economiaReal: g.economiaReal,
+      incluirBancario: g.incluirEnGastoBancario,
+      incluirReal: g.incluirEnGastoReal,
+      cuentaBancario: debeContarGastoBancario(g),
+      cuentaReal: debeContarGastoReal(g),
+    })),
+  );
+
+  console.log(
+    "Total bancario dashboard marzo:",
+    incluidosBancario
+      .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0)
+      .toFixed(2),
+  );
+
+  console.log(
+    "Total real dashboard marzo:",
+    incluidosReal
+      .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0)
+      .toFixed(2),
+  );
+
+  console.log("Incluidos bancario:");
+  console.table(
+    incluidosBancario.map((g) => ({
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      flujoBancario: g.flujoBancario,
+    })),
+  );
+
+  console.log("Incluidos real:");
+  console.table(
+    incluidosReal.map((g) => ({
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      economiaReal: g.economiaReal,
+    })),
+  );
+}

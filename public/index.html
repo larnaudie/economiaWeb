@@ -1,126 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Economía Web</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body>
+  <body>
     <header></header>
 
     <main>
-        <section id="explorarBanco">
-            <h2>Explorar por Banco</h2>
+      <section id="explorarBanco">
+        <h2>Explorar por Banco</h2>
 
-            <div class="inline-group">
-                <div>
-                    <label for="bancoSeleccionado">Seleccionar Banco:</label>
-                    <select id="bancoSeleccionado">
-                        <option value="">Seleccionar banco</option>
-                    </select>
-                </div>
+        <div class="inline-group">
+          <div>
+            <label for="bancoSeleccionado">Seleccionar Banco:</label>
+            <select id="bancoSeleccionado">
+              <option value="">Seleccionar banco</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="cuentasContainer" class="cuentas-carousel">
+          <p>Seleccioná un banco para ver sus cuentas.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Filtros</h2>
+
+        <div class="inline-group">
+          <div>
+            <label for="modoFiltroDashboard">Tipo de filtro:</label>
+            <select id="modoFiltroDashboard">
+              <option value="todos">Todos</option>
+              <option value="mes">Mes</option>
+              <option value="rango">Rango</option>
+            </select>
+          </div>
+
+          <div id="grupoMesDashboard" style="display: none">
+            <label for="mesDashboard">Mes:</label>
+            <select id="mesDashboard">
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+
+          <div id="grupoAnioDashboard" style="display: none">
+            <label for="anioDashboard">Año:</label>
+            <input type="number" id="anioDashboard" placeholder="2026" />
+          </div>
+
+          <div id="grupoDesdeDashboard" style="display: none">
+            <label for="filtroDesde">Desde:</label>
+            <input type="date" id="filtroDesde" />
+          </div>
+
+          <div id="grupoHastaDashboard" style="display: none">
+            <label for="filtroHasta">Hasta:</label>
+            <input type="date" id="filtroHasta" />
+          </div>
+
+          <button type="button" id="aplicarFiltroDashboard">Aplicar</button>
+        </div>
+      </section>
+      <section>
+        <h2>Dashboard financiero</h2>
+
+        <div>
+          <label for="cuentaDashboard">Seleccionar Cuenta:</label>
+          <select id="cuentaDashboard">
+            <option value="">Todas las cuentas del banco</option>
+          </select>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Gasto real</h3>
+
+              <div>
+                <label for="tipoAgrupacionCategoria">Agrupar por:</label>
+                <select id="tipoAgrupacionCategoria">
+                  <option value="subcategoria">Subcategoría</option>
+                  <option value="categoriaPrincipal">
+                    Categoría principal
+                  </option>
+                </select>
+              </div>
             </div>
 
-            <div id="cuentasContainer" class="cuentas-carousel">
-                <p>Seleccioná un banco para ver sus cuentas.</p>
-            </div>
-        </section>
+            <canvas id="gastoRealCategoriaChart"></canvas>
+            <div id="gastoRealCategoriaLegend" class="chart-legend"></div>
+          </div>
 
-        <section>
-            <h2>Filtros</h2>
+          <div class="chart-card">
+            <h3>Gasto bancario</h3>
+            <canvas id="gastoBancarioCategoriaChart"></canvas>
+            <div id="gastoBancarioCategoriaLegend" class="chart-legend"></div>
+          </div>
 
-            <div class="inline-group">
-                <div>
-                    <label for="modoFiltroDashboard">Tipo de filtro:</label>
-                    <select id="modoFiltroDashboard">
-                        <option value="todos">Todos</option>
-                        <option value="mes">Mes</option>
-                        <option value="rango">Rango</option>
-                    </select>
-                </div>
+          <div class="chart-card">
+            <h3>Gasto bancario vs gasto real</h3>
+            <canvas id="bancarioVsRealChart"></canvas>
+          </div>
 
-                <div id="grupoMesDashboard" style="display:none;">
-                    <label for="mesDashboard">Mes:</label>
-                    <select id="mesDashboard">
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
-                </div>
+          <div class="chart-card">
+            <h3>Gasto bancario vs gasto real mes a mes</h3>
+            <canvas id="evolucionMensualChart"></canvas>
+          </div>
 
-                <div id="grupoAnioDashboard" style="display:none;">
-                    <label for="anioDashboard">Año:</label>
-                    <input type="number" id="anioDashboard" placeholder="2026">
-                </div>
-
-                <div id="grupoDesdeDashboard" style="display:none;">
-                    <label for="filtroDesde">Desde:</label>
-                    <input type="date" id="filtroDesde">
-                </div>
-
-                <div id="grupoHastaDashboard" style="display:none;">
-                    <label for="filtroHasta">Hasta:</label>
-                    <input type="date" id="filtroHasta">
-                </div>
-
-                <button type="button" id="aplicarFiltroDashboard">Aplicar</button>
-            </div>
-        </section>
-        <section>
-            <h2>Dashboard financiero</h2>
-
-            <div class="dashboard-grid">
-                <div class="chart-card">
-                    <div class="chart-card-header">
-                        <h3>Gasto real</h3>
-
-                        <div>
-                            <label for="tipoAgrupacionCategoria">Agrupar por:</label>
-                            <select id="tipoAgrupacionCategoria">
-                                <option value="subcategoria">Subcategoría</option>
-                                <option value="categoriaPrincipal">Categoría principal</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <canvas id="gastoRealCategoriaChart"></canvas>
-                    <div id="gastoRealCategoriaLegend" class="chart-legend"></div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Gasto bancario</h3>
-                    <canvas id="gastoBancarioCategoriaChart"></canvas>
-                    <div id="gastoBancarioCategoriaLegend" class="chart-legend"></div>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Gasto bancario vs gasto real</h3>
-                    <canvas id="bancarioVsRealChart"></canvas>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Gasto bancario vs gasto real mes a mes</h3>
-                    <canvas id="evolucionMensualChart"></canvas>
-                </div>
-
-                <div class="chart-card">
-                    <h3>Saldo restante de deudas</h3>
-                    <canvas id="deudasSaldoChart"></canvas>
-                </div>
-            </div>
-        </section>
+          <div class="chart-card">
+            <h3>Saldo restante de deudas</h3>
+            <canvas id="deudasSaldoChart"></canvas>
+          </div>
+        </div>
+      </section>
     </main>
 
     <script src="/js/api.js"></script>
@@ -130,6 +138,5 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/dashboard.js"></script>
-</body>
-
+  </body>
 </html>

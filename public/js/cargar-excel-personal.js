@@ -118,35 +118,15 @@ function resolverFlagsGastoPorCategoria(
   flujoBancario,
   economiaReal,
 ) {
-  const nombre = String(nombreCategoria || "")
-    .trim()
-    .toLowerCase();
-
-  const esTransf = nombre.includes("transf");
-  const esAhorro = nombre.includes("ahorro");
-  const esBalanceSplit = nombre.includes("balance split");
-
   const flujo = Number(flujoBancario) || 0;
   const real = Number(economiaReal) || 0;
 
-  let incluirEnGastoBancario = flujo !== 0;
-  let incluirEnGastoReal = real !== 0;
-
-  if (esTransf || esAhorro) {
-    incluirEnGastoBancario = false;
-    incluirEnGastoReal = false;
-  }
-
-  if (esBalanceSplit) {
-    incluirEnGastoBancario = false;
-    incluirEnGastoReal = real !== 0;
-  }
-
   return {
-    incluirEnGastoBancario,
-    incluirEnGastoReal,
+    incluirEnGastoBancario: flujo !== 0,
+    incluirEnGastoReal: real !== 0,
   };
 }
+
 function limpiarBulk() {
   bulkFecha.value = "";
   bulkDescripcion.value = "";

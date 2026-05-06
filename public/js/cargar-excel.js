@@ -250,19 +250,17 @@ async function cargarCuentas() {
   renderBulkCuentas();
 }
 
-function resolverFlagsGastoPorCategoria(nombreCategoria) {
-  const nombre = String(nombreCategoria || "")
-    .trim()
-    .toLowerCase();
-
-  const esTransf = nombre.includes("transf");
-  const esAhorro = nombre.includes("ahorro");
-
-  const excluir = esTransf || esAhorro;
+function resolverFlagsGastoPorCategoria(
+  nombreCategoria,
+  flujoBancario,
+  economiaReal,
+) {
+  const flujo = Number(flujoBancario) || 0;
+  const real = Number(economiaReal) || 0;
 
   return {
-    incluirEnGastoBancario: !excluir,
-    incluirEnGastoReal: !excluir,
+    incluirEnGastoBancario: flujo !== 0,
+    incluirEnGastoReal: real !== 0,
   };
 }
 

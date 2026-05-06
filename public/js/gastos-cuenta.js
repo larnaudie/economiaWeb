@@ -222,6 +222,10 @@ function closeModal(modal) {
   modal.classList.add("hidden");
 }
 
+function deduplicarPorId(gastos) {
+  return [...new Map(gastos.map((g) => [g._id, g])).values()];
+}
+
 async function calcularTotalPaginasGastosCuenta() {
   const token = getToken();
   if (!token) return 1;
@@ -302,7 +306,7 @@ async function obtenerTodosLosGastosCuentaFiltrados() {
     }
   }
 
-  return todos;
+  return deduplicarPorId(todos);
 }
 
 async function obtenerGastosTotalesCuentaFiltrados() {
@@ -348,7 +352,7 @@ async function obtenerGastosTotalesCuentaFiltrados() {
     }
   }
 
-  return todos;
+  return deduplicarPorId(todos);
 }
 
 function esTransferencia(gasto) {
@@ -410,9 +414,11 @@ function obtenerGastosParaDesglose(tipo) {
     return false;
   });
 
+  const gastosUnicos = [...new Map(gastos.map((g) => [g._id, g])).values()];
+
   const orden = ordenDesgloseCuenta?.value || "manual";
 
-  return gastos.sort((a, b) => {
+  return gastosUnicos.sort((a, b) => {
     if (orden === "manual") {
       const ordenA = Number(a.ordenCuenta) || 0;
       const ordenB = Number(b.ordenCuenta) || 0;
@@ -891,6 +897,8 @@ function renderTotalesCategoriasCuenta(gastos) {
   const acumulado = {};
 
   for (const g of gastos) {
+    if (!debeContarGastoReal(g)) continue;
+
     const nombre = g.categoria?.nombre || "Sin categoría";
     const valor = Number(g.economiaReal) || 0;
 
@@ -924,21 +932,43 @@ function renderTotalesCategoriasCuenta(gastos) {
 
 async function cargarResumenYTotalesCuenta() {
   try {
-    const gastosTotales = await obtenerGastosTotalesCuentaFiltrados();
+    const gastos = deduplicarPorId(
+      await obtenerTodosLosGastosCuentaFiltrados()
+    );
 
-    gastosCuentaTodos = gastosTotales;
+    gastosCuentaTodos = gastos;
 
-    renderResumenTotalesCuenta(gastosTotales);
-    renderTotalesCategoriasCuenta(gastosTotales);
+    renderResumenTotalesCuenta(gastos);
+    renderTotalesCategoriasCuenta(gastos);
   } catch (error) {
     console.error(error);
   }
 }
 
+function filtrarGastosParaTotalesCategorias(gastos) {
+  const categoriaId = categoriaTotalesCuenta?.value || "";
+  const busqueda = busquedaTotalesCuenta?.value.trim().toLowerCase() || "";
+
+  return gastos.filter((g) => {
+    if (categoriaId) {
+      const gastoCategoriaId = g.categoria?._id || g.categoria;
+      if (gastoCategoriaId !== categoriaId) return false;
+    }
+
+    if (busqueda) {
+      const descripcion = String(g.descripcion || "").toLowerCase();
+      if (!descripcion.includes(busqueda)) return false;
+    }
+
+    return true;
+  });
+}
+
 async function cargarSoloTotalesCategoriasCuenta() {
   try {
-    const gastos = await obtenerGastosTotalesCuentaFiltrados();
-    renderTotalesCategoriasCuenta(gastos);
+    const gastosFiltrados =
+      filtrarGastosParaTotalesCategorias(gastosCuentaTodos);
+    renderTotalesCategoriasCuenta(gastosFiltrados);
   } catch (error) {
     console.error(error);
   }
@@ -2219,11 +2249,13 @@ modoFiltroTotalesCuenta.addEventListener(
 );
 
 filtrarTotalesCuentaBtn?.addEventListener("click", async () => {
-  await cargarSoloTotalesCategoriasCuenta();
+  await cargarResumenYTotalesCuenta();
 });
 
 limpiarFiltroTotalesCuentaBtn?.addEventListener("click", async () => {
-  resetFiltrosTotalesCuenta();
+  categoriaTotalesCuenta.value = "";
+  busquedaTotalesCuenta.value = "";
+
   await cargarSoloTotalesCategoriasCuenta();
 });
 
@@ -2300,3 +2332,129 @@ document.addEventListener("DOMContentLoaded", async () => {
   await cargarResumenYTotalesCuenta();
   await cargarSoloTotalesCategoriasCuenta();
 });
+
+function debugDuplicadosDesglose(tipo = "bancario") {
+  const gastos = obtenerGastosParaDesglose(tipo);
+
+  const porId = new Map();
+  const idsDuplicados = [];
+
+  gastos.forEach((g) => {
+    if (porId.has(g._id)) {
+      idsDuplicados.push(g);
+    } else {
+      porId.set(g._id, g);
+    }
+  });
+
+  console.log("Tipo:", tipo);
+  console.log("Cantidad desglose:", gastos.length);
+  console.log("IDs duplicados:", idsDuplicados.length);
+
+  console.table(
+    idsDuplicados.map((g) => ({
+      id: g._id,
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      flujoBancario: g.flujoBancario,
+      economiaReal: g.economiaReal,
+    })),
+  );
+
+  const posiblesDuplicadosReales = new Map();
+
+  gastos.forEach((g) => {
+    const key = [
+      g.fecha?.slice(0, 10),
+      String(g.descripcion || "")
+        .trim()
+        .toLowerCase(),
+      Number(g.flujoBancario || 0).toFixed(2),
+      Number(g.economiaReal || 0).toFixed(2),
+      g.categoria?._id || g.categoria || "",
+    ].join("|");
+
+    if (!posiblesDuplicadosReales.has(key)) {
+      posiblesDuplicadosReales.set(key, []);
+    }
+
+    posiblesDuplicadosReales.get(key).push(g);
+  });
+
+  const repetidosPorContenido = [...posiblesDuplicadosReales.values()]
+    .filter((grupo) => grupo.length > 1)
+    .flat();
+
+  console.log("Repetidos por mismo contenido:", repetidosPorContenido.length);
+
+  console.table(
+    repetidosPorContenido.map((g) => ({
+      id: g._id,
+      fecha: g.fecha?.slice(0, 10),
+      descripcion: g.descripcion,
+      categoria: g.categoria?.nombre,
+      flujoBancario: g.flujoBancario,
+      economiaReal: g.economiaReal,
+    })),
+  );
+}
+
+function debugDuplicadosGastosCuentaTodos() {
+  const map = new Map();
+
+  gastosCuentaTodos.forEach((g) => {
+    if (!map.has(g._id)) {
+      map.set(g._id, []);
+    }
+
+    map.get(g._id).push(g);
+  });
+
+  const duplicados = [...map.entries()]
+    .filter(([id, items]) => items.length > 1)
+    .flatMap(([id, items]) =>
+      items.map((g) => ({
+        id,
+        fecha: g.fecha?.slice(0, 10),
+        descripcion: g.descripcion,
+        categoria: g.categoria?.nombre,
+        flujoBancario: g.flujoBancario,
+        economiaReal: g.economiaReal,
+      })),
+    );
+
+  console.log("Duplicados en gastosCuentaTodos:", duplicados.length);
+  console.table(duplicados);
+}
+
+function debugValidarDesgloseContraResumen() {
+  const resumenBancario = gastosCuentaTodos
+    .filter(debeContarGastoBancario)
+    .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0);
+
+  const resumenReal = gastosCuentaTodos
+    .filter(debeContarGastoReal)
+    .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
+
+  const desgloseBancario = obtenerGastosParaDesglose("bancario")
+    .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0);
+
+  const desgloseReal = obtenerGastosParaDesglose("real")
+    .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
+
+  console.table([
+    {
+      tipo: "Bancario",
+      resumen: resumenBancario.toFixed(2),
+      desglose: desgloseBancario.toFixed(2),
+      coincide: resumenBancario.toFixed(2) === desgloseBancario.toFixed(2),
+    },
+    {
+      tipo: "Real",
+      resumen: resumenReal.toFixed(2),
+      desglose: desgloseReal.toFixed(2),
+      coincide: resumenReal.toFixed(2) === desgloseReal.toFixed(2),
+    },
+  ]);
+}
