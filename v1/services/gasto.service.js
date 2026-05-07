@@ -94,12 +94,14 @@ export const obtenerGastosService = async (
     },
     { $unwind: { path: "$cuenta", preserveNullAndEmptyArrays: true } },
 
-    { $sort: { ordenCuenta: 1, fecha: -1 } },
+    { $sort: { ordenCuenta: 1, fecha: -1, _id: -1 } },
   );
 
-  const skip = pagina ? (parseInt(pagina) - 1) * 20 : 0;
-  pipeline.push({ $skip: skip });
-  pipeline.push({ $limit: 20 });
+  if (pagina) {
+    const skip = (parseInt(pagina) - 1) * 20;
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: 20 });
+  }
 
   return await Gasto.aggregate(pipeline);
 };
@@ -231,7 +233,10 @@ export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
 
     return resultado;
   } catch (error) {
-    if (error.code === 11000 || error.writeErrors?.some(e => e.code === 11000)) {
+    if (
+      error.code === 11000 ||
+      error.writeErrors?.some((e) => e.code === 11000)
+    ) {
       const err = new Error("Uno o más gastos ya existen para esta cuenta.");
       err.status = 409;
       throw err;

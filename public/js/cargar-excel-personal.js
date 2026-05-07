@@ -44,7 +44,9 @@ const bulkIncluirGastoBancario = document.getElementById(
   "bulkIncluirGastoBancario",
 );
 const bulkIncluirGastoReal = document.getElementById("bulkIncluirGastoReal");
-const editarSeleccionadosButton = document.getElementById("editarSeleccionadosButton");
+const editarSeleccionadosButton = document.getElementById(
+  "editarSeleccionadosButton",
+);
 
 let categoriasCache = [];
 let cuentasCache = [];
@@ -55,7 +57,10 @@ vaciarTablaButton.addEventListener("click", vaciarTabla);
 importButton.addEventListener("click", () => fileInput.click());
 crearTodosButton.addEventListener("click", crearTodosLosGastos);
 aplicarTodosButton.addEventListener("click", aplicarCambiosATodos);
-editarSeleccionadosButton.addEventListener("click", aplicarCambiosSeleccionados);
+editarSeleccionadosButton.addEventListener(
+  "click",
+  aplicarCambiosSeleccionados,
+);
 eliminarSeleccionadosButton.addEventListener("click", eliminarSeleccionados);
 selectAllRows.addEventListener("change", (e) => {
   toggleSelectAllRows(e.target.checked);
@@ -118,12 +123,37 @@ function resolverFlagsGastoPorCategoria(
   flujoBancario,
   economiaReal,
 ) {
+  const nombre = String(nombreCategoria || "")
+    .trim()
+    .toLowerCase();
+
   const flujo = Number(flujoBancario) || 0;
   const real = Number(economiaReal) || 0;
 
+  const esTransferencia =
+    nombre.includes("transf") ||
+    nombre.includes("traspaso") ||
+    nombre.includes("balance mes anterior");
+
+  const esBalanceSplit = nombre.includes("balance split");
+
+  if (esTransferencia) {
+    return {
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: false,
+    };
+  }
+
+  if (esBalanceSplit) {
+    return {
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: real < 0,
+    };
+  }
+
   return {
-    incluirEnGastoBancario: flujo !== 0,
-    incluirEnGastoReal: real !== 0,
+    incluirEnGastoBancario: flujo < 0,
+    incluirEnGastoReal: real < 0,
   };
 }
 
@@ -300,8 +330,8 @@ async function procesarArchivoExcelPersonal(file) {
           );
           economiaFinal = economiaReal;
         } else {
-          porcentajeEconomiaReal = 100;
-          economiaFinal = Number(flujoBancario.toFixed(2));
+          porcentajeEconomiaReal = 0;
+          economiaFinal = 0;
         }
       } else {
         porcentajeEconomiaReal = 0;

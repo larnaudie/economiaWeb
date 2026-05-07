@@ -2208,12 +2208,13 @@ categoriaTotalesCuenta.addEventListener("change", async () => {
 filtrarGastosCuentaBtn.addEventListener("click", async () => {
   try {
     paginaActualGastosCuenta = 1;
-    totalPaginasGastosCuenta = await calcularTotalPaginasGastosCuenta();
+
     await cargarGastosCuenta();
     await cargarResumenYTotalesCuenta();
+    await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-    body.innerHTML = `<tr><td colspan="8">${error.message || "Error al filtrar gastos"}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">${error.message || "Error al filtrar gastos"}</td></tr>`;
   }
 });
 
@@ -2221,39 +2222,23 @@ limpiarFiltroGastosCuentaBtn.addEventListener("click", async () => {
   try {
     resetFiltrosGastosCuenta();
     paginaActualGastosCuenta = 1;
-    totalPaginasGastosCuenta = await calcularTotalPaginasGastosCuenta();
+
     await cargarGastosCuenta();
     await cargarResumenYTotalesCuenta();
+    await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-    body.innerHTML = `<tr><td colspan="8">${error.message || "Error al limpiar filtros"}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">${error.message || "Error al limpiar filtros"}</td></tr>`;
   }
 });
 
 categoriaGastosCuenta.addEventListener("change", async () => {
   paginaActualGastosCuenta = 1;
-  totalPaginasGastosCuenta = await calcularTotalPaginasGastosCuenta();
+
   await cargarGastosCuenta();
   await cargarResumenYTotalesCuenta();
+  await cargarSoloTotalesCategoriasCuenta();
 });
-
-if (prevGastosCuentaBtn) {
-  prevGastosCuentaBtn.addEventListener("click", async () => {
-    if (paginaActualGastosCuenta > 1) {
-      paginaActualGastosCuenta--;
-      await cargarGastosCuenta();
-    }
-  });
-}
-
-if (nextGastosCuentaBtn) {
-  nextGastosCuentaBtn.addEventListener("click", async () => {
-    if (paginaActualGastosCuenta < totalPaginasGastosCuenta) {
-      paginaActualGastosCuenta++;
-      await cargarGastosCuenta();
-    }
-  });
-}
 
 ordenGastosCuenta?.addEventListener("change", () => {
   aplicarOrdenGastosCuenta();
@@ -2262,17 +2247,6 @@ ordenGastosCuenta?.addEventListener("change", () => {
   if (tipoDesgloseActual) {
     renderDesgloseGastosCuenta(tipoDesgloseActual);
   }
-});
-
-document.addEventListener("DOMContentLoaded", async () => {
-  resetFiltrosGastosCuenta();
-  resetFiltrosTotalesCuenta();
-  await cargarCategoriasFiltroGastosCuenta();
-  await cargarCategoriasParaGastosCuenta();
-  totalPaginasGastosCuenta = await calcularTotalPaginasGastosCuenta();
-  await cargarGastosCuenta();
-  await cargarResumenYTotalesCuenta();
-  await cargarSoloTotalesCategoriasCuenta();
 });
 
 function debugDuplicadosDesglose(tipo = "bancario") {
@@ -2404,3 +2378,26 @@ function debugValidarDesgloseContraResumen() {
     },
   ]);
 }
+
+async function cargarSoloTotalesCategoriasCuenta() {
+  try {
+    const gastosFiltrados =
+      filtrarGastosParaTotalesCategorias(gastosCuentaTodos);
+
+    renderTotalesCategoriasCuenta(gastosFiltrados);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  resetFiltrosGastosCuenta();
+  resetFiltrosTotalesCuenta();
+
+  await cargarCategoriasFiltroGastosCuenta();
+  await cargarCategoriasParaGastosCuenta();
+
+  await cargarGastosCuenta();
+  await cargarResumenYTotalesCuenta();
+  await cargarSoloTotalesCategoriasCuenta();
+});
