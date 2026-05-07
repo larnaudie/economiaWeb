@@ -318,6 +318,14 @@ async function procesarArchivoExcelPersonal(file) {
 
       if (isEmptyRow) return null;
 
+      const esFilaTotal =
+        !fecha &&
+        !descripcion &&
+        !categoriaNombre &&
+        (flujoBancario != null || economiaReal != null);
+
+      if (esFilaTotal) return null;
+
       const categoriaEncontrada = buscarCategoriaPorNombre(categoriaNombre);
 
       let porcentajeEconomiaReal = 0;
