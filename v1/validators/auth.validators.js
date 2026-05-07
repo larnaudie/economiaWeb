@@ -15,7 +15,11 @@ export const registrarUsuarioSchema = Joi.object({
     }),
     confirmPassword: Joi.string().trim().valid(Joi.ref('password')).required().messages({
         "any.only": "Las contraseñas no coinciden"
-    })
+    }),
+    codigo: Joi.string().trim().max(200).optional().allow("").messages({
+    "string.base": "El código de administrador debe ser un texto",
+    "string.max": "El código de administrador no puede superar los {#limit} caracteres"
+})
 });
 
 export const loginUsuarioSchema = Joi.object({
