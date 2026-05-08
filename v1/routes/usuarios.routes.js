@@ -12,8 +12,8 @@ import {
     obtenerGastosUsuario,
     eliminarTodosLosUsuarios
 } from "../controllers/usuarios.controller.js";
-import validateBody from "../middlewares/validateBody.middleware.js";
-import {usuarioUpdateSchema} from "../validators/usuario.validators.js"
+import {validateBody} from "../middlewares/validateBody.middleware.js";
+import {usuarioSchema, usuarioUpdateSchema} from "../validators/usuario.validators.js"
 import {validateObjectId} from "../middlewares/validateObjectId.middleware.js"
 
 const router = express.Router({ mergeParams: true });

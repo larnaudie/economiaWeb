@@ -69,15 +69,21 @@ export async function eliminarCategoriaGrupo(req, res, next) {
   }
 }
 
-export async function eliminarTodosLasCategoriasGrupo(req, res, next) {
+export const eliminarTodosLasCategoriasGrupo = async (req, res, next) => {
   try {
     await eliminarTodosLasCategoriasGrupoService();
-    res.json({
-      success: true,
-      message: "Todas las categorías principales eliminadas",
-      data: null
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODAS_LAS_CATEGORIAS_GRUPO",
+      entidad: "CategoriaGrupo",
+      detalle: {
+        alcance: "Todas las categorías grupo",
+      },
     });
+
+    successResponse(res, "Todas las categorias principales eliminadas exitosamente", null);
   } catch (error) {
     next(error);
   }
-}
+};

@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crear Subcategorías - Economía Web</title>
+
+    <style>
+      body {
+        display: none;
+      }
+    </style>
+
+    <script>
+      if (!localStorage.getItem("token")) {
+        window.location.replace("/login.html");
+      } else {
+        document.addEventListener("DOMContentLoaded", () => {
+          document.body.style.display = "block";
+        });
+      }
+    </script>
+
     <link rel="stylesheet" href="styles.css" />
   </head>
 
@@ -11,7 +28,6 @@
     <header></header>
 
     <main>
-
       <section>
         <button type="button" id="openCategoriaModal">
           Crear Subcategoría

@@ -57,10 +57,20 @@ export const eliminarBanco = async (req, res, next) => {
 };
 
 export const eliminarTodosLosBancos = async (req, res, next) => {
-    try {
-        await eliminarTodosLosBancosService(req.user.id);
-        successResponse(res, "Todos los bancos eliminados exitosamente", null);
-    } catch (error) {
-        next(error);
-    }
+  try {
+    await eliminarTodosLosBancosService();
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODOS_LOS_BANCOS",
+      entidad: "Banco",
+      detalle: {
+        alcance: "Todos los bancos",
+      },
+    });
+
+    successResponse(res, "Todos los bancos eliminados exitosamente", null);
+  } catch (error) {
+    next(error);
+  }
 };

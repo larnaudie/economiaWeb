@@ -57,11 +57,21 @@ export const eliminarCuenta = async (req, res, next) => {
     }
 };
 
-export const eliminarTodasLasCuentas = async (req, res, next) => {
-    try {
-        await eliminarTodosLasCuentasService(req.user.id);
-        successResponse(res, "Todas las cuentas eliminadas exitosamente", null);
-    } catch (error) {
-        next(error);
-    }
+export const eliminarTodosLasCuentas = async (req, res, next) => {
+  try {
+    await eliminarTodosLasCuentasService();
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODAS_LAS_CUENTAS",
+      entidad: "Cuenta",
+      detalle: {
+        alcance: "Todas las cuentas",
+      },
+    });
+
+    successResponse(res, "Todas las cuentas eliminadas exitosamente", null);
+  } catch (error) {
+    next(error);
+  }
 };

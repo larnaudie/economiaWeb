@@ -90,10 +90,20 @@ export const pagarCuotaDeuda = async (req, res, next) => {
 };
 
 export const eliminarTodosLasDeudas = async (req, res, next) => {
-    try {
-        await eliminarTodosLasDeudasService(req.user.id);
-        successResponse(res, "Todas las deudas eliminadas exitosamente", null);
-    } catch (error) {
-        next(error);
-    }
+  try {
+    await eliminarTodosLasDeudasService();
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODAS_LAS_DEUDAS",
+      entidad: "Deuda",
+      detalle: {
+        alcance: "Todas las deudas",
+      },
+    });
+
+    successResponse(res, "Todas las deudas eliminadas exitosamente", null);
+  } catch (error) {
+    next(error);
+  }
 };

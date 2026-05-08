@@ -141,10 +141,20 @@ export const actualizarOrdenGastosCuenta = async (req, res, next) => {
 };
 
 export const eliminarTodosLosGastos = async (req, res, next) => {
-    try {
-        await eliminarTodosLosGastosService(req.user.id);
-        successResponse(res, "Todos los gastos eliminados exitosamente", null);
-    } catch (error) {
-        next(error);
-    }
+  try {
+    await eliminarTodosLosGastosService();
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODOS_LOS_GASTOS",
+      entidad: "Gasto",
+      detalle: {
+        alcance: "Todos los gastos",
+      },
+    });
+
+    successResponse(res, "Todos los gastos eliminados exitosamente", null);
+  } catch (error) {
+    next(error);
+  }
 };

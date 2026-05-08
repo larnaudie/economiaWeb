@@ -63,3 +63,32 @@ export const usuarioSchema = Joi.object({
             "string.pattern.base": "Cada cuenta debe ser un ObjectId válido"
         })
 });
+
+export const usuarioUpdateSchema = Joi.object({
+  username: Joi.string()
+    .min(3)
+    .max(30)
+    .trim()
+    .optional(),
+
+  email: Joi.string()
+    .email()
+    .trim()
+    .optional()
+    .allow("", null),
+
+  password: Joi.string()
+    .min(6)
+    .optional(),
+
+  confirmPassword: Joi.any()
+    .valid(Joi.ref("password"))
+    .when("password", {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    })
+    .messages({
+      "any.only": "Las contraseñas no coinciden",
+    }),
+}).min(1);

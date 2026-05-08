@@ -38,16 +38,6 @@ export const actualizarUsuarioActual = async (req, res, next) => {
       req.body,
     );
     successResponse(res, "Perfil actualizado exitosamente", usuarioActualizado);
-    await crearAuditLogService({
-      usuario: req.user.id,
-      accion: "ACTUALIZAR_USUARIO",
-      entidad: "Usuario",
-      entidadId: usuarioActualizado._id.toString(),
-      detalle: {
-        username: usuarioActualizado.username,
-        rol: usuarioActualizado.rol,
-      },
-    });
   } catch (error) {
     next(error);
   }
@@ -135,6 +125,31 @@ export const actualizarUsuario = async (req, res, next) => {
   try {
     const { id } = req.params;
     const usuarioActualizado = await actualizarUsuarioService(id, req.body);
+
+    if (req.body.rol !== undefined) {
+      await crearAuditLogService({
+        usuario: req.user.id,
+        accion: "CAMBIAR_ROL_USUARIO",
+        entidad: "Usuario",
+        entidadId: usuarioActualizado._id.toString(),
+        detalle: {
+          username: usuarioActualizado.username,
+          nuevoRol: usuarioActualizado.rol,
+        },
+      });
+    }
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ACTUALIZAR_USUARIO",
+      entidad: "Usuario",
+      entidadId: usuarioActualizado._id.toString(),
+      detalle: {
+        username: usuarioActualizado.username,
+        rol: usuarioActualizado.rol,
+      },
+    });
+
     successResponse(
       res,
       `Usuario ${usuarioActualizado.id} actualizado exitosamente`,
@@ -148,6 +163,16 @@ export const actualizarUsuario = async (req, res, next) => {
 export const eliminarTodosLosUsuarios = async (req, res, next) => {
   try {
     await eliminarTodosLosUsuariosService(req.user.id);
+
+    await crearAuditLogService({
+      usuario: req.user.id,
+      accion: "ELIMINAR_TODOS_LOS_USUARIOS",
+      entidad: "Usuario",
+      detalle: {
+        alcance: "Todos los usuarios no admin",
+      },
+    });
+
     successResponse(res, "Todos los usuarios eliminados exitosamente", null);
   } catch (error) {
     next(error);

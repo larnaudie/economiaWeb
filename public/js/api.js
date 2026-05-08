@@ -19,23 +19,22 @@ async function apiRequest(endpoint, method = "GET", body = null, token = null) {
   const response = await fetch(`${API_URL}${endpoint}`, config);
 
   let data;
+
   try {
     data = await response.json();
   } catch {
     throw new Error(`Error HTTP ${response.status}`);
   }
 
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login.html";
+    throw new Error("Sesión expirada o inválida");
+  }
+
   if (!response.ok) {
-    let errorMessage =
-      data.message ||
-      data.mensaje ||
-      `Error HTTP ${response.status}`;
-
-    if (Array.isArray(data.error) && data.error.length > 0) {
-      errorMessage = data.error.map(err => err.message).join(", ");
-    }
-
-    throw new Error(errorMessage);
+    throw new Error(data.message || "Error en la petición");
   }
 
   return data;

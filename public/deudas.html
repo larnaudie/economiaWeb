@@ -1,95 +1,122 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Deudas - Economía Web</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
 
-<body>
+    <style>
+      body {
+        display: none;
+      }
+    </style>
+
+    <script>
+      if (!localStorage.getItem("token")) {
+        window.location.replace("/login.html");
+      } else {
+        document.addEventListener("DOMContentLoaded", () => {
+          document.body.style.display = "block";
+        });
+      }
+    </script>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
     <header></header>
 
     <main>
-        <section>
-            <h2>Crear deuda</h2>
+      <section>
+        <h2>Crear deuda</h2>
 
-            <form id="deudaForm">
-                <label for="descripcionDeuda">Descripción</label>
-                <input type="text" id="descripcionDeuda" required placeholder="Ej: Préstamo Santander">
+        <form id="deudaForm">
+          <label for="descripcionDeuda">Descripción</label>
+          <input
+            type="text"
+            id="descripcionDeuda"
+            required
+            placeholder="Ej: Préstamo Santander"
+          />
 
-                <label for="montoTotalDeuda">Monto total</label>
-                <input type="number" id="montoTotalDeuda" step="0.01" required>
+          <label for="montoTotalDeuda">Monto total</label>
+          <input type="number" id="montoTotalDeuda" step="0.01" required />
 
-                <label for="cuotasTotalesDeuda">Cuotas totales</label>
-                <input type="number" id="cuotasTotalesDeuda" required>
+          <label for="cuotasTotalesDeuda">Cuotas totales</label>
+          <input type="number" id="cuotasTotalesDeuda" required />
 
-                <label for="montoCuotaDeuda">Monto cuota</label>
-                <input type="number" id="montoCuotaDeuda" step="0.01" required>
+          <label for="montoCuotaDeuda">Monto cuota</label>
+          <input type="number" id="montoCuotaDeuda" step="0.01" required />
 
-                <label for="fechaInicioDeuda">Fecha inicio</label>
-                <input type="date" id="fechaInicioDeuda" required>
+          <label for="fechaInicioDeuda">Fecha inicio</label>
+          <input type="date" id="fechaInicioDeuda" required />
 
-                <div id="deudaError" class="error"></div>
-                <div id="deudaSuccess" style="color: green; margin-top: 0.75rem;"></div>
+          <div id="deudaError" class="error"></div>
+          <div
+            id="deudaSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
 
-                <button type="submit">Crear deuda</button>
-            </form>
-        </section>
+          <button type="submit">Crear deuda</button>
+        </form>
+      </section>
 
-        <section>
-            <h2>Mis deudas</h2>
+      <section>
+        <h2>Mis deudas</h2>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Descripción</th>
-                        <th>Monto total</th>
-                        <th>Cuota</th>
-                        <th>Progreso</th>
-                        <th>Saldo restante</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
+        <table>
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th>Monto total</th>
+              <th>Cuota</th>
+              <th>Progreso</th>
+              <th>Saldo restante</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
 
-                <tbody id="deudasBody">
-                    <tr>
-                        <td colspan="7">Cargando...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+          <tbody id="deudasBody">
+            <tr>
+              <td colspan="7">Cargando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
-        <section>
-            <h2>Pagar cuota</h2>
+      <section>
+        <h2>Pagar cuota</h2>
 
-            <form id="pagarCuotaForm">
-                <label for="deudaPagoSelect">Deuda</label>
-                <select id="deudaPagoSelect" required>
-                    <option value="">Seleccionar deuda</option>
-                </select>
+        <form id="pagarCuotaForm">
+          <label for="deudaPagoSelect">Deuda</label>
+          <select id="deudaPagoSelect" required>
+            <option value="">Seleccionar deuda</option>
+          </select>
 
-                <label for="cuentaPagoSelect">Cuenta</label>
-                <select id="cuentaPagoSelect" required>
-                    <option value="">Seleccionar cuenta</option>
-                </select>
+          <label for="cuentaPagoSelect">Cuenta</label>
+          <select id="cuentaPagoSelect" required>
+            <option value="">Seleccionar cuenta</option>
+          </select>
 
-                <label for="categoriaPagoSelect">Categoría</label>
-                <select id="categoriaPagoSelect" required>
-                    <option value="">Seleccionar categoría</option>
-                </select>
+          <label for="categoriaPagoSelect">Categoría</label>
+          <select id="categoriaPagoSelect" required>
+            <option value="">Seleccionar categoría</option>
+          </select>
 
-                <label for="fechaPagoCuota">Fecha de pago</label>
-                <input type="date" id="fechaPagoCuota" required>
+          <label for="fechaPagoCuota">Fecha de pago</label>
+          <input type="date" id="fechaPagoCuota" required />
 
-                <div id="pagoCuotaError" class="error"></div>
-                <div id="pagoCuotaSuccess" style="color: green; margin-top: 0.75rem;"></div>
+          <div id="pagoCuotaError" class="error"></div>
+          <div
+            id="pagoCuotaSuccess"
+            style="color: green; margin-top: 0.75rem"
+          ></div>
 
-                <button type="submit">Pagar cuota</button>
-            </form>
-        </section>
+          <button type="submit">Pagar cuota</button>
+        </form>
+      </section>
     </main>
 
     <script src="/js/api.js"></script>
@@ -97,6 +124,5 @@
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
     <script src="/js/deudas.js"></script>
-</body>
-
+  </body>
 </html>

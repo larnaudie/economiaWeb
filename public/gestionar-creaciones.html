@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestionar Creaciones - Economía Web</title>
+
+    <style>
+      body {
+        display: none;
+      }
+    </style>
+
+    <script>
+      if (!localStorage.getItem("token")) {
+        window.location.replace("/login.html");
+      } else {
+        document.addEventListener("DOMContentLoaded", () => {
+          document.body.style.display = "block";
+        });
+      }
+    </script>
+
     <link rel="stylesheet" href="styles.css" />
   </head>
 

@@ -1,4 +1,5 @@
 import Usuario from "../models/usuario.model.js";
+import { crearAuditLogService } from "./auditLog.service.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
@@ -48,10 +49,22 @@ export const registrarUsuarioService = async (data) => {
 
   await nuevoUsuario.save();
 
+  if (nuevoUsuario.rol === "admin") {
+    await crearAuditLogService({
+      usuario: nuevoUsuario._id,
+      accion: "CREAR_ADMIN",
+      entidad: "Usuario",
+      entidadId: nuevoUsuario._id.toString(),
+      detalle: {
+        username: nuevoUsuario.username,
+      },
+    });
+  }
+  const tokenExpiration = nuevoUsuario.rol === "admin" ? "1h" : "6h";
   const token = jwt.sign(
     { id: nuevoUsuario._id, rol: nuevoUsuario.rol },
     process.env.SECRET_KEY,
-    { expiresIn: "1d" },
+    { expiresIn: "tokenExpiration" },
   );
 
   return {
@@ -73,10 +86,34 @@ export const loginUsuarioService = async (username, password) => {
   const isMatch = bcrypt.compareSync(password, usuario.password);
 
   if (!isMatch) {
+    if (usuario.rol === "admin") {
+      await crearAuditLogService({
+        usuario: usuario._id,
+        accion: "LOGIN_FALLIDO_ADMIN",
+        entidad: "Usuario",
+        entidadId: usuario._id.toString(),
+        detalle: {
+          username: usuario.username,
+          motivo: "Password incorrecta",
+        },
+      });
+    }
     return { message: "Usuario o contraseña incorrectos" };
   }
 
-  const tokenExpiration = usuario.rol === "admin" ? "1h" : "1d";
+  if (usuario.rol === "admin") {
+    await crearAuditLogService({
+      usuario: usuario._id,
+      accion: "LOGIN_ADMIN",
+      entidad: "Usuario",
+      entidadId: usuario._id.toString(),
+      detalle: {
+        username: usuario.username,
+      },
+    });
+  }
+
+  const tokenExpiration = usuario.rol === "admin" ? "1h" : "6h";
 
   const token = jwt.sign(
     { id: usuario._id, rol: usuario.rol },

@@ -5,7 +5,7 @@ import {
     actualizarCuenta,
     eliminarCuenta,
     crearCuenta,
-    eliminarTodasLasCuentas
+    eliminarTodosLasCuentas
 } from "../controllers/cuentas.controller.js";
 import { cuentaSchema,cuentaUpdateSchema  } from "../validators/cuenta.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
@@ -17,7 +17,7 @@ const router = express.Router({ mergeParams: true });
 //Peticiones a /v1/cuentas
 router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.get("/", obtenerCuentas)
-router.delete("/eliminar-todo",requireAdmin, eliminarTodasLasCuentas);
+router.delete("/eliminar-todo",requireAdmin, eliminarTodosLasCuentas);
 router.get("/:id",validateObjectId, obtenerCuentaPorId)
 router.patch("/:id",validateObjectId, validateBody(cuentaUpdateSchema), actualizarCuenta);
 router.delete("/:id",validateObjectId, eliminarCuenta)
