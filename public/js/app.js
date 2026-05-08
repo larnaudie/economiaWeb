@@ -15,9 +15,13 @@ async function cargarBancos() {
     console.log("Respuesta bancos:", data);
     bancoSeleccionado.innerHTML = `
   <option value="">Seleccionar banco</option>
-  ${bancos.map((banco) => `
+  ${bancos
+    .map(
+      (banco) => `
     <option value="${banco._id}">${escapeHtml(banco.nombre)}</option>
-  `).join("")}
+  `,
+    )
+    .join("")}
 `;
 
     if (!bancos.length) {
@@ -45,18 +49,25 @@ async function cargarCuentasPorBanco(bancoId) {
   if (!token || !cuentasContainer) return;
 
   if (!bancoId) {
-    cuentasContainer.innerHTML = "<p>Seleccioná un banco para ver sus cuentas.</p>";
+    cuentasContainer.innerHTML =
+      "<p>Seleccioná un banco para ver sus cuentas.</p>";
     return;
   }
 
   try {
-    const data = await apiRequest(`/usuarios/me/cuentas?banco=${bancoId}`, "GET", null, token);
+    const data = await apiRequest(
+      `/usuarios/me/cuentas?banco=${bancoId}`,
+      "GET",
+      null,
+      token,
+    );
     const cuentas = getApiData(data);
 
     console.log("Cuentas recibidas:", cuentas);
 
     if (!Array.isArray(cuentas)) {
-      cuentasContainer.innerHTML = "<p>Error: la respuesta de cuentas no es un array.</p>";
+      cuentasContainer.innerHTML =
+        "<p>Error: la respuesta de cuentas no es un array.</p>";
       return;
     }
 
@@ -65,21 +76,25 @@ async function cargarCuentasPorBanco(bancoId) {
       return;
     }
 
-    cuentasContainer.innerHTML = cuentas.map((cuenta) => `
+    cuentasContainer.innerHTML = cuentas
+      .map(
+        (cuenta) => `
       <div class="cuenta-card" data-cuenta-id="${cuenta._id}">
         <h3>${escapeHtml(cuenta.nombre)}</h3>
 <p>${escapeHtml(cuenta.banco?.nombre || "")}</p>
       </div>
-    `).join("");
+    `,
+      )
+      .join("");
 
     document.querySelectorAll(".cuenta-card").forEach((card) => {
-  card.addEventListener("click", () => {
-    irAGastosCuenta(card.dataset.cuentaId);
-  });
-});
+      card.addEventListener("click", () => {
+        irAGastosCuenta(card.dataset.cuentaId);
+      });
+    });
   } catch (error) {
     console.error("Error al cargar cuentas:", error);
-    cuentasContainer.innerHTML = `<p>${escapeHtml(error.message || "Error al cargar las cuentas del banco.")}</p>`;;
+    cuentasContainer.innerHTML = `<p>${escapeHtml(error.message || "Error al cargar las cuentas del banco.")}</p>`;
   }
 }
 
