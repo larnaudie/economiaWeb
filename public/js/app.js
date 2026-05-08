@@ -66,11 +66,17 @@ async function cargarCuentasPorBanco(bancoId) {
     }
 
     cuentasContainer.innerHTML = cuentas.map((cuenta) => `
-      <div class="cuenta-card" onclick="irAGastosCuenta('${cuenta._id}')">
+      <div class="cuenta-card" data-cuenta-id="${cuenta._id}">
         <h3>${escapeHtml(cuenta.nombre)}</h3>
 <p>${escapeHtml(cuenta.banco?.nombre || "")}</p>
       </div>
     `).join("");
+
+    document.querySelectorAll(".cuenta-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    irAGastosCuenta(card.dataset.cuentaId);
+  });
+});
   } catch (error) {
     console.error("Error al cargar cuentas:", error);
     cuentasContainer.innerHTML = `<p>${escapeHtml(error.message || "Error al cargar las cuentas del banco.")}</p>`;;

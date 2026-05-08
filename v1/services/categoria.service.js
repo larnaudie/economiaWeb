@@ -83,10 +83,6 @@ export const actualizarCategoriaService = async (id, usuarioId, data) => {
       _id: data.categoriaGrupo,
       usuario: usuarioId,
     });
-
-    if (!categoriaGrupo) {
-      throw new Error("Categoría principal no encontrada");
-    }
   }
   const updateData = {
     ...data,
@@ -134,10 +130,6 @@ export const crearCategoriaService = async (data, usuarioId) => {
       _id: data.categoriaGrupo,
       usuario: usuarioId,
     });
-
-    if (!categoriaGrupo) {
-      throw new Error("Categoría principal no encontrada");
-    }
   }
 
   const nuevaCategoria = new Categoria({

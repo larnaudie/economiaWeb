@@ -18,12 +18,6 @@ export async function actualizarCategoriaGrupoService(id, data, usuarioId) {
     { new: true, runValidators: true }
   );
 
-  if (!categoriaGrupo) {
-    const error = new Error("Categoría principal no encontrada");
-    error.status = 404;
-    throw error;
-  }
-
   return categoriaGrupo;
 }
 
@@ -32,12 +26,6 @@ export async function eliminarCategoriaGrupoService(id, usuarioId) {
     _id: id,
     usuario: usuarioId
   });
-
-  if (!categoriaGrupo) {
-    const error = new Error("Categoría principal no encontrada");
-    error.status = 404;
-    throw error;
-  }
 
   return categoriaGrupo;
 }

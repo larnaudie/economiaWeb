@@ -9,7 +9,7 @@ import v1Router from "./v1/v1.routes.js";
 import { notFoundMiddleware } from "./v1/middlewares/notFound.middleware.js";
 import { errorMiddleware } from "./v1/middlewares/error.middleware.js";
 import connectDB from "./v1/config/db.config.js";
-import mongoSanitize from "express-mongo-sanitize";
+import { sanitizeMiddleware } from "./v1/middlewares/sanitize.middleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,16 +41,30 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-        scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
+
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://cdn.sheetjs.com",
+        ],
+
+        scriptSrcElem: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://cdn.sheetjs.com",
+        ],
+
         connectSrc: [
           "'self'",
           "https://economia-web.vercel.app",
           "http://localhost:3000",
-          "https://cdn.jsdelivr.net",
         ],
+
+        imgSrc: ["'self'", "data:"],
+
+        styleSrc: ["'self'", "'unsafe-inline'"],
       },
     },
   }),
@@ -74,11 +88,7 @@ app.use(
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
-app.use(
-  mongoSanitize({
-    replaceWith: "_",
-  })
-);
+app.use(sanitizeMiddleware);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
