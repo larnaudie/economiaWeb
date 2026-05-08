@@ -51,7 +51,7 @@ export const obtenerGastos = async (req, res, next) => {
 export const obtenerGastoPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const gastoObtenido = await obtenerGastoPorIdService(id);
+        const gastoObtenido = await obtenerGastoPorIdService(id, req.user.id);
         successResponse(res, `Gasto ${gastoObtenido.id} obtenido con exito`, gastoObtenido);
     } catch (error) {
         next(error);

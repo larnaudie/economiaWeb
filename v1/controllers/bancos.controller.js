@@ -20,7 +20,7 @@ export const obtenerBancos = async (req, res, next) => {
 export const obtenerBancoPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const bancoObtenido = await obtenerBancoPorIdService(id);
+        const bancoObtenido = await obtenerBancoPorIdService(id, req.user.id);
         successResponse(res, `Banco ${bancoObtenido.id} obtenido con exito`, bancoObtenido);
     } catch (error) {
         next(error);

@@ -9,13 +9,14 @@ import {
 } from "../controllers/cuentas.controller.js";
 import { cuentaSchema,cuentaUpdateSchema  } from "../validators/cuenta.validators.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
+import {requireAdmin} from "../middlewares/requireAdmin.middleware.js"
 
 const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/cuentas
 router.post("/", validateBody(cuentaSchema), crearCuenta)
 router.get("/", obtenerCuentas)
-router.delete("/eliminar-todo", eliminarTodasLasCuentas);
+router.delete("/eliminar-todo",requireAdmin, eliminarTodasLasCuentas);
 router.get("/:id", obtenerCuentaPorId)
 router.patch("/:id", validateBody(cuentaUpdateSchema), actualizarCuenta);
 router.delete("/:id", eliminarCuenta)

@@ -5,8 +5,16 @@ export const obtenerBancosService = async (usuarioId) => {
     return bancos;
 }
 
-export const obtenerBancoPorIdService = async (id) => {
-    const banco = await Banco.findById(id);
+export const obtenerBancoPorIdService = async (id, usuarioId) => {
+    const banco = await Banco.findOne({
+        _id: id,
+        usuario: usuarioId
+    });
+
+    if (!banco) {
+        throw new Error("Banco no encontrado");
+    }
+
     return banco;
 }
 

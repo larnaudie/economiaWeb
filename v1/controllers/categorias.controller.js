@@ -31,7 +31,7 @@ export const obtenerTotalesPorCategoria = async (req, res, next) => {
 export const obtenerCategoriaPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const categoriaObtenida = await obtenerCategoriaPorIdService(id);
+        const categoriaObtenida = await obtenerCategoriaPorIdService(id, req.user.id);
         successResponse(res, `Categoria ${categoriaObtenida.id} obtenida con exito`, categoriaObtenida);
     } catch (error) {
         next(error);

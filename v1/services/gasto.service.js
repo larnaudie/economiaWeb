@@ -1,4 +1,6 @@
 import Gasto from "../models/gasto.model.js";
+import Cuenta from "../models/cuenta.model.js";
+import Categoria from "../models/categoria.model.js";
 import { buildGastoBaseMatch } from "../utils/gastosFilters.js";
 import {
   buildBulkCreateGastos,
@@ -106,12 +108,37 @@ export const obtenerGastosService = async (
   return await Gasto.aggregate(pipeline);
 };
 
-export const obtenerGastoPorIdService = async (id) => {
-  const gasto = await Gasto.findById(id);
+export const obtenerGastoPorIdService = async (id, usuarioId) => {
+  const gasto = await Gasto.findOne({
+    _id: id,
+    usuario: usuarioId,
+  });
+
+  if (!gasto) {
+    throw new Error("Gasto no encontrado");
+  }
+
   return gasto;
 };
 
 export const actualizarGastoService = async ({ id, usuarioId, data }) => {
+  const cuenta = await Cuenta.findOne({
+    _id: data.cuenta,
+    usuario: usuarioId,
+  });
+
+  if (!cuenta) {
+    throw new Error("Cuenta no encontrada");
+  }
+
+  const categoria = await Categoria.findOne({
+    _id: data.categoria,
+    usuario: usuarioId,
+  });
+
+  if (!categoria) {
+    throw new Error("Categoría no encontrada");
+  }
   const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
 
   if (!gasto) {
@@ -154,6 +181,23 @@ export const eliminarGastoService = async (id, usuarioId) => {
 };
 
 export const crearGastoService = async ({ usuarioId, data }) => {
+  const cuenta = await Cuenta.findOne({
+    _id: data.cuenta,
+    usuario: usuarioId,
+  });
+
+  if (!cuenta) {
+    throw new Error("Cuenta no encontrada");
+  }
+
+  const categoria = await Categoria.findOne({
+    _id: data.categoria,
+    usuario: usuarioId,
+  });
+
+  if (!categoria) {
+    throw new Error("Categoría no encontrada");
+  }
   const hashImportacion = generarHashGasto({
     fecha: data.fecha,
     descripcion: data.descripcion,
@@ -220,6 +264,23 @@ export const obtenerGastosPorUsuarioService = async (
 };
 
 export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
+  const cuenta = await Cuenta.findOne({
+    _id: data.cuenta,
+    usuario: usuarioId,
+  });
+
+  if (!cuenta) {
+    throw new Error("Cuenta no encontrada");
+  }
+
+  const categoria = await Categoria.findOne({
+    _id: data.categoria,
+    usuario: usuarioId,
+  });
+
+  if (!categoria) {
+    throw new Error("Categoría no encontrada");
+  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para crear");
   }
@@ -247,6 +308,23 @@ export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
 };
 
 export const actualizarGastosBulkService = async ({ usuarioId, gastos }) => {
+  const cuenta = await Cuenta.findOne({
+    _id: data.cuenta,
+    usuario: usuarioId,
+  });
+
+  if (!cuenta) {
+    throw new Error("Cuenta no encontrada");
+  }
+
+  const categoria = await Categoria.findOne({
+    _id: data.categoria,
+    usuario: usuarioId,
+  });
+
+  if (!categoria) {
+    throw new Error("Categoría no encontrada");
+  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para actualizar");
   }
@@ -262,6 +340,23 @@ export const actualizarOrdenGastosCuentaService = async ({
   usuarioId,
   gastos,
 }) => {
+  const cuenta = await Cuenta.findOne({
+    _id: data.cuenta,
+    usuario: usuarioId,
+  });
+
+  if (!cuenta) {
+    throw new Error("Cuenta no encontrada");
+  }
+
+  const categoria = await Categoria.findOne({
+    _id: data.categoria,
+    usuario: usuarioId,
+  });
+
+  if (!categoria) {
+    throw new Error("Categoría no encontrada");
+  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para ordenar");
   }
@@ -284,5 +379,5 @@ export const actualizarOrdenGastosCuentaService = async ({
 };
 
 export const eliminarTodosLosGastosService = async () => {
-  await Gasto.deleteMany({});
+  await Gasto.deleteMany({ usuario: usuarioId });
 };

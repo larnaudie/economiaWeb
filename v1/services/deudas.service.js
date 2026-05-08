@@ -108,5 +108,5 @@ export const pagarCuotaDeudaService = async ({
 };
 
 export const eliminarTodosLasDeudasService = async () => {
-    await Deuda.deleteMany({});
+    await Deuda.deleteMany({ usuario: usuarioId });
 }

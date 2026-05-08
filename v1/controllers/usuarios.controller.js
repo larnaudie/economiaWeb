@@ -24,8 +24,7 @@ export const obtenerUsuarios = async (req, res, next) => {
 export const obtenerUsuarioActual = async (req, res, next) => {
     try {
         const usuarioObtenido = await obtenerUsuarioActualService(req.user.id);
-        const { password, ...usuarioSafe } = usuarioObtenido.toObject();
-        successResponse(res, "Usuario obtenido", usuarioSafe);
+        successResponse(res, "Usuario obtenido", usuarioObtenido);
     } catch (error) {
         next(error);
     }
@@ -34,8 +33,7 @@ export const obtenerUsuarioActual = async (req, res, next) => {
 export const actualizarUsuarioActual = async (req, res, next) => {
     try {
         const usuarioActualizado = await actualizarUsuarioActualService(req.user.id, req.body);
-        const { password, ...usuarioSafe } = usuarioActualizado.toObject();
-        successResponse(res, "Perfil actualizado exitosamente", usuarioSafe);
+        successResponse(res, "Perfil actualizado exitosamente", usuarioActualizado);
     } catch (error) {
         next(error);
     }
@@ -109,8 +107,7 @@ export const obtenerUsuarioPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
         const usuarioObtenido = await obtenerUsuarioPorIdService(id);
-        const { password, ...usuarioSafe } = usuarioObtenido.toObject();
-        successResponse(res, `Usuario ${usuarioObtenido.id} obtenido con exito`, usuarioSafe);
+        successResponse(res, `Usuario ${usuarioObtenido.id} obtenido con exito`, usuarioObtenido);
     } catch (error) {
         next(error);
     }
@@ -120,8 +117,7 @@ export const actualizarUsuario = async (req, res, next) => {
     try {
         const { id } = req.params;
         const usuarioActualizado = await actualizarUsuarioService(id, req.body);
-        const { password, ...usuarioSafe } = usuarioActualizado.toObject();
-        successResponse(res, `Usuario ${usuarioActualizado.id} actualizado exitosamente`, usuarioSafe);
+        successResponse(res, `Usuario ${usuarioActualizado.id} actualizado exitosamente`, usuarioActualizado);
     } catch (error) {
         next(error);
     }

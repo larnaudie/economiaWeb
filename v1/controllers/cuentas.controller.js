@@ -21,7 +21,7 @@ export const obtenerCuentas = async (req, res, next) => {
 export const obtenerCuentaPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const cuentaObtenida = await obtenerCuentaPorIdService(id);
+        const cuentaObtenida = await obtenerCuentaPorIdService(id, req.user.id);
         successResponse(res, `Cuenta ${cuentaObtenida.id} obtenida con exito`, cuentaObtenida);
     } catch (error) {
         next(error);
