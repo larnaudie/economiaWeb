@@ -149,7 +149,7 @@ async function cargarCuentasDashboardPorBanco(bancoId) {
     ${cuentasBancoDashboard
       .map(
         (c) => `
-      <option value="${c._id}">${c.nombre}</option>
+      <option value="${c._id}">${escapeHtml(c.nombre)}</option>
     `,
       )
       .join("")}
@@ -251,8 +251,7 @@ function deduplicarGastos(gastos) {
   gastos.forEach((g) => {
     const key =
       g._id ||
-      `${g.fecha}-${g.descripcion}-${g.flujoBancario}-${g.economiaReal}-${getCuentaId(g)}`;
-
+      `${g.fecha}-${g.descripcion}-${g.flujoBancario}-${g.economiaReal}`
     if (!map.has(key)) {
       map.set(key, g);
     }
@@ -330,7 +329,7 @@ function renderSaldoDeudas(deudas) {
   const activas = deudas.filter((d) => d.activa);
 
   crearChart("deudasSaldoChart", "bar", {
-    labels: activas.map((d) => d.descripcion),
+    labels: activas.map((d) => escapeHtml(d.descripcion)),
     datasets: [
       {
         label: "Saldo restante",
@@ -356,7 +355,7 @@ function renderLegend(containerId, labels, values) {
     .map(
       (label, index) => `
     <div>
-      <strong>${label}</strong>: ${formatMoney(values[index])}
+      <strong>${escapeHtml(label)}</strong>
     </div>
   `,
     )

@@ -1,5 +1,5 @@
 requireAuth();
-renderHeader({ title: "Perfil" });;
+renderHeader({ title: "Perfil" });
 
 const token = getToken();
   

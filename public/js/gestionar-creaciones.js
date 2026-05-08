@@ -164,7 +164,12 @@ async function cargarCategoriasGrupo() {
   const token = getAuthToken();
   if (!token) return;
 
-  const data = await apiRequest("/usuarios/me/categorias-grupo", "GET", null, token);
+  const data = await apiRequest(
+    "/usuarios/me/categorias-grupo",
+    "GET",
+    null,
+    token,
+  );
   categoriasGrupoCache = getApiData(data);
 
   renderCategoriasGrupoSelect();
@@ -179,7 +184,7 @@ function renderCategoriasGrupoSelect(selectedValue = "") {
       .map(
         (grupo) => `
         <option value="${grupo._id}" ${selectedValue === grupo._id ? "selected" : ""}>
-          ${grupo.nombre}
+          ${escapeHtml(grupo.nombre)}
         </option>
       `,
       )
@@ -326,12 +331,12 @@ function resetFiltrosTodosLosGastos() {
 function renderFiltrosGastos() {
   filtroCategoriaGastos.innerHTML = `
     <option value="">Todas</option>
-    ${categoriasCache.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categoriasCache.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
 
   filtroCuentaGastos.innerHTML = `
     <option value="">Todas</option>
-    ${cuentasCache.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${cuentasCache.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
 }
 
@@ -363,7 +368,7 @@ function renderEditarGastoSelects(
       .map(
         (categoria) => `
         <option value="${categoria._id}" ${categoriaSeleccionada === categoria._id ? "selected" : ""}>
-          ${categoria.nombre}
+          ${escapeHtml(categoria.nombre)}
         </option>
       `,
       )
@@ -375,7 +380,7 @@ function renderEditarGastoSelects(
       .map(
         (cuenta) => `
         <option value="${cuenta._id}" ${cuentaSeleccionada === cuenta._id ? "selected" : ""}>
-          ${cuenta.nombre}
+          ${escapeHtml(cuenta.nombre)}
         </option>
       `,
       )
@@ -404,7 +409,10 @@ function renderBulkBancosSelect() {
   bulkCuentaBanco.innerHTML =
     '<option value="">No cambiar</option>' +
     bancosCache
-      .map((banco) => `<option value="${banco._id}">${banco.nombre}</option>`)
+      .map(
+        (banco) =>
+          `<option value="${banco._id}">${escapeHtml(banco.nombre)}</option>`,
+      )
       .join("");
 }
 
@@ -568,7 +576,7 @@ async function cargarListas() {
       apiRequest("/usuarios/me/bancos", "GET", null, authToken),
       apiRequest("/usuarios/me/cuentas", "GET", null, authToken),
       apiRequest("/usuarios/me/categorias", "GET", null, authToken),
-      apiRequest("/categorias-grupo", "GET", null, authToken)
+      apiRequest("/categorias-grupo", "GET", null, authToken),
     ]);
 
     bancosCache = getApiData(bancos).map((banco) => ({
@@ -602,7 +610,7 @@ async function cargarListas() {
           ${banco.selected ? "checked" : ""}
         >
       </td>
-      <td>${banco.nombre}</td>
+      <td>${escapeHtml(banco.nombre)}</td>
       <td>
         <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
         <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
@@ -625,8 +633,8 @@ async function cargarListas() {
           ${categoria.selected ? "checked" : ""}
         >
       </td>
-      <td>${categoria.nombre}</td>
-      <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+      <td>${escapeHtml(categoria.nombre)}</td>
+      <td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
       <td>
         <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
         <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
@@ -644,8 +652,8 @@ async function cargarListas() {
     <td>
       <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
     </td>
-    <td>${cuenta.nombre}</td>
-    <td>${cuenta.banco?.nombre || "N/A"}</td>
+    <td>${escapeHtml(cuenta.nombre)}</td>
+    <td>${escapeHtml(cuenta.banco?.nombre || "N/A")}</td>
     <td>
       <button
         type="button"
@@ -813,7 +821,7 @@ async function editarCuenta(id, nombreActual, bancoActual) {
 
   let mensajeBancos = "Seleccioná el banco escribiendo el número:\n\n";
   bancosCache.forEach((banco, index) => {
-    mensajeBancos += `${index + 1}. ${banco.nombre}\n`;
+    mensajeBancos += `${index + 1}. ${escapeHtml(banco.nombre)}\n`;
   });
 
   const indiceBanco = prompt(mensajeBancos);
@@ -1280,9 +1288,9 @@ function renderGastosPaginados() {
       </td>
 
       <td>${gasto.fecha ? formatFechaUTC(gasto.fecha) : "N/A"}</td>
-      <td>${gasto.descripcion || "N/A"}</td>
-      <td>${gasto.cuenta?.nombre || "N/A"}</td>
-      <td>${gasto.categoria?.nombre || "N/A"}</td>
+      <td>${escapeHtml(gasto.descripcion || "N/A")}</td>
+      <td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
+<td>${escapeHtml(gasto.categoria?.nombre || "N/A")}</td>
       <td>${gasto.flujoBancario ?? "N/A"}</td>
       <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
       <td>${gasto.economiaReal ?? "N/A"}</td>
@@ -1327,7 +1335,10 @@ function renderModalCuentaBancos() {
   modalCuentaBanco.innerHTML =
     '<option value="">Seleccionar banco</option>' +
     bancosCache
-      .map((banco) => `<option value="${banco._id}">${banco.nombre}</option>`)
+      .map(
+        (banco) =>
+          `<option value="${banco._id}">${escapeHtml(banco.nombre)}</option>`,
+      )
       .join("");
 }
 
@@ -1337,7 +1348,7 @@ function renderModalGastoSelects() {
     categoriasCache
       .map(
         (categoria) =>
-          `<option value="${categoria._id}">${categoria.nombre}</option>`,
+          `<option value="${categoria._id}">${escapeHtml(categoria.nombre)}</option>`,
       )
       .join("");
 
@@ -1345,7 +1356,8 @@ function renderModalGastoSelects() {
     '<option value="">Seleccionar cuenta</option>' +
     cuentasCache
       .map(
-        (cuenta) => `<option value="${cuenta._id}">${cuenta.nombre}</option>`,
+        (cuenta) =>
+          `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`,
       )
       .join("");
 }
@@ -1563,7 +1575,7 @@ selectAllBancos.addEventListener("change", (e) => {
     renderItem: (banco) => `
     <tr>
       <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
-      <td>${banco.nombre}</td>
+      <td>${escapeHtml(banco.nombre)}</td>
       <td>
         <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
         <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
@@ -1584,8 +1596,8 @@ selectAllCuentas.addEventListener("change", (e) => {
     renderItem: (cuenta) => `
     <tr>
       <td><input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}></td>
-      <td>${cuenta.nombre}</td>
-      <td>${cuenta.banco?.nombre || "N/A"}</td>
+      <td>${escapeHtml(cuenta.nombre)}</td>
+      <td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
       <td>
         <button type="button" onclick="editarCuenta('${cuenta._id}', '${escapeQuotes(cuenta.nombre)}', '${cuenta.banco?._id || cuenta.banco || ""}')">Editar</button>
         <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
@@ -1657,8 +1669,8 @@ selectAllCategorias.addEventListener("change", (e) => {
             ${categoria.selected ? "checked" : ""}
           >
         </td>
-        <td>${categoria.nombre}</td>
-        <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+        <td>${escapeHtml(categoria.nombre)}</td>
+        <td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
         <td>
           <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
           <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>

@@ -1,3 +1,5 @@
+ 
+
 requireAuth();
 renderHeader({ title: "Crear Gasto" });;
 
@@ -374,8 +376,8 @@ async function cargarGastosPaginados() {
         <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
         <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
         <td>${gasto.descripcion || "N/A"}</td>
-        <td>${gasto.cuenta?.nombre || "N/A"}</td>
-        <td>${gasto.categoria?.nombre || "N/A"}</td>
+        <td>${escapeHtml(gasto.cuenta)?.nombre || "N/A"}</td>
+        <td>${escapeHtml(gasto.categoria)}?.nombre || "N/A"}</td>
         <td>${gasto.flujoBancario ?? "N/A"}</td>
         <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
         <td>${gasto.economiaReal ?? "N/A"}</td>
@@ -766,8 +768,8 @@ selectAllGastos.addEventListener("change", (e) => {
       <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
       <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
       <td>${gasto.descripcion || "N/A"}</td>
-      <td>${gasto.cuenta?.nombre || "N/A"}</td>
-      <td>${gasto.categoria?.nombre || "N/A"}</td>
+      <td>${escapeHtml(gasto.cuenta)?.nombre || "N/A"}</td>
+      <td>${escapeHtml(gasto.categoria)}?.nombre || "N/A"}</td>
       <td>${gasto.flujoBancario ?? "N/A"}</td>
       <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
       <td>${gasto.economiaReal ?? "N/A"}</td>

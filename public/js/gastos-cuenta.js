@@ -449,8 +449,8 @@ function renderDesgloseGastosCuenta(tipo) {
           <input type="checkbox" class="desglose-checkbox" data-id="${g._id}">
         </td>
         <td>${g.fecha ? formatFechaUTC(g.fecha) : "N/A"}</td>
-        <td>${g.descripcion || "N/A"}</td>
-        <td>${g.categoria?.nombre || "Sin categoría"}</td>
+        <td>${escapeHtml(g.descripcion || "N/A")}</td>
+<td>${escapeHtml(g.categoria?.nombre || "Sin categoría")}</td>
         <td>${formatMoney(monto)}</td>
         <td>${formatMoney(acumulado)}</td>
         <td>
@@ -876,7 +876,7 @@ function renderTotalesCategoriasCuenta(gastos) {
     .map(
       (f) => `
     <tr>
-      <td>${f.nombre}</td>
+      <td>${escapeHtml(f.nombre)}</td>
       <td>${formatMoney(f.total)}</td>
     </tr>
   `,
@@ -950,7 +950,7 @@ function renderGastosCuenta(gastos) {
         </td>
 
         <td>
-          <textarea class="row-descripcion" maxlength="500" ${readOnlyAttr}>${g.descripcion || ""}</textarea>
+          <textarea class="row-descripcion" maxlength="500" ${readOnlyAttr}>${escapeHtml(g.descripcion || "")}</textarea>
         </td>
 
         <td>
@@ -972,7 +972,7 @@ function renderGastosCuenta(gastos) {
     type="text"
     class="row-categoria-search"
     placeholder="Buscar subcategoría"
-    value="${getCategoriaNombreCuenta(g.categoria?._id || g.categoria || "")}"
+    value="${escapeHtml(getCategoriaNombreCuenta(g.categoria?._id || g.categoria || ""))}"
   >
 
   <div class="row-categoria-results hidden"></div>
@@ -1066,24 +1066,24 @@ async function cargarCategoriasParaGastosCuenta() {
 
   bulkCategoriaGastosCuenta.innerHTML = `
     <option value="">No cambiar</option>
-    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
   if (bulkCategoriaDesglose) {
     bulkCategoriaDesglose.innerHTML = `
     <option value="">No cambiar</option>
-    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
   }
   if (categoriaFiltroDesglose) {
     categoriaFiltroDesglose.innerHTML = `
     <option value="">Todas</option>
-    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
   }
   if (categoriaTotalesCuenta) {
     categoriaTotalesCuenta.innerHTML = `
     <option value="">Todas</option>
-    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
   }
 }
@@ -1095,8 +1095,8 @@ function buildCategoriaOptions(selectedValue = "") {
       .map(
         (c) => `
       <option value="${c._id}" ${selectedValue === c._id ? "selected" : ""}>
-        ${c.nombre}
-      </option>
+  ${escapeHtml(c.nombre)}
+</option>
     `,
       )
       .join("")}
@@ -1126,7 +1126,7 @@ async function cargarGastosCuenta() {
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
     if (body) {
-      body.innerHTML = `<tr><td colspan="10">${error.message || "Error al cargar gastos"}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al cargar gastos")}</td></tr>`;
     }
   }
 }
@@ -1184,15 +1184,6 @@ function aplicarOrdenGastosCuenta() {
   });
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function attachGastosCuentaEvents() {
   const rows = document.querySelectorAll("#gastosCuentaBody tr");
 
@@ -1221,10 +1212,15 @@ function attachGastosCuentaEvents() {
         ? resultados
             .map(
               (c) => `
-                <button type="button" class="combo-option" data-id="${c._id}" data-name="${escapeHtml(c.nombre)}">
-                  ${escapeHtml(c.nombre)}
-                </button>
-              `,
+    <button
+      type="button"
+      class="combo-option"
+      data-id="${c._id}"
+      data-name="${escapeHtml(c.nombre)}"
+    >
+      ${escapeHtml(c.nombre)}
+    </button>
+  `,
             )
             .join("")
         : `<div class="combo-empty">Sin resultados</div>`;
@@ -1658,7 +1654,7 @@ async function cargarCategoriasFiltroGastosCuenta() {
   const options = `
     <option value="">Todas</option>
     ${categorias
-      .map((c) => `<option value="${c._id}">${c.nombre}</option>`)
+      .map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`)
       .join("")}
   `;
 
@@ -1678,7 +1674,7 @@ async function cargarBancosModalCrearCuenta() {
 
   crearCuentaBanco.innerHTML = `
     <option value="">Seleccionar banco</option>
-    ${bancos.map((b) => `<option value="${b._id}">${b.nombre}</option>`).join("")}
+    ${bancos.map((b) => `<option value="${b._id}">${escapeHtml(b.nombre)}</option>`).join("")}
   `;
 }
 
@@ -1691,7 +1687,7 @@ async function cargarCategoriasGrupoModalCrearCategoria() {
 
   crearCategoriaGrupo.innerHTML = `
     <option value="">Sin categoría principal</option>
-    ${grupos.map((g) => `<option value="${g._id}">${g.nombre}</option>`).join("")}
+    ${grupos.map((g) => `<option value="${g._id}">${escapeHtml(g.nombre)}</option>`).join("")}
   `;
 }
 
@@ -1704,7 +1700,7 @@ async function cargarCategoriasModalCrearGasto() {
 
   crearGastoCategoria.innerHTML = `
     <option value="">Seleccionar subcategoría</option>
-    ${categorias.map((c) => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
 }
 
@@ -1741,7 +1737,9 @@ async function cargarCategoriasModalEditar() {
     ${categorias
       .map(
         (c) => `
-      <option value="${c._id}">${c.nombre}</option>
+      <option value="${c._id}">
+  ${escapeHtml(c.nombre)}
+</option>
     `,
       )
       .join("")}
@@ -2214,7 +2212,7 @@ filtrarGastosCuentaBtn.addEventListener("click", async () => {
     await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-    body.innerHTML = `<tr><td colspan="10">${error.message || "Error al filtrar gastos"}</td></tr>`;
+   body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al filtrar gastos")}</td></tr>`;
   }
 });
 
@@ -2228,7 +2226,7 @@ limpiarFiltroGastosCuentaBtn.addEventListener("click", async () => {
     await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-    body.innerHTML = `<tr><td colspan="10">${error.message || "Error al limpiar filtros"}</td></tr>`;
+   body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al limpiar filtros")}</td></tr>`;
   }
 });
 

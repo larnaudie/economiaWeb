@@ -1,3 +1,5 @@
+ 
+
 requireAuth();
 renderHeader({ title: "Cargar Excel" });
 
@@ -330,7 +332,7 @@ function categoriasOptions(selectedValue = "", filtro = "") {
     .map(
       (categoria) => `
       <option value="${categoria._id}" ${selectedValue === categoria._id ? "selected" : ""}>
-        ${categoria.nombre}
+        ${escapeHtml(categoria.nombre)}
       </option>
     `,
     )
@@ -346,7 +348,7 @@ function cuentasOptions(selectedValue = "") {
     .map(
       (cuenta) => `
       <option value="${cuenta._id}" ${selectedValue === cuenta._id ? "selected" : ""}>
-        ${cuenta.nombre}
+        ${escapeHtml(cuenta.nombre)}
       </option>
     `,
     )
@@ -657,15 +659,6 @@ async function handleConfirmRow(event) {
   }
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function validarFilaParaCrear(row) {
   const fecha = row.fecha;
   const descripcion = String(row.descripcion || "").trim();
@@ -779,7 +772,7 @@ function renderBulkCategorias(filtro = "") {
     .map(
       (categoria) => `
             <option value="${categoria._id}">
-                ${categoria.nombre}
+                ${escapeHtml(categoria.nombre)}
             </option>
         `,
     )
@@ -790,7 +783,7 @@ function renderBulkCuentas() {
   bulkCuenta.innerHTML = '<option value="">No cambiar</option>';
 
   bulkCuenta.innerHTML += cuentasCache
-    .map((cuenta) => `<option value="${cuenta._id}">${cuenta.nombre}</option>`)
+    .map((cuenta) => `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`)
     .join("");
 }
 

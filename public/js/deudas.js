@@ -31,7 +31,7 @@ async function cargarDeudas() {
     renderDeudas(deudas);
     cargarSelectDeudas(deudas);
   } catch (error) {
-    deudasBody.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+    deudasBody.innerHTML = `<tr><td colspan="6">${escapeHtml(error.message)}</td></tr>`;
   }
 }
 

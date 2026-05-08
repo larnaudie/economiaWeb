@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import cors from "cors";
 import helmet from "helmet";
 import v1Router from "./v1/v1.routes.js";
@@ -17,6 +18,24 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: {
+    success: false,
+    message: "Demasiadas peticiones, intenta nuevamente más tarde.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "https://economia-web.vercel.app",
+];
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -36,12 +55,7 @@ app.use(
     },
   }),
 );
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5500",
-  "http://127.0.0.1:5500",
-  "https://economia-web.vercel.app",
-];
+app.use(limiter);
 
 app.use(
   cors({

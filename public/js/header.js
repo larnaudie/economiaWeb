@@ -6,7 +6,7 @@ function renderHeader({ title = "Economía Web" } = {}) {
     <div class="header-content">
       <div class="header-left">
         <button class="hamburger" type="button" id="sidebarToggle">☰</button>
-        <h1>${title}</h1>
+        <h1>${escapeHtml(title)}</h1>
       </div>
 
       <div class="user-info">

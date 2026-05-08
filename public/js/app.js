@@ -1,14 +1,6 @@
 requireAuth();
-renderHeader({ title: "Economía Web" });;
+renderHeader({ title: "Economía Web" });
 
-/*
-const user = getUser();
-const userNameElement = document.getElementById("userName");
-
-if (userNameElement && user?.username) {
-  userNameElement.textContent = user.username;
-}
-*/
 const bancoSeleccionado = document.getElementById("bancoSeleccionado");
 const cuentasContainer = document.getElementById("cuentasContainer");
 
@@ -22,8 +14,9 @@ async function cargarBancos() {
 
     console.log("Respuesta bancos:", data);
     bancoSeleccionado.innerHTML = `
+  <option value="">Seleccionar banco</option>
   ${bancos.map((banco) => `
-    <option value="${banco._id}">${banco.nombre}</option>
+    <option value="${banco._id}">${escapeHtml(banco.nombre)}</option>
   `).join("")}
 `;
 
@@ -74,13 +67,13 @@ async function cargarCuentasPorBanco(bancoId) {
 
     cuentasContainer.innerHTML = cuentas.map((cuenta) => `
       <div class="cuenta-card" onclick="irAGastosCuenta('${cuenta._id}')">
-        <h3>${cuenta.nombre}</h3>
-        <p>${cuenta.banco?.nombre || ""}</p>
+        <h3>${escapeHtml(cuenta.nombre)}</h3>
+<p>${escapeHtml(cuenta.banco?.nombre || "")}</p>
       </div>
     `).join("");
   } catch (error) {
     console.error("Error al cargar cuentas:", error);
-    cuentasContainer.innerHTML = `<p>${error.message || "Error al cargar las cuentas del banco."}</p>`;
+    cuentasContainer.innerHTML = `<p>${escapeHtml(error.message || "Error al cargar las cuentas del banco.")}</p>`;;
   }
 }
 
