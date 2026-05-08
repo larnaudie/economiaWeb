@@ -18,7 +18,9 @@ connectDB();
 const app = express();
 const allowedOrigins = [
     "http://localhost:3000",
-    "https://economia-web-git-main-pablolarnaudie29-7109s-projects.vercel.app/"
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "https://economia-web.vercel.app"
 ];
 
 app.use(cors({
