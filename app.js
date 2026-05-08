@@ -1,13 +1,13 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import express from "express";
 import dotenv from "dotenv";
+import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import v1Router from "./v1/v1.routes.js";
 import { notFoundMiddleware } from "./v1/middlewares/notFound.middleware.js";
 import { errorMiddleware } from "./v1/middlewares/error.middleware.js";
 import connectDB from "./v1/config/db.config.js";
-import helmet from "helmet";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +16,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.use(helmet());
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:5500",

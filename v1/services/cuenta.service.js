@@ -26,14 +26,16 @@ export const obtenerCuentaPorIdService = async (id, usuarioId) => {
 };
 
 export const actualizarCuentaService = async (id, usuarioId, data) => {
-  const banco = await Banco.findOne({
-    _id: data.banco,
-    usuario: usuarioId
-});
+  if (data.banco !== undefined) {
+    const banco = await Banco.findOne({
+      _id: data.banco,
+      usuario: usuarioId,
+    });
 
-if (!banco) {
-    throw new Error("Banco no encontrado");
-}
+    if (!banco) {
+      throw new Error("Banco no encontrado");
+    }
+  }
   const cuentaActualizada = await Cuenta.findOneAndUpdate(
     { _id: id, usuario: usuarioId },
     data,
@@ -83,5 +85,5 @@ export const obtenerCuentasPorUsuarioService = async (usuarioId) => {
 };
 
 export const eliminarTodosLasCuentasService = async () => {
-  await Cuenta.deleteMany({ usuario: usuarioId });
+  await Cuenta.deleteMany({});
 };

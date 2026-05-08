@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Categoria from "../models/categoria.model.js";
-import Gasto from "../models/gasto.model.js";
 import CategoriaGrupo from "../models/categoriaGrupo.model.js";
+import Gasto from "../models/gasto.model.js";
 
 export const obtenerTotalesPorCategoriaService = async (
   usuarioId,
@@ -78,13 +78,15 @@ export const obtenerCategoriaPorIdService = async (id, usuarioId) => {
 };
 
 export const actualizarCategoriaService = async (id, usuarioId, data) => {
-  const categoriaGrupo = await CategoriaGrupo.findOne({
-    _id: data.categoriaGrupo,
-    usuario: usuarioId,
-  });
+  if (data.categoriaGrupo !== undefined) {
+    const categoriaGrupo = await CategoriaGrupo.findOne({
+      _id: data.categoriaGrupo,
+      usuario: usuarioId,
+    });
 
-  if (!categoriaGrupo) {
-    throw new Error("Categoría principal no encontrada");
+    if (!categoriaGrupo) {
+      throw new Error("Categoría principal no encontrada");
+    }
   }
   const updateData = {
     ...data,
@@ -127,6 +129,17 @@ export const crearCategoriaService = async (data, usuarioId) => {
     return { categoria: categoriaExistente, existed: true };
   }
 
+  if (data.categoriaGrupo !== undefined) {
+    const categoriaGrupo = await CategoriaGrupo.findOne({
+      _id: data.categoriaGrupo,
+      usuario: usuarioId,
+    });
+
+    if (!categoriaGrupo) {
+      throw new Error("Categoría principal no encontrada");
+    }
+  }
+
   const nuevaCategoria = new Categoria({
     nombre: data.nombre,
     usuario: usuarioId,
@@ -149,5 +162,5 @@ export const obtenerCategoriasPorUsuarioService = async (usuarioId) => {
 };
 
 export const eliminarTodosLasCategoriasService = async () => {
-  await Categoria.deleteMany({ usuario: usuarioId });
+  await Categoria.deleteMany({});
 };

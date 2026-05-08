@@ -122,22 +122,26 @@ export const obtenerGastoPorIdService = async (id, usuarioId) => {
 };
 
 export const actualizarGastoService = async ({ id, usuarioId, data }) => {
-  const cuenta = await Cuenta.findOne({
-    _id: data.cuenta,
-    usuario: usuarioId,
-  });
+  if (data.cuenta !== undefined) {
+    const cuenta = await Cuenta.findOne({
+      _id: data.cuenta,
+      usuario: usuarioId,
+    });
 
-  if (!cuenta) {
-    throw new Error("Cuenta no encontrada");
+    if (!cuenta) {
+      throw new Error("Cuenta no encontrada");
+    }
   }
 
-  const categoria = await Categoria.findOne({
-    _id: data.categoria,
-    usuario: usuarioId,
-  });
+  if (data.categoria !== undefined) {
+    const categoria = await Categoria.findOne({
+      _id: data.categoria,
+      usuario: usuarioId,
+    });
 
-  if (!categoria) {
-    throw new Error("Categoría no encontrada");
+    if (!categoria) {
+      throw new Error("Categoría no encontrada");
+    }
   }
   const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
 
@@ -264,25 +268,28 @@ export const obtenerGastosPorUsuarioService = async (
 };
 
 export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
-  const cuenta = await Cuenta.findOne({
-    _id: data.cuenta,
-    usuario: usuarioId,
-  });
-
-  if (!cuenta) {
-    throw new Error("Cuenta no encontrada");
-  }
-
-  const categoria = await Categoria.findOne({
-    _id: data.categoria,
-    usuario: usuarioId,
-  });
-
-  if (!categoria) {
-    throw new Error("Categoría no encontrada");
-  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para crear");
+  }
+
+  for (const gasto of gastos) {
+    const cuenta = await Cuenta.findOne({
+      _id: gasto.cuenta,
+      usuario: usuarioId,
+    });
+
+    if (!cuenta) {
+      throw new Error("Cuenta no encontrada");
+    }
+
+    const categoria = await Categoria.findOne({
+      _id: gasto.categoria,
+      usuario: usuarioId,
+    });
+
+    if (!categoria) {
+      throw new Error("Categoría no encontrada");
+    }
   }
 
   const operaciones = buildBulkCreateGastos({ usuarioId, gastos });
@@ -308,25 +315,32 @@ export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
 };
 
 export const actualizarGastosBulkService = async ({ usuarioId, gastos }) => {
-  const cuenta = await Cuenta.findOne({
-    _id: data.cuenta,
-    usuario: usuarioId,
-  });
-
-  if (!cuenta) {
-    throw new Error("Cuenta no encontrada");
-  }
-
-  const categoria = await Categoria.findOne({
-    _id: data.categoria,
-    usuario: usuarioId,
-  });
-
-  if (!categoria) {
-    throw new Error("Categoría no encontrada");
-  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para actualizar");
+  }
+
+  for (const gasto of gastos) {
+    if (gasto.cuenta !== undefined) {
+      const cuenta = await Cuenta.findOne({
+        _id: gasto.cuenta,
+        usuario: usuarioId,
+      });
+
+      if (!cuenta) {
+        throw new Error("Cuenta no encontrada");
+      }
+    }
+
+    if (gasto.categoria !== undefined) {
+      const categoria = await Categoria.findOne({
+        _id: gasto.categoria,
+        usuario: usuarioId,
+      });
+
+      if (!categoria) {
+        throw new Error("Categoría no encontrada");
+      }
+    }
   }
 
   const operaciones = buildBulkUpdateGastos({ usuarioId, gastos });
@@ -340,23 +354,6 @@ export const actualizarOrdenGastosCuentaService = async ({
   usuarioId,
   gastos,
 }) => {
-  const cuenta = await Cuenta.findOne({
-    _id: data.cuenta,
-    usuario: usuarioId,
-  });
-
-  if (!cuenta) {
-    throw new Error("Cuenta no encontrada");
-  }
-
-  const categoria = await Categoria.findOne({
-    _id: data.categoria,
-    usuario: usuarioId,
-  });
-
-  if (!categoria) {
-    throw new Error("Categoría no encontrada");
-  }
   if (!Array.isArray(gastos) || gastos.length === 0) {
     throw new Error("No se recibieron gastos para ordenar");
   }
@@ -379,5 +376,5 @@ export const actualizarOrdenGastosCuentaService = async ({
 };
 
 export const eliminarTodosLosGastosService = async () => {
-  await Gasto.deleteMany({ usuario: usuarioId });
+  await Gasto.deleteMany({});
 };

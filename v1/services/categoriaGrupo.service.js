@@ -43,5 +43,5 @@ export async function eliminarCategoriaGrupoService(id, usuarioId) {
 }
 
 export const eliminarTodosLasCategoriasGrupoService = async () => {
-    await CategoriaGrupo.deleteMany({ usuario: usuarioId });
+    await CategoriaGrupo.deleteMany({});
 }

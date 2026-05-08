@@ -41,7 +41,7 @@ const buildUsuarioAdminSafeUpdate = (data) => {
 };
 
 export const obtenerUsuariosService = async () => {
-    const usuarios = await Usuario.find().select("-password");
+    const usuarios = await Usuario.find().select("-password").sort({ createdAt: -1 });
     return usuarios;
 };
 

@@ -12,13 +12,15 @@ import {
     obtenerGastosUsuario,
     eliminarTodosLosUsuarios
 } from "../controllers/usuarios.controller.js";
+import validateBody from "../middlewares/validateBody.middleware.js";
+import {usuarioUpdateSchema} from "../validators/usuario.validators.js"
 
 const router = express.Router({ mergeParams: true });
 
 //Peticiones a /v1/usuarios
 router.get("/",requireAdmin, obtenerUsuarios)
 router.get("/me", obtenerUsuarioActual)
-router.patch("/me", actualizarUsuarioActual)
+router.patch("/me", validateBody(usuarioUpdateSchema),actualizarUsuarioActual)
 router.get("/me/bancos", obtenerBancosUsuario)
 router.get("/me/cuentas", obtenerCuentasUsuario)
 router.get("/me/categorias", obtenerCategoriasUsuario)
