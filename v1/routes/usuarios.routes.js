@@ -14,6 +14,7 @@ import {
 } from "../controllers/usuarios.controller.js";
 import validateBody from "../middlewares/validateBody.middleware.js";
 import {usuarioUpdateSchema} from "../validators/usuario.validators.js"
+import {validateObjectId} from "../middlewares/validateObjectId.middleware.js"
 
 const router = express.Router({ mergeParams: true });
 
@@ -26,7 +27,7 @@ router.get("/me/cuentas", obtenerCuentasUsuario)
 router.get("/me/categorias", obtenerCategoriasUsuario)
 router.get("/me/gastos", obtenerGastosUsuario)
 router.delete("/eliminar-todo",requireAdmin, eliminarTodosLosUsuarios)
-router.get("/:id",requireAdmin, obtenerUsuarioPorId)
-router.patch("/:id",requireAdmin, actualizarUsuario)
+router.get("/:id",validateObjectId,requireAdmin, obtenerUsuarioPorId)
+router.patch("/:id",validateObjectId,requireAdmin, actualizarUsuario)
 
 export default router;

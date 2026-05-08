@@ -18,6 +18,7 @@ import {
 } from "../validators/gasto.validators.js";
 import {requireAdmin} from "../middlewares/requireAdmin.middleware.js";
 import { validateBody } from "../middlewares/validateBody.middleware.js";
+import { validateObjectId } from "../middlewares/validateObjectId.middleware.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -28,7 +29,7 @@ router.patch("/orden-cuenta", actualizarOrdenGastosCuenta);
 router.delete("/eliminar-todo", requireAdmin, eliminarTodosLosGastos);
 router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
 router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
-router.get("/:id", obtenerGastoPorId)
-router.patch("/:id", validateBody(gastoUpdateSchema), actualizarGasto);
-router.delete("/:id", eliminarGasto)
+router.get("/:id",validateObjectId, obtenerGastoPorId)
+router.patch("/:id",validateObjectId, validateBody(gastoUpdateSchema), actualizarGasto);
+router.delete("/:id",validateObjectId, eliminarGasto)
 export default router;
