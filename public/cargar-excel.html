@@ -160,37 +160,22 @@
       </section>
 
       <section>
-        <details>
+        <details open>
           <summary>
-            <h2>Crear nueva subcategoría</h2>
+            <h2>Acciones rápidas</h2>
           </summary>
 
           <div class="inline-group">
-            <div>
-              <label for="crearCategoriaNombre">Nombre de subcategoría:</label>
-              <input
-                type="text"
-                id="crearCategoriaNombre"
-                placeholder="Ej: Supermercado"
-              />
-            </div>
-
-            <div>
-              <button type="button" id="crearCategoriaDesdeBulkBtn">
-                Crear subcategoría
-              </button>
-            </div>
+            <button type="button" id="openBancoModal">Crear Banco</button>
+            <button type="button" id="openCuentaModal">Crear Cuenta</button>
+            <button type="button" id="openCategoriaGrupoModal">
+              Crear Categoría principal
+            </button>
+            <button type="button" id="openCategoriaModal">
+              Crear Subcategoría
+            </button>
+            <button type="button" id="openGastoModal">Crear Gasto</button>
           </div>
-
-          <p style="font-size: 0.9rem">
-            Usá esta opción solo si la subcategoría no existe todavía.
-          </p>
-
-          <div id="crearCategoriaError" class="error"></div>
-          <div
-            id="crearCategoriaSuccess"
-            style="color: green; margin-top: 0.75rem"
-          ></div>
         </details>
       </section>
 
@@ -234,6 +219,184 @@
           style="color: green; margin-top: 0.75rem"
         ></div>
       </section>
+
+      <div id="bancoModal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" class="close-modal" data-close="bancoModal">
+            &times;
+          </button>
+          <h2>Nuevo Banco</h2>
+
+          <form id="modalBancoForm">
+            <label for="modalBancoNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalBancoNombre"
+              required
+              placeholder="Ej: Santander"
+            />
+
+            <div id="modalBancoError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar banco</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="cuentaModal" class="modal hidden">
+        <div class="modal-content">
+          <button type="button" class="close-modal" data-close="cuentaModal">
+            &times;
+          </button>
+          <h2>Nueva Cuenta</h2>
+
+          <form id="modalCuentaForm">
+            <label for="modalCuentaNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCuentaNombre"
+              required
+              placeholder="Ej: Caja Ahorro USD"
+            />
+
+            <label for="modalCuentaBanco">Banco</label>
+            <select id="modalCuentaBanco" required>
+              <option value="">Seleccionar banco</option>
+            </select>
+
+            <div id="modalCuentaError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar cuenta</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="categoriaGrupoModal" class="modal hidden">
+        <div class="modal-content">
+          <button
+            type="button"
+            class="close-modal"
+            data-close="categoriaGrupoModal"
+          >
+            &times;
+          </button>
+
+          <h2>Nueva Categoría Principal</h2>
+
+          <form id="modalCategoriaGrupoForm">
+            <label for="modalCategoriaGrupoNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCategoriaGrupoNombre"
+              required
+              minlength="2"
+              placeholder="Ej: Alimentación"
+            />
+
+            <div id="modalCategoriaGrupoError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar categoría principal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div id="categoriaModal" class="modal hidden">
+        <div class="modal-content">
+          <button class="close-modal" data-close="categoriaModal">
+            &times;
+          </button>
+          <h2>Nueva Subcategoría</h2>
+
+          <form id="modalCategoriaForm">
+            <label for="modalCategoriaNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCategoriaNombre"
+              required
+              minlength="2"
+              placeholder="Ej: Supermercado"
+            />
+
+            <label for="modalCategoriaGrupo">Categoría principal</label>
+            <select id="modalCategoriaGrupo">
+              <option value="">Sin categoría principal</option>
+            </select>
+
+            <div id="modalCategoriaError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar Subcategoría</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="gastoModal" class="modal hidden">
+        <div class="modal-content">
+          <button class="close-modal" data-close="gastoModal">&times;</button>
+          <h2>Nuevo Gasto</h2>
+
+          <form id="modalGastoForm">
+            <label for="modalGastoFecha">Fecha</label>
+            <input type="date" id="modalGastoFecha" required />
+
+            <label for="modalGastoDescripcion">Descripción</label>
+            <textarea
+              id="modalGastoDescripcion"
+              maxlength="500"
+              required
+            ></textarea>
+
+            <label for="modalGastoFlujo">Gasto Bancario</label>
+            <input type="number" id="modalGastoFlujo" step="0.01" required />
+
+            <label for="modalGastoPorcentaje">Porcentaje Gasto Real</label>
+            <input
+              type="number"
+              id="modalGastoPorcentaje"
+              min="0"
+              max="100"
+              step="0.01"
+              value="100"
+              required
+            />
+
+            <label for="modalGastoEconomia">Gasto Real</label>
+            <input type="number" id="modalGastoEconomia" step="0.01" readonly />
+
+            <label>
+              <input type="checkbox" id="modalGastoIncluirBancario" checked />
+              Incluir en Gasto Bancario
+            </label>
+
+            <label>
+              <input type="checkbox" id="modalGastoIncluirReal" checked />
+              Incluir en Gasto Real
+            </label>
+
+            <label for="modalGastoCategoria">Subcategoría</label>
+            <select id="modalGastoCategoria" required>
+              <option value="">Seleccionar Subcategoría</option>
+            </select>
+
+            <label for="modalGastoCuenta">Cuenta</label>
+            <select id="modalGastoCuenta" required>
+              <option value="">Seleccionar cuenta</option>
+            </select>
+
+            <div id="modalGastoError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar gasto</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </main>
 
     <input
@@ -248,6 +411,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
+    <script src="/js/quick-actions.js"></script>
     <script type="module" src="/js/cargar-excel.js"></script>
   </body>
 </html>

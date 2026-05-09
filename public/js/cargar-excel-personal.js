@@ -116,6 +116,14 @@ window.addEventListener("click", (e) => {
   }
 });
 
+window.addEventListener("quickActions:changed", async () => {
+  await Promise.all([cargarCategorias(), cargarCuentas()]);
+
+  if (importedRows.length) {
+    renderPreview();
+  }
+});
+
 limpiarBulkButton.addEventListener("click", limpiarBulk);
 
 function resolverFlagsGastoPorCategoria(
@@ -633,10 +641,14 @@ function attachRowEvents() {
 
       if (flujo === 0) {
         updateRow(localId, "porcentajeEconomiaReal", 0);
+
+        const porcentajeInput = rowElement.querySelector(".row-porcentaje");
+        if (porcentajeInput) {
+          porcentajeInput.value = 0;
+        }
       }
 
       recalcularEconomiaRow(localId);
-      renderPreview();
     });
 
     rowElement
@@ -920,7 +932,10 @@ function renderBulkCuentas() {
   bulkCuenta.innerHTML = '<option value="">No cambiar</option>';
 
   bulkCuenta.innerHTML += cuentasCache
-    .map((cuenta) => `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`)
+    .map(
+      (cuenta) =>
+        `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`,
+    )
     .join("");
 }
 

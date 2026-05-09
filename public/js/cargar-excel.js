@@ -1,5 +1,3 @@
- 
-
 requireAuth();
 renderHeader({ title: "Cargar Excel" });
 
@@ -12,10 +10,6 @@ const crearTodosButton = document.getElementById("crearTodosButton");
 const crearTodosError = document.getElementById("crearTodosError");
 const crearTodosSuccess = document.getElementById("crearTodosSuccess");
 const bulkCategoria = document.getElementById("bulkCategoria");
-//const bulkCategoriaSearch = document.getElementById("bulkCategoriaSearch");
-const crearCategoriaDesdeBulkBtn = document.getElementById(
-  "crearCategoriaDesdeBulkBtn",
-);
 const bulkCuenta = document.getElementById("bulkCuenta");
 const bulkIncluirGastoBancario = document.getElementById(
   "bulkIncluirGastoBancario",
@@ -103,86 +97,13 @@ document.querySelectorAll(".delete-row-btn").forEach((button) => {
   button.addEventListener("click", handleDeleteRow);
 });
 
-/*
-bulkCategoriaSearch.addEventListener("input", () => {
-  renderBulkCategorias(bulkCategoriaSearch.value);
-});
-*/
-crearCategoriaDesdeBulkBtn.addEventListener("click", crearCategoriaDesdeBulk);
+window.addEventListener("quickActions:changed", async () => {
+  await Promise.all([cargarCategorias(), cargarCuentas()]);
 
-async function crearCategoriaDesdeBulk() {
-  const token = getToken();
-  if (!token) return;
-
-  const crearCategoriaError = document.getElementById("crearCategoriaError");
-  const crearCategoriaSuccess = document.getElementById(
-    "crearCategoriaSuccess",
-  );
-
-  crearCategoriaError.textContent = "";
-  crearCategoriaSuccess.textContent = "";
-
-  const crearCategoriaNombre = document.getElementById("crearCategoriaNombre");
-  const nombre = String(crearCategoriaNombre?.value || "").trim();
-
-  if (!nombre || nombre.length < 2) {
-    crearCategoriaError.textContent =
-      "Escribí un nombre válido para crear una subcategoría.";
-    return;
-  }
-
-  const existente = categoriasCache.find(
-    (c) => c.nombre.toLowerCase() === nombre.toLowerCase(),
-  );
-
-  if (existente) {
-    bulkCategoria.value = existente._id;
-    crearCategoriaSuccess.textContent =
-      "La subcategoría ya existía y fue seleccionada.";
-    return;
-  }
-
-  try {
-    await apiRequest(
-      "/categorias",
-      "POST",
-      {
-        nombre,
-        categoriaGrupo: null,
-      },
-      token,
-    );
-
-    const categoriasSeleccionadasPorFila = importedRows.map((row) => ({
-      localId: row.localId,
-      categoria: row.categoria,
-    }));
-
-    await cargarCategorias();
-
-    categoriasSeleccionadasPorFila.forEach((item) => {
-      const row = importedRows.find((r) => r.localId === item.localId);
-      if (row) {
-        row.categoria = item.categoria;
-      }
-    });
-
-    const encontrada = categoriasCache.find(
-      (c) => c.nombre.toLowerCase() === nombre.toLowerCase(),
-    );
-
-    if (encontrada) {
-      bulkCategoria.value = encontrada._id;
-    }
-
-    crearCategoriaNombre.value = "";
+  if (importedRows.length) {
     renderPreview();
-
-    crearCategoriaSuccess.textContent = "Subcategoría creada correctamente.";
-  } catch (error) {
-    bulkError.textContent = error.message || "Error al crear subcategoría.";
   }
-}
+});
 
 function excelDateToISO(value) {
   if (value == null || value === "") return "";
@@ -783,7 +704,10 @@ function renderBulkCuentas() {
   bulkCuenta.innerHTML = '<option value="">No cambiar</option>';
 
   bulkCuenta.innerHTML += cuentasCache
-    .map((cuenta) => `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`)
+    .map(
+      (cuenta) =>
+        `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`,
+    )
     .join("");
 }
 
