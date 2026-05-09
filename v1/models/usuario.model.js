@@ -20,6 +20,10 @@ const usuarioSchema = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  fotoPerfilUrl: {
+    type: String,
+    default: "/imagenes/imagenes-web/perfil/default-avatar.png",
+  },
 });
 
 export default mongoose.model("Usuario", usuarioSchema);

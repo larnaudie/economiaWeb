@@ -769,3 +769,63 @@ details summary h2::before {
 details[open] summary h2::before {
   transform: rotate(90deg);
 }
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.header-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.3);
+  background: #fff;
+}
+
+.perfil-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.perfil-avatar-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+}
+
+.header-avatar-link,
+.header-avatar-link:hover,
+.header-avatar-link:focus,
+.header-avatar-link:active {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.cropper-modal-content {
+  max-width: 700px;
+  width: 90%;
+}
+
+.cropper-container-box {
+  max-height: 500px;
+  overflow: hidden;
+}
+
+#cropperImage {
+  display: block;
+  max-width: 100%;
+}

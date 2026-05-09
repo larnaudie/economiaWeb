@@ -47,6 +47,7 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdn.sheetjs.com",
+          "https://cdnjs.cloudflare.com"
         ],
 
         scriptSrcElem: [
@@ -54,6 +55,7 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdn.sheetjs.com",
+          "https://cdnjs.cloudflare.com"
         ],
 
         connectSrc: [
@@ -64,7 +66,8 @@ app.use(
 
         imgSrc: ["'self'", "data:"],
 
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+
       },
     },
   }),

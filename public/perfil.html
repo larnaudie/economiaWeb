@@ -22,6 +22,10 @@
     </script>
 
     <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css"
+    />
   </head>
 
   <body>
@@ -31,6 +35,25 @@
       <section>
         <h2>Editar mi perfil</h2>
         <form id="perfilForm">
+          <div class="perfil-avatar-section">
+            <img
+              id="perfilAvatarPreview"
+              class="perfil-avatar-preview"
+              src="/imagenes/imagenes-web/perfil/default-avatar.png"
+              alt="Foto de perfil"
+            />
+
+            <input
+              type="file"
+              id="perfilImagenInput"
+              accept="image/png,image/jpeg,image/webp"
+            />
+
+            <button type="button" id="subirFotoPerfilBtn">Subir foto</button>
+
+            <div id="fotoPerfilError" class="error"></div>
+            <div id="fotoPerfilSuccess" class="success"></div>
+          </div>
           <label for="username">Nombre de usuario:</label>
           <input
             type="text"
@@ -57,11 +80,27 @@
       </section>
     </main>
 
+    <div id="cropperModal" class="modal hidden">
+      <div class="modal-content cropper-modal-content">
+        <h2>Recortar foto de perfil</h2>
+
+        <div class="cropper-container-box">
+          <img id="cropperImage" alt="Recortar imagen" />
+        </div>
+
+        <div class="inline-group">
+          <button type="button" id="confirmarCropBtn">Usar recorte</button>
+          <button type="button" id="cancelarCropBtn">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
     <script src="/js/security.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script src="/js/perfil.js"></script>
   </body>
 </html>

@@ -10,8 +10,18 @@ function renderHeader({ title = "Economía Web" } = {}) {
       </div>
 
       <div class="user-info">
-        <span id="userName">Usuario</span>
-      </div>
+      
+  <span id="userName">Usuario</span>
+  <a href="perfil.html" class="header-avatar-link">
+  <img
+    id="headerAvatar"
+    class="header-avatar"
+    src="/imagenes/imagenes-web/perfil/default-avatar.png"
+    alt="Perfil"
+  />
+</a>
+
+</div>
     </div>
 
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
@@ -43,7 +53,11 @@ function renderHeader({ title = "Economía Web" } = {}) {
 
   const user = getUser?.();
   const userName = document.getElementById("userName");
-
+  const headerAvatar = document.getElementById("headerAvatar");
+  if (headerAvatar) {
+    headerAvatar.src =
+      user?.fotoPerfilUrl || "/imagenes/imagenes-web/perfil/default-avatar.png";
+  }
   if (userName && user?.username) {
     userName.textContent = user.username;
   }
