@@ -821,6 +821,7 @@ details[open] summary h2::before {
 }
 
 .cropper-container-box {
+  width: 100%;
   max-height: 500px;
   overflow: hidden;
 }
@@ -828,4 +829,5 @@ details[open] summary h2::before {
 #cropperImage {
   display: block;
   max-width: 100%;
+  max-height: 480px;
 }

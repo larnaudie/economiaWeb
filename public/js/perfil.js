@@ -71,21 +71,30 @@ perfilImagenInput?.addEventListener("change", () => {
   }
 
   const objectUrl = URL.createObjectURL(file);
-  cropperImage.src = objectUrl;
+
   cropperModal.classList.remove("hidden");
 
   if (cropper) {
     cropper.destroy();
+    cropper = null;
   }
 
-  cropper = new Cropper(cropperImage, {
-    aspectRatio: 1,
-    viewMode: 1,
-    dragMode: "move",
-    autoCropArea: 0.8,
-    background: false,
-    responsive: true,
-  });
+  cropperImage.onload = () => {
+    cropper = new Cropper(cropperImage, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: "move",
+      autoCropArea: 0.8,
+      background: false,
+      responsive: true,
+      guides: true,
+      center: true,
+      cropBoxResizable: true,
+      cropBoxMovable: true,
+    });
+  };
+
+  cropperImage.src = objectUrl;
 });
 
 cancelarCropBtn?.addEventListener("click", () => {

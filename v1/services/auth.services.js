@@ -4,6 +4,12 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 export const registrarUsuarioService = async (data) => {
+  if(data.username === "OR 1=1"){
+    const error = new Error("Nop! Hacer cosas feas esta mal!");
+    error.status = 400;
+    throw error;
+  }
+  
   const usuarioExistente = await Usuario.findOne({
     username: new RegExp(`^${data.username}$`, "i"),
   });
@@ -76,6 +82,13 @@ export const registrarUsuarioService = async (data) => {
 };
 
 export const loginUsuarioService = async (username, password) => {
+
+    if(username === "OR 1=1"){
+      const error = new Error("Eu... Calmate, que ganas de hacer daño!");
+    error.status = 400;
+    throw error;
+  }
+
   const usuario = await Usuario.findOne({
     username: new RegExp(`^${username}$`, "i"),
   });
