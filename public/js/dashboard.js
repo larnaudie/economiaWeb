@@ -471,9 +471,6 @@ function debugDiferenciaDashboard(mes, anio) {
   const totalReal = gastosMes
     .filter(debeContarGastoReal)
     .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0);
-
-  console.log("Dashboard bancario:", totalBancario);
-  console.log("Dashboard real:", totalReal);
 }
 
 function debugMarzoDashboardDetallado() {
@@ -486,9 +483,6 @@ function debugMarzoDashboardDetallado() {
 
   const incluidosBancario = gastosMarzo.filter(debeContarGastoBancario);
   const incluidosReal = gastosMarzo.filter(debeContarGastoReal);
-
-  console.log("Cuenta seleccionada:", cuentaDashboard.value);
-  console.log("Cantidad marzo filtrada:", gastosMarzo.length);
 
   console.table(
     gastosMarzo.map((g) => ({
@@ -503,40 +497,6 @@ function debugMarzoDashboardDetallado() {
       incluirReal: g.incluirEnGastoReal,
       cuentaBancario: debeContarGastoBancario(g),
       cuentaReal: debeContarGastoReal(g),
-    })),
-  );
-
-  console.log(
-    "Total bancario dashboard marzo:",
-    incluidosBancario
-      .reduce((acc, g) => acc + Number(g.flujoBancario || 0), 0)
-      .toFixed(2),
-  );
-
-  console.log(
-    "Total real dashboard marzo:",
-    incluidosReal
-      .reduce((acc, g) => acc + Number(g.economiaReal || 0), 0)
-      .toFixed(2),
-  );
-
-  console.log("Incluidos bancario:");
-  console.table(
-    incluidosBancario.map((g) => ({
-      fecha: g.fecha?.slice(0, 10),
-      descripcion: g.descripcion,
-      categoria: g.categoria?.nombre,
-      flujoBancario: g.flujoBancario,
-    })),
-  );
-
-  console.log("Incluidos real:");
-  console.table(
-    incluidosReal.map((g) => ({
-      fecha: g.fecha?.slice(0, 10),
-      descripcion: g.descripcion,
-      categoria: g.categoria?.nombre,
-      economiaReal: g.economiaReal,
     })),
   );
 }

@@ -7,6 +7,7 @@ import {
     eliminarTodosLasCuentasService
 } from "../services/cuenta.service.js";
 import { successResponse } from "../utils/apiResponse.js";
+import { crearAuditLogService } from "../services/auditLog.service.js";
 
 export const obtenerCuentas = async (req, res, next) => {
     try {

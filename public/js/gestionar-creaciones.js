@@ -1457,176 +1457,6 @@ function actualizarEconomiaModalGasto() {
   modalGastoEconomia.value = calculado.toFixed(2);
 }
 
-modalGastoFlujo.addEventListener("input", actualizarEconomiaModalGasto);
-modalGastoPorcentaje.addEventListener("input", actualizarEconomiaModalGasto);
-
-modalBancoForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  modalBancoError.textContent = "";
-
-  const nombre = modalBancoNombre.value.trim();
-  if (!nombre) {
-    modalBancoError.textContent = "El nombre es obligatorio.";
-    return;
-  }
-
-  try {
-    await apiRequest("/bancos", "POST", { nombre }, authToken);
-    modalBancoForm.reset();
-    closeModal(bancoModal);
-    await cargarListas();
-    await cargarRecursosBulk();
-  } catch (error) {
-    modalBancoError.textContent = error.message || "Error al crear banco";
-  }
-});
-
-modalCuentaForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  modalCuentaError.textContent = "";
-
-  const nombre = modalCuentaNombre.value.trim();
-  const banco = modalCuentaBanco.value;
-
-  if (!nombre || !banco) {
-    modalCuentaError.textContent = "Todos los campos son obligatorios.";
-    return;
-  }
-
-  try {
-    await apiRequest("/cuentas", "POST", { nombre, banco }, authToken);
-    modalCuentaForm.reset();
-    closeModal(cuentaModal);
-    await cargarListas();
-    await cargarRecursosBulk();
-  } catch (error) {
-    modalCuentaError.textContent = error.message || "Error al crear cuenta";
-  }
-});
-
-modalCategoriaForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  modalCategoriaError.textContent = "";
-
-  const nombre = modalCategoriaNombre.value.trim();
-
-  if (!nombre) {
-    modalCategoriaError.textContent = "El nombre es obligatorio.";
-    return;
-  }
-
-  const payload = {
-    nombre,
-    categoriaGrupo: modalCategoriaGrupo.value || null,
-  };
-
-  try {
-    const editingId = modalCategoriaForm.dataset.editingId;
-
-    if (editingId) {
-      await apiRequest(`/categorias/${editingId}`, "PATCH", payload, authToken);
-      delete modalCategoriaForm.dataset.editingId;
-    } else {
-      await apiRequest("/categorias", "POST", payload, authToken);
-    }
-
-    modalCategoriaForm.reset();
-    renderCategoriasGrupoSelect();
-    closeModal(categoriaModal);
-    await cargarListas();
-  } catch (error) {
-    modalCategoriaError.textContent =
-      error.message || "Error al guardar subcategoría";
-  }
-});
-
-modalGastoForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const authToken = getAuthToken();
-  if (!authToken) return;
-
-  modalGastoError.textContent = "";
-
-  const fecha = modalGastoFecha.value;
-  const descripcion = modalGastoDescripcion.value.trim();
-  const flujoBancario = Number(modalGastoFlujo.value);
-  const porcentajeEconomiaReal = Number(modalGastoPorcentaje.value);
-  const economiaReal = Number(modalGastoEconomia.value);
-  const categoria = modalGastoCategoria.value;
-  const cuenta = modalGastoCuenta.value;
-
-  if (
-    !fecha ||
-    !descripcion ||
-    !categoria ||
-    !cuenta ||
-    modalGastoFlujo.value === "" ||
-    modalGastoPorcentaje.value === "" ||
-    modalGastoEconomia.value === "" ||
-    Number.isNaN(flujoBancario) ||
-    Number.isNaN(porcentajeEconomiaReal) ||
-    Number.isNaN(economiaReal)
-  ) {
-    modalGastoError.textContent = "Todos los campos son obligatorios.";
-    return;
-  }
-
-  if (descripcion.length < 5 || descripcion.length > 500) {
-    modalGastoError.textContent =
-      "La descripción debe tener entre 5 y 500 caracteres.";
-    return;
-  }
-
-  if (porcentajeEconomiaReal < 0 || porcentajeEconomiaReal > 100) {
-    modalGastoError.textContent = "El porcentaje debe estar entre 0 y 100.";
-    return;
-  }
-
-  try {
-    await apiRequest(
-      "/gastos",
-      "POST",
-      {
-        fecha,
-        descripcion,
-        flujoBancario,
-        economiaReal,
-        porcentajeEconomiaReal,
-        categoria,
-        cuenta,
-        incluirEnGastoBancario:
-          Number(flujoBancario) !== 0 && modalGastoIncluirBancario.checked,
-        incluirEnGastoReal:
-          Number(economiaReal) !== 0 && modalGastoIncluirReal.checked,
-      },
-      authToken,
-    );
-
-    modalGastoForm.reset();
-    modalGastoPorcentaje.value = 100;
-    modalGastoEconomia.value = "";
-    closeModal(gastoModal);
-
-    totalPaginasGastos = await calcularTotalPaginasGastos();
-    await cargarGastosPaginados();
-  } catch (error) {
-    modalGastoError.textContent = error.message || "Error al crear gasto";
-  }
-});
-
 // Listeners paginación
 prevGastosBtn.addEventListener("click", async () => {
   if (paginaGastosActual > 1) {
@@ -1771,35 +1601,6 @@ eliminarCategoriasSeleccionadasBtn.addEventListener(
   eliminarCategoriasSeleccionadas,
 );
 
-openCuentaModalBtn.addEventListener("click", async () => {
-  modalCuentaError.textContent = "";
-  await cargarRecursosBulk();
-  renderModalCuentaBancos();
-  openModal(cuentaModal);
-});
-
-openCategoriaModalBtn.addEventListener("click", () => {
-  delete modalCategoriaForm.dataset.editingId;
-  modalCategoriaForm.reset();
-  renderCategoriasGrupoSelect();
-  openModal(categoriaModal);
-});
-
-openGastoModalBtn.addEventListener("click", async () => {
-  modalGastoError.textContent = "";
-  await cargarRecursosBulk();
-  renderModalGastoSelects();
-  actualizarEconomiaModalGasto();
-  modalGastoIncluirBancario.checked = true;
-  modalGastoIncluirReal.checked = true;
-  openModal(gastoModal);
-});
-
-openBancoModalBtn.addEventListener("click", () => {
-  modalBancoError.textContent = "";
-  openModal(bancoModal);
-});
-
 editarGastoFlujo.addEventListener("input", actualizarEconomiaEditarGasto);
 
 editarGastoPorcentaje.addEventListener("input", actualizarEconomiaEditarGasto);
@@ -1900,6 +1701,13 @@ editarGastoForm.addEventListener("submit", async (e) => {
   }
 });
 
+window.addEventListener("quickActions:changed", async () => {
+  await cargarListas();
+
+  totalPaginasGastos = await calcularTotalPaginasGastos();
+  await cargarGastosPaginados();
+});
+
 //ESTO DEBE IR ULTIMO
 document.addEventListener("DOMContentLoaded", async () => {
   resetFiltrosTodosLosGastos();
@@ -1908,18 +1716,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   totalPaginasGastos = await calcularTotalPaginasGastos();
   await cargarGastosPaginados();
-
-  document.querySelectorAll(".close-modal").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const modalId = btn.dataset.close;
-      const modal = document.getElementById(modalId);
-      closeModal(modal);
-    });
-  });
-
-  window.addEventListener("click", (e) => {
-    if (e.target.classList.contains("modal")) {
-      closeModal(e.target);
-    }
-  });
 });

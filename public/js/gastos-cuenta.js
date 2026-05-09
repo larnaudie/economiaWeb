@@ -18,7 +18,6 @@ const crearGastoError = document.getElementById("crearGastoError");
 const ordenGastosCuenta = document.getElementById("ordenGastosCuenta");
 const params = new URLSearchParams(window.location.search);
 const cuentaId = params.get("cuenta");
-console.log("cuentaId recibido:", cuentaId);
 if (!cuentaId || cuentaId === "undefined" || cuentaId === "null") {
   const body = document.getElementById("gastosCuentaBody");
   if (body) {
@@ -2273,21 +2272,6 @@ function debugDuplicadosDesglose(tipo = "bancario") {
     }
   });
 
-  console.log("Tipo:", tipo);
-  console.log("Cantidad desglose:", gastos.length);
-  console.log("IDs duplicados:", idsDuplicados.length);
-
-  console.table(
-    idsDuplicados.map((g) => ({
-      id: g._id,
-      fecha: g.fecha?.slice(0, 10),
-      descripcion: g.descripcion,
-      categoria: g.categoria?.nombre,
-      flujoBancario: g.flujoBancario,
-      economiaReal: g.economiaReal,
-    })),
-  );
-
   const posiblesDuplicadosReales = new Map();
 
   gastos.forEach((g) => {
@@ -2311,19 +2295,6 @@ function debugDuplicadosDesglose(tipo = "bancario") {
   const repetidosPorContenido = [...posiblesDuplicadosReales.values()]
     .filter((grupo) => grupo.length > 1)
     .flat();
-
-  console.log("Repetidos por mismo contenido:", repetidosPorContenido.length);
-
-  console.table(
-    repetidosPorContenido.map((g) => ({
-      id: g._id,
-      fecha: g.fecha?.slice(0, 10),
-      descripcion: g.descripcion,
-      categoria: g.categoria?.nombre,
-      flujoBancario: g.flujoBancario,
-      economiaReal: g.economiaReal,
-    })),
-  );
 }
 
 function debugDuplicadosGastosCuentaTodos() {
@@ -2350,8 +2321,6 @@ function debugDuplicadosGastosCuentaTodos() {
       })),
     );
 
-  console.log("Duplicados en gastosCuentaTodos:", duplicados.length);
-  console.table(duplicados);
 }
 
 function debugValidarDesgloseContraResumen() {

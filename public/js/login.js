@@ -23,10 +23,32 @@ form.addEventListener("submit", async (e) => {
   try {
     const result = await apiRequest("/auth/login", "POST", {
       username,
-      password
+      password,
     });
 
-    saveAuth(result, username);
+    localStorage.setItem("token", result.token);
+
+    const perfilResponse = await apiRequest(
+      "/usuarios/me",
+      "GET",
+      null,
+      result.token,
+    );
+
+    const usuario = getApiData(perfilResponse);
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: usuario._id || usuario.id,
+        username: usuario.username,
+        email: usuario.email || "",
+        fotoPerfilUrl:
+          usuario.fotoPerfilUrl ||
+          "/imagenes/imagenes-web/perfil/default-avatar.png",
+      }),
+    );
+
     window.location.href = "index.html";
   } catch (error) {
     errorMessage.textContent = error.message || "Error en el login";

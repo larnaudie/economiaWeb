@@ -4,8 +4,12 @@ function saveAuth(data, enteredUsername = "") {
   }
 
   const userToSave = {
-    id: data.id || null,
-    username: data.username || enteredUsername
+    id: data.id || data._id || null,
+    username: data.username || enteredUsername,
+    email: data.email || "",
+    fotoPerfilUrl:
+      data.fotoPerfilUrl ||
+      "/imagenes/imagenes-web/perfil/default-avatar.png",
   };
 
   localStorage.setItem("user", JSON.stringify(userToSave));

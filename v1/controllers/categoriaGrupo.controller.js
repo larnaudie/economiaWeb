@@ -5,6 +5,8 @@ import {
   eliminarCategoriaGrupoService,
   eliminarTodosLasCategoriasGrupoService
 } from "../services/categoriaGrupo.service.js";
+import { crearAuditLogService } from "../services/auditLog.service.js";
+import { successResponse } from "../utils/apiResponse.js";
 
 export async function crearCategoriaGrupo(req, res, next) {
   try {

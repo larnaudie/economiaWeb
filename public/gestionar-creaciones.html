@@ -36,10 +36,17 @@
 
           <div class="inline-group">
             <button type="button" id="openBancoModal">Crear Banco</button>
+
             <button type="button" id="openCuentaModal">Crear Cuenta</button>
+
+            <button type="button" id="openCategoriaGrupoModal">
+              Crear Categoría principal
+            </button>
+
             <button type="button" id="openCategoriaModal">
               Crear Subcategoría
             </button>
+
             <button type="button" id="openGastoModal">Crear Gasto</button>
           </div>
         </details>
@@ -411,6 +418,37 @@
         </div>
       </div>
 
+      <div id="categoriaGrupoModal" class="modal hidden">
+        <div class="modal-content">
+          <button
+            type="button"
+            class="close-modal"
+            data-close="categoriaGrupoModal"
+          >
+            &times;
+          </button>
+
+          <h2>Nueva Categoría Principal</h2>
+
+          <form id="modalCategoriaGrupoForm">
+            <label for="modalCategoriaGrupoNombre">Nombre</label>
+            <input
+              type="text"
+              id="modalCategoriaGrupoNombre"
+              required
+              minlength="2"
+              placeholder="Ej: Alimentación"
+            />
+
+            <div id="modalCategoriaGrupoError" class="error"></div>
+
+            <div class="modal-actions">
+              <button type="submit">Guardar categoría principal</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="categoriaModal" class="modal hidden">
         <div class="modal-content">
           <button class="close-modal" data-close="categoriaModal">
@@ -574,6 +612,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/header.js"></script>
+    <script src="/js/quick-actions.js"></script>
     <script type="module" src="/js/gestionar-creaciones.js"></script>
   </body>
 </html>

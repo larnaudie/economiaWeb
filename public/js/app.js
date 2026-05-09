@@ -12,7 +12,6 @@ async function cargarBancos() {
     const data = await apiRequest("/bancos", "GET", null, token);
     const bancos = getApiData(data);
 
-    console.log("Respuesta bancos:", data);
     bancoSeleccionado.innerHTML = `
   <option value="">Seleccionar banco</option>
   ${bancos
@@ -63,8 +62,6 @@ async function cargarCuentasPorBanco(bancoId) {
     );
     const cuentas = getApiData(data);
 
-    console.log("Cuentas recibidas:", cuentas);
-
     if (!Array.isArray(cuentas)) {
       cuentasContainer.innerHTML =
         "<p>Error: la respuesta de cuentas no es un array.</p>";
@@ -110,6 +107,35 @@ if (bancoSeleccionado) {
 }
 
 window.irAGastosCuenta = irAGastosCuenta;
+
+document.getElementById("goCrearBanco")?.addEventListener("click", () => {
+  window.location.href = "crear-banco.html";
+});
+
+document.getElementById("goCrearCuenta")?.addEventListener("click", () => {
+  window.location.href = "crear-cuenta.html";
+});
+
+document.getElementById("goCrearCategoria")?.addEventListener("click", () => {
+  window.location.href = "crear-categoria.html";
+});
+
+document.getElementById("goCrearGasto")?.addEventListener("click", () => {
+  window.location.href = "crear-gasto.html";
+});
+
+window.addEventListener("quickActions:changed", async () => {
+  const primerBancoId = await cargarBancos();
+
+  if (primerBancoId && bancoSeleccionado) {
+    bancoSeleccionado.value = primerBancoId;
+    await cargarCuentasPorBanco(primerBancoId);
+  }
+
+  if (typeof cargarDashboard === "function") {
+    await cargarDashboard();
+  }
+});
 
 document.addEventListener("DOMContentLoaded", async () => {
   const primerBancoId = await cargarBancos();

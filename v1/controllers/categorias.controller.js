@@ -8,6 +8,7 @@ import {
     eliminarTodosLasCategoriasService
 } from "../services/categoria.service.js";
 import { successResponse } from "../utils/apiResponse.js";
+import { crearAuditLogService } from "../services/auditLog.service.js";
 
 export const obtenerCategorias = async (req, res, next) => {
     try {
