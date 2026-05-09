@@ -64,6 +64,7 @@ app.use(
           "'self'",
           "https://economia-web.vercel.app",
           "http://localhost:3000",
+          "https://cdn.jsdelivr.net",
         ],
 
         imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"],

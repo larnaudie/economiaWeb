@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "mongo": "mongod",
-    "mongosh": "mongosh"
+    "mongosh": "mongosh",
+    "backup:db": "mongodump --verbose --uri=\"mongodb://localhost:27017/mi-app-economia\" --out=\"./backups-economiaWeb\""
   },
   "author": "",
   "license": "ISC",
