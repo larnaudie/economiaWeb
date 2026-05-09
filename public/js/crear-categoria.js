@@ -125,8 +125,24 @@ function attachCategoriaEvents() {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
       const categoria = categoriasCache.find((c) => c._id === id);
-      if (categoria) categoria.selected = e.target.checked;
+
+      if (categoria) {
+        categoria.selected = e.target.checked;
+      }
+
       actualizarEstadoSelectAll(categoriasCache, selectAllCategorias);
+    });
+  });
+
+  document.querySelectorAll(".editar-categoria-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarCategoria(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-categoria-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarCategoria(btn.dataset.id);
     });
   });
 }
@@ -191,11 +207,16 @@ async function cargarCategorias() {
     <td>
       <input type="checkbox" class="categoria-checkbox" data-id="${categoria._id}" ${categoria.selected ? "checked" : ""}>
     </td>
-    <td>${categoria.nombre}</td>
-    <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+    <td>${escapeHtml(categoria.nombre)}</td>
+<td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
     <td>
-      <button type="button" onclick="editarCategoria('${categoria._id}', '${escapeQuotes(categoria.nombre)}')">Editar</button>
-      <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+      <button type="button" class="editar-categoria-btn" data-id="${categoria._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-categoria-btn" data-id="${categoria._id}">
+  Eliminar
+</button>
     </td>
   </tr>
 `,
@@ -365,11 +386,16 @@ selectAllCategorias.addEventListener("change", (e) => {
             ${categoria.selected ? "checked" : ""}
           >
         </td>
-        <td>${categoria.nombre}</td>
-        <td>${categoria.categoriaGrupo?.nombre || "Sin categoría principal"}</td>
+        <td>${escapeHtml(categoria.nombre)}</td>
+<td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
         <td>
-          <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
-          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+          <button type="button" class="editar-categoria-btn" data-id="${categoria._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-categoria-btn" data-id="${categoria._id}">
+  Eliminar
+</button>
         </td>
       </tr>
     `,
@@ -388,9 +414,6 @@ aplicarBulkCategoriasGrupoBtn?.addEventListener(
   "click",
   aplicarBulkCategoriaGrupo,
 );
-
-window.editarCategoria = editarCategoria;
-window.eliminarCategoria = eliminarCategoria;
 
 document.addEventListener("DOMContentLoaded", async () => {
   await cargarCategoriasGrupo();

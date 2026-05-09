@@ -46,13 +46,8 @@ export const obtenerUsuariosService = async () => {
 };
 
 export const obtenerUsuarioActualService = async (usuarioId) => {
-    const usuario = await Usuario.findById(usuarioId).select("-password");
-
-    if (!usuario) {
-        throw new Error("Usuario no encontrado");
-    }
-
-    return usuario;
+  const usuario = await Usuario.findById(usuarioId).select("-password");
+  return usuario;
 };
 
 export const actualizarUsuarioActualService = async (usuarioId, data) => {

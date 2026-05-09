@@ -454,17 +454,31 @@ function renderDesgloseGastosCuenta(tipo) {
         <td>${formatMoney(monto)}</td>
         <td>${formatMoney(acumulado)}</td>
         <td>
-          <button type="button" onclick="editarGastoCuenta('${g._id}')">Editar</button>
-          <button type="button" onclick="removerGastoDelDesglose('${g._id}')">
-  Remover del desglose
-</button>
-        </td>
+  <button type="button" class="editar-gasto-cuenta-btn" data-id="${g._id}">
+    Editar
+  </button>
+
+  <button type="button" class="remover-desglose-btn" data-id="${g._id}">
+    Remover del desglose
+  </button>
+</td>
       </tr>
     `;
     })
     .join("");
 
   habilitarDragAndDropDesgloseGastosCuenta();
+  document.querySelectorAll(".editar-gasto-cuenta-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarGastoCuenta(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".remover-desglose-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      removerGastoDelDesglose(btn.dataset.id);
+    });
+  });
 }
 
 function habilitarDragAndDropGastosCuenta() {
@@ -1948,8 +1962,6 @@ window.addEventListener("click", (e) => {
 });
 
 window.editarGastoCuenta = editarGastoCuenta;
-window.eliminarGastoCuenta = eliminarGastoCuenta;
-window.removerGastoDelDesglose = removerGastoDelDesglose;
 
 crearBancoCuentaForm?.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -2212,7 +2224,7 @@ filtrarGastosCuentaBtn.addEventListener("click", async () => {
     await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-   body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al filtrar gastos")}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al filtrar gastos")}</td></tr>`;
   }
 });
 
@@ -2226,7 +2238,7 @@ limpiarFiltroGastosCuentaBtn.addEventListener("click", async () => {
     await cargarSoloTotalesCategoriasCuenta();
   } catch (error) {
     const body = document.getElementById("gastosCuentaBody");
-   body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al limpiar filtros")}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10">${escapeHtml(error.message || "Error al limpiar filtros")}</td></tr>`;
   }
 });
 

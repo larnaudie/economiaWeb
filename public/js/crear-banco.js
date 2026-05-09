@@ -1,13 +1,14 @@
 requireAuth();
-renderHeader({ title: "Crear Banco" });;
+renderHeader({ title: "Crear Banco" });
 
 const token = getToken();
 
-  
 const gestionError = document.getElementById("gestionError");
 
 const selectAllBancos = document.getElementById("selectAllBancos");
-const eliminarBancosSeleccionadosBtn = document.getElementById("eliminarBancosSeleccionadosBtn");
+const eliminarBancosSeleccionadosBtn = document.getElementById(
+  "eliminarBancosSeleccionadosBtn",
+);
 const bulkBancosError = document.getElementById("bulkBancosError");
 const bulkBancosSuccess = document.getElementById("bulkBancosSuccess");
 
@@ -39,7 +40,8 @@ function renderList(containerId, items, renderItem) {
   const container = document.getElementById(containerId);
 
   if (!items || items.length === 0) {
-    container.innerHTML = '<tr><td colspan="3">No hay elementos registrados.</td></tr>';
+    container.innerHTML =
+      '<tr><td colspan="3">No hay elementos registrados.</td></tr>';
     return;
   }
 
@@ -57,7 +59,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
     return;
   }
 
-  const seleccionados = items.filter(item => item.selected);
+  const seleccionados = items.filter((item) => item.selected);
 
   if (seleccionados.length === 0) {
     checkbox.checked = false;
@@ -76,7 +78,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
 }
 
 function toggleSelectAll(items, checked) {
-  items.forEach(item => {
+  items.forEach((item) => {
     item.selected = checked;
   });
 }
@@ -85,9 +87,21 @@ function attachBancoEvents() {
   document.querySelectorAll(".banco-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const banco = bancosCache.find(b => b._id === id);
+      const banco = bancosCache.find((b) => b._id === id);
       if (banco) banco.selected = e.target.checked;
       actualizarEstadoSelectAll(bancosCache, selectAllBancos);
+    });
+  });
+
+  document.querySelectorAll(".editar-banco-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarBanco(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-banco-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarBanco(btn.dataset.id);
     });
   });
 }
@@ -99,27 +113,31 @@ async function cargarBancos() {
   try {
     const data = await apiRequest("/bancos", "GET", null, authToken);
 
-    bancosCache = getApiData(data).map(banco => ({
+    bancosCache = getApiData(data).map((banco) => ({
       ...banco,
-      selected: false
+      selected: false,
     }));
 
     renderTableRows({
       containerId: "bancosList",
       items: bancosCache,
       colspan: 3,
-      renderItem: banco => `
+      renderItem: (banco) => `
       <tr>
         <td>
           <input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}>
         </td>
-        <td>${banco.nombre}</td>
-        <td>
-          <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
-          <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
-        </td>
+        <td>${escapeHtml(banco.nombre)}</td>
+<td>
+  <button type="button" class="editar-banco-btn" data-id="${banco._id}">
+    Editar
+  </button>
+  <button type="button" class="eliminar-banco-btn" data-id="${banco._id}">
+    Eliminar
+  </button>
+</td>
       </tr>
-    `
+    `,
     });
 
     actualizarEstadoSelectAll(bancosCache, selectAllBancos);
@@ -129,7 +147,7 @@ async function cargarBancos() {
   }
 }
 
-async function editarBanco(id, nombreActual) {
+async function editarBanco(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
 
@@ -137,7 +155,12 @@ async function editarBanco(id, nombreActual) {
   if (!nuevoNombre || !nuevoNombre.trim()) return;
 
   try {
-    await apiRequest(`/bancos/${id}`, "PATCH", { nombre: nuevoNombre.trim() }, authToken);
+    await apiRequest(
+      `/bancos/${id}`,
+      "PATCH",
+      { nombre: nuevoNombre.trim() },
+      authToken,
+    );
     await cargarBancos();
   } catch (error) {
     gestionError.textContent = error.message || "Error al editar banco";
@@ -147,7 +170,10 @@ async function editarBanco(id, nombreActual) {
 async function eliminarBanco(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
+  const banco = bancosCache.find((b) => b._id === id);
+  if (!banco) return;
 
+  const nombreActual = banco.nombre;
   const confirmado = confirm("¿Seguro que querés eliminar este banco?");
   if (!confirmado) return;
 
@@ -173,7 +199,9 @@ async function eliminarBancosSeleccionados() {
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionados.length} banco(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionados.length} banco(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminados = 0;
@@ -250,29 +278,32 @@ selectAllBancos.addEventListener("change", (e) => {
     containerId: "bancosList",
     items: bancosCache,
     colspan: 3,
-    renderItem: banco => `
+    renderItem: (banco) => `
     <tr>
       <td>
         <input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}>
       </td>
-      <td>${banco.nombre}</td>
-      <td>
-        <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
-        <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
-      </td>
+      <td>${escapeHtml(banco.nombre)}</td>
+<td>
+  <button type="button" class="editar-banco-btn" data-id="${banco._id}">
+    Editar
+  </button>
+  <button type="button" class="eliminar-banco-btn" data-id="${banco._id}">
+    Eliminar
+  </button>
+</td>
     </tr>
-  `
+  `,
   });
 
   attachBancoEvents();
   actualizarEstadoSelectAll(bancosCache, selectAllBancos);
 });
 
-eliminarBancosSeleccionadosBtn.addEventListener("click", eliminarBancosSeleccionados);
- 
-
-window.editarBanco = editarBanco;
-window.eliminarBanco = eliminarBanco;
+eliminarBancosSeleccionadosBtn.addEventListener(
+  "click",
+  eliminarBancosSeleccionados,
+);
 
 document.addEventListener("DOMContentLoaded", async () => {
   await cargarBancos();

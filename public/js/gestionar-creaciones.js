@@ -481,8 +481,24 @@ function attachBancoEvents() {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
       const banco = bancosCache.find((b) => b._id === id);
-      if (banco) banco.selected = e.target.checked;
+
+      if (banco) {
+        banco.selected = e.target.checked;
+      }
+
       updateSelectAllState(bancosCache, selectAllBancos);
+    });
+  });
+
+  document.querySelectorAll(".editar-banco-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarBanco(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-banco-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarBanco(btn.dataset.id);
     });
   });
 }
@@ -492,8 +508,24 @@ function attachCuentaEvents() {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
       const cuenta = cuentasCache.find((c) => c._id === id);
-      if (cuenta) cuenta.selected = e.target.checked;
+
+      if (cuenta) {
+        cuenta.selected = e.target.checked;
+      }
+
       updateSelectAllState(cuentasCache, selectAllCuentas);
+    });
+  });
+
+  document.querySelectorAll(".editar-cuenta-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarCuenta(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-cuenta-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarCuenta(btn.dataset.id);
     });
   });
 }
@@ -527,6 +559,18 @@ function attachGastoEvents() {
 
       gasto.incluirEnGastoReal =
         Number(gasto.economiaReal) !== 0 ? e.target.checked : false;
+    });
+  });
+
+  document.querySelectorAll(".editar-gasto-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarGasto(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-gasto-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarGasto(btn.dataset.id);
     });
   });
 }
@@ -612,8 +656,13 @@ async function cargarListas() {
       </td>
       <td>${escapeHtml(banco.nombre)}</td>
       <td>
-        <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
-        <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
+        <button type="button" class="editar-banco-btn" data-id="${banco._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-banco-btn" data-id="${banco._id}">
+  Eliminar
+</button>
       </td>
     </tr>
   `,
@@ -636,8 +685,13 @@ async function cargarListas() {
       <td>${escapeHtml(categoria.nombre)}</td>
       <td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
       <td>
-        <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
-        <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+        <button type="button" class="editar-categoria-btn" data-id="${categoria._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-categoria-btn" data-id="${categoria._id}">
+  Eliminar
+</button>
       </td>
     </tr>
   `,
@@ -655,17 +709,13 @@ async function cargarListas() {
     <td>${escapeHtml(cuenta.nombre)}</td>
     <td>${escapeHtml(cuenta.banco?.nombre || "N/A")}</td>
     <td>
-      <button
-        type="button"
-        onclick="editarCuenta(
-          '${cuenta._id}',
-          '${escapeQuotes(cuenta.nombre)}',
-          '${cuenta.banco?._id || cuenta.banco || ""}'
-        )"
-      >
-        Editar
-      </button>
-      <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
+      <button type="button" class="editar-cuenta-btn" data-id="${cuenta._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-cuenta-btn" data-id="${cuenta._id}">
+  Eliminar
+</button>
     </td>
   </tr>
 `,
@@ -691,8 +741,24 @@ function attachCategoriaEvents() {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
       const categoria = categoriasCache.find((c) => c._id === id);
-      if (categoria) categoria.selected = e.target.checked;
+
+      if (categoria) {
+        categoria.selected = e.target.checked;
+      }
+
       updateSelectAllState(categoriasCache, selectAllCategorias);
+    });
+  });
+
+  document.querySelectorAll(".editar-categoria-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarCategoria(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-categoria-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarCategoria(btn.dataset.id);
     });
   });
 }
@@ -775,10 +841,13 @@ async function eliminarCategoriasSeleccionadas() {
   }
 }
 
-async function editarBanco(id, nombreActual) {
+async function editarBanco(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
+  const banco = bancosCache.find((b) => b._id === id);
+  if (!banco) return;
 
+  const nombreActual = banco.nombre;
   const nuevoNombre = prompt("Nuevo nombre del banco:", nombreActual);
   if (!nuevoNombre || !nuevoNombre.trim()) return;
 
@@ -810,10 +879,13 @@ async function eliminarBanco(id) {
   }
 }
 
-async function editarCuenta(id, nombreActual, bancoActual) {
+async function editarCuenta(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
+  const cuenta = cuentasCache.find((c) => c._id === id);
+  if (!cuenta) return;
 
+  const nombreActual = cuenta.nombre;
   await cargarRecursosBulk();
 
   const nuevoNombre = prompt("Nuevo nombre de la cuenta:", nombreActual);
@@ -1288,8 +1360,8 @@ function renderGastosPaginados() {
       </td>
 
       <td>${gasto.fecha ? formatFechaUTC(gasto.fecha) : "N/A"}</td>
-      <td>${escapeHtml(gasto.descripcion || "N/A")}</td>
-      <td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
+<td>${escapeHtml(gasto.descripcion || "N/A")}</td>
+<td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
 <td>${escapeHtml(gasto.categoria?.nombre || "N/A")}</td>
       <td>${gasto.flujoBancario ?? "N/A"}</td>
       <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
@@ -1316,8 +1388,13 @@ function renderGastosPaginados() {
       </td>
 
       <td>
-        <button type="button" onclick="editarGasto('${gasto._id}')">Editar</button>
-        <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
+        <button type="button" class="editar-gasto-btn" data-id="${gasto._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-gasto-btn" data-id="${gasto._id}">
+  Eliminar
+</button>
       </td>
     </tr>
   `,
@@ -1577,8 +1654,13 @@ selectAllBancos.addEventListener("change", (e) => {
       <td><input type="checkbox" class="banco-checkbox" data-id="${banco._id}" ${banco.selected ? "checked" : ""}></td>
       <td>${escapeHtml(banco.nombre)}</td>
       <td>
-        <button type="button" onclick="editarBanco('${banco._id}', '${escapeQuotes(banco.nombre)}')">Editar</button>
-        <button type="button" onclick="eliminarBanco('${banco._id}')">Eliminar</button>
+        <button type="button" class="editar-banco-btn" data-id="${banco._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-banco-btn" data-id="${banco._id}">
+  Eliminar
+</button>
       </td>
     </tr>
   `,
@@ -1597,10 +1679,15 @@ selectAllCuentas.addEventListener("change", (e) => {
     <tr>
       <td><input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}></td>
       <td>${escapeHtml(cuenta.nombre)}</td>
-      <td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
+      <td>${escapeHtml(cuenta.banco?.nombre || "N/A")}</td>
       <td>
-        <button type="button" onclick="editarCuenta('${cuenta._id}', '${escapeQuotes(cuenta.nombre)}', '${cuenta.banco?._id || cuenta.banco || ""}')">Editar</button>
-        <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
+        <button type="button" class="editar-cuenta-btn" data-id="${cuenta._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-cuenta-btn" data-id="${cuenta._id}">
+  Eliminar
+</button>
       </td>
     </tr>
   `,
@@ -1629,15 +1716,6 @@ eliminarGastosSeleccionadosBtn.addEventListener(
   "click",
   eliminarGastosSeleccionados,
 );
-
-window.editarBanco = editarBanco;
-window.eliminarBanco = eliminarBanco;
-window.editarCuenta = editarCuenta;
-window.eliminarCuenta = eliminarCuenta;
-window.editarGasto = editarGasto;
-window.eliminarGasto = eliminarGasto;
-window.editarCategoria = editarCategoria;
-window.eliminarCategoria = eliminarCategoria;
 
 filtrarGastosBtn.addEventListener("click", async () => {
   paginaGastosActual = 1;
@@ -1672,8 +1750,13 @@ selectAllCategorias.addEventListener("change", (e) => {
         <td>${escapeHtml(categoria.nombre)}</td>
         <td>${escapeHtml(categoria.categoriaGrupo?.nombre || "Sin categoría principal")}</td>
         <td>
-          <button type="button" onclick="editarCategoria('${categoria._id}')">Editar</button>
-          <button type="button" onclick="eliminarCategoria('${categoria._id}')">Eliminar</button>
+          <button type="button" class="editar-categoria-btn" data-id="${categoria._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-categoria-btn" data-id="${categoria._id}">
+  Eliminar
+</button>
         </td>
       </tr>
     `,

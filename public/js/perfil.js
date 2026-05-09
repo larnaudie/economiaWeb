@@ -37,11 +37,30 @@ async function cargarPerfil() {
   try {
     const data = await apiRequest("/usuarios/me", "GET", null, authToken);
 
-    document.getElementById("username").value = data.usuario?.username || "";
-    document.getElementById("email").value = data.usuario?.email || "";
+    const usuario = getApiData(data);
+
+    document.getElementById("username").value = usuario?.username || "";
+    document.getElementById("email").value = usuario?.email || "";
+
     perfilAvatarPreview.src =
-      data.usuario?.fotoPerfilUrl ||
+      usuario?.fotoPerfilUrl ||
       "/imagenes/imagenes-web/perfil/default-avatar.png";
+
+    const currentUser = getUser() || {};
+
+    currentUser.username = usuario?.username || currentUser.username;
+    currentUser.email = usuario?.email || currentUser.email;
+    currentUser.fotoPerfilUrl =
+      usuario?.fotoPerfilUrl || currentUser.fotoPerfilUrl;
+
+    localStorage.setItem("user", JSON.stringify(currentUser));
+
+    const headerAvatar = document.getElementById("headerAvatar");
+    if (headerAvatar) {
+      headerAvatar.src =
+        currentUser.fotoPerfilUrl ||
+        "/imagenes/imagenes-web/perfil/default-avatar.png";
+    }
   } catch (error) {
     perfilError.textContent = error.message || "No se pudo cargar el perfil";
   }
@@ -191,7 +210,12 @@ perfilForm.addEventListener("submit", async (e) => {
     perfilSuccess.textContent = "Perfil actualizado correctamente";
 
     const currentUser = getUser() || {};
-    currentUser.username = result.usuario?.username || data.username;
+    const usuarioActualizado = getApiData(result);
+
+    currentUser.username = usuarioActualizado?.username || data.username;
+    currentUser.email = usuarioActualizado?.email || data.email;
+    currentUser.fotoPerfilUrl =
+      usuarioActualizado?.fotoPerfilUrl || currentUser.fotoPerfilUrl;
     localStorage.setItem("user", JSON.stringify(currentUser));
 
     perfilForm.reset();
@@ -245,6 +269,10 @@ subirFotoPerfilBtn?.addEventListener("click", async () => {
     localStorage.setItem("user", JSON.stringify(currentUser));
 
     perfilAvatarPreview.src = result.data.fotoPerfilUrl;
+    const headerAvatar = document.getElementById("headerAvatar");
+    if (headerAvatar) {
+      headerAvatar.src = result.data.fotoPerfilUrl;
+    }
 
     fotoPerfilSuccess.textContent = "Foto de perfil actualizada correctamente.";
   } catch (error) {

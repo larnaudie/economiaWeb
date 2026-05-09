@@ -1,5 +1,5 @@
 requireAuth();
-renderHeader({ title: "Deudas" });;
+renderHeader({ title: "Deudas" });
 
 const deudaForm = document.getElementById("deudaForm");
 const deudasBody = document.getElementById("deudasBody");
@@ -41,43 +41,60 @@ function renderDeudas(deudas) {
     return;
   }
 
-  deudasBody.innerHTML = deudas.map(d => {
-    const porcentaje = d.cuotasTotales > 0
-      ? Math.round((d.cuotaActual / d.cuotasTotales) * 100)
-      : 0;
+  deudasBody.innerHTML = deudas
+    .map((d) => {
+      const porcentaje =
+        d.cuotasTotales > 0
+          ? Math.round((d.cuotaActual / d.cuotasTotales) * 100)
+          : 0;
 
-    const saldoRestante = Math.max(
-      0,
-      Number(d.montoTotal) - (Number(d.montoCuota) * Number(d.cuotaActual))
-    );
+      const saldoRestante = Math.max(
+        0,
+        Number(d.montoTotal) - Number(d.montoCuota) * Number(d.cuotaActual),
+      );
 
-    return `
-  <tr>
-    <td>${d.descripcion}</td>
-    <td>${Number(d.montoTotal).toFixed(2)}</td>
-    <td>${Number(d.montoCuota).toFixed(2)}</td>
-    <td>
-      ${d.cuotaActual} / ${d.cuotasTotales}
-      <br>
-      <progress value="${porcentaje}" max="100"></progress>
-      <small>${porcentaje}%</small>
-    </td>
-    <td>${saldoRestante.toFixed(2)}</td>
-    <td>${d.activa ? "Activa" : "Finalizada"}</td>
-        <td>
-          <button onclick="eliminarDeuda('${d._id}')">Eliminar</button>
-        </td>
-      </tr>
-    `;
-  }).join("");
+      return `
+        <tr>
+          <td>${escapeHtml(d.descripcion)}</td>
+          <td>${Number(d.montoTotal).toFixed(2)}</td>
+          <td>${Number(d.montoCuota).toFixed(2)}</td>
+          <td>
+            ${d.cuotaActual} / ${d.cuotasTotales}
+            <br>
+            <progress value="${porcentaje}" max="100"></progress>
+            <small>${porcentaje}%</small>
+          </td>
+          <td>${saldoRestante.toFixed(2)}</td>
+          <td>${d.activa ? "Activa" : "Finalizada"}</td>
+          <td>
+            <button
+              type="button"
+              class="eliminar-deuda-btn"
+              data-id="${d._id}"
+            >
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  document.querySelectorAll(".eliminar-deuda-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarDeuda(btn.dataset.id);
+    });
+  });
 }
 
 function cargarSelectDeudas(deudas) {
   deudaPagoSelect.innerHTML = `
     <option value="">Seleccionar deuda</option>
     ${deudas
-      .filter(d => d.activa)
-      .map(d => `<option value="${d._id}">${d.descripcion}</option>`)
+      .filter((d) => d.activa)
+      .map(
+        (d) => `<option value="${d._id}">${escapeHtml(d.descripcion)}</option>`,
+      )
       .join("")}
   `;
 }
@@ -91,7 +108,7 @@ async function cargarCuentas() {
 
   cuentaPagoSelect.innerHTML = `
     <option value="">Seleccionar cuenta</option>
-    ${cuentas.map(c => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${cuentas.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
 }
 
@@ -104,7 +121,7 @@ async function cargarCategorias() {
 
   categoriaPagoSelect.innerHTML = `
     <option value="">Seleccionar categoría</option>
-    ${categorias.map(c => `<option value="${c._id}">${c.nombre}</option>`).join("")}
+    ${categorias.map((c) => `<option value="${c._id}">${escapeHtml(c.nombre)}</option>`).join("")}
   `;
 }
 
@@ -118,13 +135,20 @@ deudaForm.addEventListener("submit", async (e) => {
   deudaSuccess.textContent = "";
 
   try {
-    await apiRequest("/deudas", "POST", {
-      descripcion: document.getElementById("descripcionDeuda").value,
-      montoTotal: Number(document.getElementById("montoTotalDeuda").value),
-      cuotasTotales: Number(document.getElementById("cuotasTotalesDeuda").value),
-      montoCuota: Number(document.getElementById("montoCuotaDeuda").value),
-      fechaInicio: document.getElementById("fechaInicioDeuda").value
-    }, token);
+    await apiRequest(
+      "/deudas",
+      "POST",
+      {
+        descripcion: document.getElementById("descripcionDeuda").value,
+        montoTotal: Number(document.getElementById("montoTotalDeuda").value),
+        cuotasTotales: Number(
+          document.getElementById("cuotasTotalesDeuda").value,
+        ),
+        montoCuota: Number(document.getElementById("montoCuotaDeuda").value),
+        fechaInicio: document.getElementById("fechaInicioDeuda").value,
+      },
+      token,
+    );
 
     deudaSuccess.textContent = "Deuda creada correctamente";
 
@@ -135,7 +159,7 @@ deudaForm.addEventListener("submit", async (e) => {
   }
 });
 
-window.eliminarDeuda = async (id) => {
+async function eliminarDeuda(id) {
   const token = getToken();
   if (!token) return;
 
@@ -144,7 +168,7 @@ window.eliminarDeuda = async (id) => {
 
   await apiRequest(`/deudas/${id}`, "DELETE", null, token);
   await cargarDeudas();
-};
+}
 
 pagarCuotaForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -162,9 +186,9 @@ pagarCuotaForm.addEventListener("submit", async (e) => {
       {
         cuenta: cuentaPagoSelect.value,
         categoria: categoriaPagoSelect.value,
-        fecha: fechaPagoCuota.value
+        fecha: fechaPagoCuota.value,
       },
-      token
+      token,
     );
 
     pagoCuotaSuccess.textContent = "Cuota pagada correctamente";

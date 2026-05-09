@@ -14,7 +14,9 @@ import { sanitizeMiddleware } from "./v1/middlewares/sanitize.middleware.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+dotenv.config({
+  path: path.join(__dirname, ".env"),
+});
 connectDB();
 
 const app = express();
@@ -47,7 +49,7 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdn.sheetjs.com",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
         ],
 
         scriptSrcElem: [
@@ -55,7 +57,7 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdn.sheetjs.com",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
         ],
 
         connectSrc: [
@@ -64,10 +66,9 @@ app.use(
           "http://localhost:3000",
         ],
 
-        imgSrc: ["'self'", "data:"],
+        imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
 
         styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-
       },
     },
   }),

@@ -1,11 +1,8 @@
- 
-
 requireAuth();
-renderHeader({ title: "Crear Gasto" });;
+renderHeader({ title: "Crear Gasto" });
 
 const token = getToken();
 
-  
 const gestionError = document.getElementById("gestionError");
 
 const prevGastosBtn = document.getElementById("prevGastosBtn");
@@ -17,14 +14,18 @@ const bulkGastoCategoria = document.getElementById("bulkGastoCategoria");
 const bulkGastoCuenta = document.getElementById("bulkGastoCuenta");
 const bulkGastoPorcentaje = document.getElementById("bulkGastoPorcentaje");
 const aplicarBulkGastosBtn = document.getElementById("aplicarBulkGastosBtn");
-const eliminarGastosSeleccionadosBtn = document.getElementById("eliminarGastosSeleccionadosBtn");
+const eliminarGastosSeleccionadosBtn = document.getElementById(
+  "eliminarGastosSeleccionadosBtn",
+);
 const bulkGastosError = document.getElementById("bulkGastosError");
 const bulkGastosSuccess = document.getElementById("bulkGastosSuccess");
 
 const filtroFechaDesde = document.getElementById("filtroFechaDesde");
 const filtroFechaHasta = document.getElementById("filtroFechaHasta");
 const filtrarGastosBtn = document.getElementById("filtrarGastosBtn");
-const limpiarFiltroGastosBtn = document.getElementById("limpiarFiltroGastosBtn");
+const limpiarFiltroGastosBtn = document.getElementById(
+  "limpiarFiltroGastosBtn",
+);
 
 const openGastoModalBtn = document.getElementById("openGastoModal");
 const gastoModal = document.getElementById("gastoModal");
@@ -42,7 +43,9 @@ const editarGastoModal = document.getElementById("editarGastoModal");
 const editarGastoForm = document.getElementById("editarGastoForm");
 const editarGastoId = document.getElementById("editarGastoId");
 const editarGastoFecha = document.getElementById("editarGastoFecha");
-const editarGastoDescripcion = document.getElementById("editarGastoDescripcion");
+const editarGastoDescripcion = document.getElementById(
+  "editarGastoDescripcion",
+);
 const editarGastoFlujo = document.getElementById("editarGastoFlujo");
 const editarGastoPorcentaje = document.getElementById("editarGastoPorcentaje");
 const editarGastoEconomia = document.getElementById("editarGastoEconomia");
@@ -116,7 +119,7 @@ function obtenerFechasFiltroGastos() {
 
     return {
       fechaDesde: `${anio}-01-01`,
-      fechaHasta: `${anio}-12-31`
+      fechaHasta: `${anio}-12-31`,
     };
   }
 
@@ -130,7 +133,7 @@ function obtenerFechasFiltroGastos() {
 
   return {
     fechaDesde: filtroFechaDesde.value,
-    fechaHasta: filtroFechaHasta.value
+    fechaHasta: filtroFechaHasta.value,
   };
 }
 
@@ -163,7 +166,8 @@ function renderList(containerId, items, renderItem) {
   const container = document.getElementById(containerId);
 
   if (!items || items.length === 0) {
-    container.innerHTML = '<tr><td colspan="9">No hay elementos registrados.</td></tr>';
+    container.innerHTML =
+      '<tr><td colspan="9">No hay elementos registrados.</td></tr>';
     return;
   }
 
@@ -177,7 +181,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
     return;
   }
 
-  const seleccionados = items.filter(item => item.selected);
+  const seleccionados = items.filter((item) => item.selected);
 
   if (seleccionados.length === 0) {
     checkbox.checked = false;
@@ -196,7 +200,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
 }
 
 function toggleSelectAll(items, checked) {
-  items.forEach(item => {
+  items.forEach((item) => {
     item.selected = checked;
   });
 }
@@ -220,39 +224,70 @@ function fechaInputValue(fecha) {
 function renderBulkGastosSelects() {
   bulkGastoCategoria.innerHTML =
     '<option value="">No cambiar</option>' +
-    categoriasCache.map(categoria => `<option value="${categoria._id}">${categoria.nombre}</option>`).join("");
+    categoriasCache
+      .map(
+        (categoria) =>
+          `<option value="${categoria._id}">${escapeHtml(categoria.nombre)}</option>`,
+      )
+      .join("");
 
   bulkGastoCuenta.innerHTML =
     '<option value="">No cambiar</option>' +
-    cuentasCache.map(cuenta => `<option value="${cuenta._id}">${cuenta.nombre}</option>`).join("");
+    cuentasCache
+      .map(
+        (cuenta) =>
+          `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`,
+      )
+      .join("");
 }
 
 function renderModalGastoSelects() {
   modalGastoCategoria.innerHTML =
     '<option value="">Seleccionar categoría</option>' +
-    categoriasCache.map(categoria => `<option value="${categoria._id}">${categoria.nombre}</option>`).join("");
+    categoriasCache
+      .map(
+        (categoria) =>
+          `<option value="${categoria._id}">${escapeHtml(categoria.nombre)}</option>`,
+      )
+      .join("");
 
   modalGastoCuenta.innerHTML =
     '<option value="">Seleccionar cuenta</option>' +
-    cuentasCache.map(cuenta => `<option value="${cuenta._id}">${cuenta.nombre}</option>`).join("");
+    cuentasCache
+      .map(
+        (cuenta) =>
+          `<option value="${cuenta._id}">${escapeHtml(cuenta.nombre)}</option>`,
+      )
+      .join("");
 }
 
-function renderEditarGastoSelects(categoriaSeleccionada = "", cuentaSeleccionada = "") {
+function renderEditarGastoSelects(
+  categoriaSeleccionada = "",
+  cuentaSeleccionada = "",
+) {
   editarGastoCategoria.innerHTML =
     '<option value="">Seleccionar categoría</option>' +
-    categoriasCache.map(categoria => `
+    categoriasCache
+      .map(
+        (categoria) => `
       <option value="${categoria._id}" ${categoriaSeleccionada === categoria._id ? "selected" : ""}>
-        ${categoria.nombre}
+        ${escapeHtml(categoria.nombre)}
       </option>
-    `).join("");
+    `,
+      )
+      .join("");
 
   editarGastoCuenta.innerHTML =
     '<option value="">Seleccionar cuenta</option>' +
-    cuentasCache.map(cuenta => `
+    cuentasCache
+      .map(
+        (cuenta) => `
       <option value="${cuenta._id}" ${cuentaSeleccionada === cuenta._id ? "selected" : ""}>
-        ${cuenta.nombre}
+        ${escapeHtml(cuenta.nombre)}
       </option>
-    `).join("");
+    `,
+      )
+      .join("");
 }
 
 function actualizarEconomiaModalGasto() {
@@ -298,9 +333,25 @@ function attachGastoEvents() {
   document.querySelectorAll(".gasto-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const gasto = gastosCache.find(g => g._id === id);
-      if (gasto) gasto.selected = e.target.checked;
+      const gasto = gastosCache.find((g) => g._id === id);
+
+      if (gasto) {
+        gasto.selected = e.target.checked;
+      }
+
       actualizarEstadoSelectAll(gastosCache, selectAllGastos);
+    });
+  });
+
+  document.querySelectorAll(".editar-gasto-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarGasto(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-gasto-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarGasto(btn.dataset.id);
     });
   });
 }
@@ -311,7 +362,7 @@ async function cargarRecursos() {
 
   const [categorias, cuentas] = await Promise.all([
     apiRequest("/categorias", "GET", null, authToken),
-    apiRequest("/cuentas", "GET", null, authToken)
+    apiRequest("/cuentas", "GET", null, authToken),
   ]);
 
   categoriasCache = getApiData(categorias);
@@ -335,7 +386,12 @@ async function calcularTotalPaginasGastos() {
     params.set("fechaDesde", fechaDesde);
     params.set("fechaHasta", fechaHasta);
 
-    const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, authToken);
+    const data = await apiRequest(
+      `/gastos?${params.toString()}`,
+      "GET",
+      null,
+      authToken,
+    );
     const gastosPagina = getApiData(data);
 
     if (gastosPagina.length < 20) {
@@ -360,33 +416,43 @@ async function cargarGastosPaginados() {
     params.set("fechaDesde", fechaDesde);
     params.set("fechaHasta", fechaHasta);
 
-    const data = await apiRequest(`/gastos?${params.toString()}`, "GET", null, authToken);
+    const data = await apiRequest(
+      `/gastos?${params.toString()}`,
+      "GET",
+      null,
+      authToken,
+    );
 
-    gastosCache = (getApiData(data)).map(gasto => ({
+    gastosCache = getApiData(data).map((gasto) => ({
       ...gasto,
-      selected: false
+      selected: false,
     }));
 
     renderTableRows({
       containerId: "gastosList",
       items: gastosCache,
       colspan: 11,
-      renderItem: gasto => `
+      renderItem: (gasto) => `
       <tr>
         <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
         <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
-        <td>${gasto.descripcion || "N/A"}</td>
-        <td>${escapeHtml(gasto.cuenta)?.nombre || "N/A"}</td>
-        <td>${escapeHtml(gasto.categoria)}?.nombre || "N/A"}</td>
+        <td>${escapeHtml(gasto.descripcion || "N/A")}</td>
+<td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
+<td>${escapeHtml(gasto.categoria?.nombre || "N/A")}</td>
         <td>${gasto.flujoBancario ?? "N/A"}</td>
         <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
         <td>${gasto.economiaReal ?? "N/A"}</td>
         <td>
-          <button type="button" onclick="editarGasto('${gasto._id}')">Editar</button>
-          <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
-        </td>
+  <button type="button" class="editar-gasto-btn" data-id="${gasto._id}">
+    Editar
+  </button>
+
+  <button type="button" class="eliminar-gasto-btn" data-id="${gasto._id}">
+    Eliminar
+  </button>
+</td>
       </tr>
-    `
+    `,
     });
 
     gastosPaginaActual.textContent = `${paginaActual} / ${totalPaginas}`;
@@ -409,8 +475,13 @@ async function editarGasto(id) {
   try {
     await cargarRecursos();
 
-    const gastoActual = await apiRequest(`/gastos/${id}`, "GET", null, authToken);
-    const gasto = gastoActual.gasto;
+    const gastoActual = await apiRequest(
+      `/gastos/${id}`,
+      "GET",
+      null,
+      authToken,
+    );
+    const gasto = getApiData(gastoActual);
 
     editarGastoId.value = gasto._id;
     editarGastoFecha.value = gasto.fecha ? fechaInputValue(gasto.fecha) : "";
@@ -421,13 +492,14 @@ async function editarGasto(id) {
 
     renderEditarGastoSelects(
       gasto.categoria?._id || gasto.categoria || "",
-      gasto.cuenta?._id || gasto.cuenta || ""
+      gasto.cuenta?._id || gasto.cuenta || "",
     );
 
     actualizarEconomiaEditarGasto();
     openModal(editarGastoModal);
   } catch (error) {
-    gestionError.textContent = error.message || "Error al cargar el gasto para editar";
+    gestionError.textContent =
+      error.message || "Error al cargar el gasto para editar";
   }
 }
 
@@ -488,9 +560,13 @@ async function aplicarBulkGastos() {
 
   for (const gasto of seleccionados) {
     try {
-      const nuevoPorcentaje = hayPorcentaje ? Number(porcentajeRaw) : Number(gasto.porcentajeEconomiaReal);
+      const nuevoPorcentaje = hayPorcentaje
+        ? Number(porcentajeRaw)
+        : Number(gasto.porcentajeEconomiaReal);
       const nuevoFlujo = Number(gasto.flujoBancario);
-      const nuevaEconomiaReal = Number((nuevoFlujo * (nuevoPorcentaje / 100)).toFixed(2));
+      const nuevaEconomiaReal = Number(
+        (nuevoFlujo * (nuevoPorcentaje / 100)).toFixed(2),
+      );
 
       await apiRequest(
         `/gastos/${gasto._id}`,
@@ -501,10 +577,12 @@ async function aplicarBulkGastos() {
           flujoBancario: nuevoFlujo,
           economiaReal: nuevaEconomiaReal,
           porcentajeEconomiaReal: nuevoPorcentaje,
-          categoria: hayCategoria ? categoria : (gasto.categoria?._id || gasto.categoria),
-          cuenta: hayCuenta ? cuenta : (gasto.cuenta?._id || gasto.cuenta)
+          categoria: hayCategoria
+            ? categoria
+            : gasto.categoria?._id || gasto.categoria,
+          cuenta: hayCuenta ? cuenta : gasto.cuenta?._id || gasto.cuenta,
         },
-        authToken
+        authToken,
       );
 
       actualizados++;
@@ -515,8 +593,10 @@ async function aplicarBulkGastos() {
 
   await cargarGastosPaginados();
 
-  if (actualizados > 0) bulkGastosSuccess.textContent = `Se actualizaron ${actualizados} gasto(s).`;
-  if (errores > 0) bulkGastosError.textContent = `No se pudieron actualizar ${errores} gasto(s).`;
+  if (actualizados > 0)
+    bulkGastosSuccess.textContent = `Se actualizaron ${actualizados} gasto(s).`;
+  if (errores > 0)
+    bulkGastosError.textContent = `No se pudieron actualizar ${errores} gasto(s).`;
 }
 
 async function eliminarGastosSeleccionados() {
@@ -533,7 +613,9 @@ async function eliminarGastosSeleccionados() {
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionados.length} gasto(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionados.length} gasto(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminados = 0;
@@ -552,8 +634,10 @@ async function eliminarGastosSeleccionados() {
   if (paginaActual > totalPaginas) paginaActual = totalPaginas;
   await cargarGastosPaginados();
 
-  if (eliminados > 0) bulkGastosSuccess.textContent = `Se eliminaron ${eliminados} gasto(s).`;
-  if (errores > 0) bulkGastosError.textContent = `No se pudieron eliminar ${errores} gasto(s).`;
+  if (eliminados > 0)
+    bulkGastosSuccess.textContent = `Se eliminaron ${eliminados} gasto(s).`;
+  if (errores > 0)
+    bulkGastosError.textContent = `No se pudieron eliminar ${errores} gasto(s).`;
 }
 
 modalGastoForm.addEventListener("submit", async (e) => {
@@ -589,7 +673,8 @@ modalGastoForm.addEventListener("submit", async (e) => {
   }
 
   if (descripcion.length < 5 || descripcion.length > 500) {
-    modalGastoError.textContent = "La descripción debe tener entre 5 y 500 caracteres.";
+    modalGastoError.textContent =
+      "La descripción debe tener entre 5 y 500 caracteres.";
     return;
   }
 
@@ -609,9 +694,9 @@ modalGastoForm.addEventListener("submit", async (e) => {
         economiaReal,
         porcentajeEconomiaReal,
         categoria,
-        cuenta
+        cuenta,
       },
-      authToken
+      authToken,
     );
 
     modalGastoForm.reset();
@@ -661,7 +746,8 @@ editarGastoForm.addEventListener("submit", async (e) => {
   }
 
   if (descripcion.length < 5 || descripcion.length > 500) {
-    editarGastoError.textContent = "La descripción debe tener entre 5 y 500 caracteres.";
+    editarGastoError.textContent =
+      "La descripción debe tener entre 5 y 500 caracteres.";
     return;
   }
 
@@ -681,9 +767,9 @@ editarGastoForm.addEventListener("submit", async (e) => {
         economiaReal,
         porcentajeEconomiaReal,
         categoria,
-        cuenta
+        cuenta,
       },
-      authToken
+      authToken,
     );
 
     closeModal(editarGastoModal);
@@ -763,22 +849,27 @@ selectAllGastos.addEventListener("change", (e) => {
     containerId: "gastosList",
     items: gastosCache,
     colspan: 11,
-    renderItem: gasto => `
+    renderItem: (gasto) => `
     <tr>
       <td><input type="checkbox" class="gasto-checkbox" data-id="${gasto._id}" ${gasto.selected ? "checked" : ""}></td>
       <td>${gasto.fecha ? formatearFecha(gasto.fecha) : "N/A"}</td>
-      <td>${gasto.descripcion || "N/A"}</td>
-      <td>${escapeHtml(gasto.cuenta)?.nombre || "N/A"}</td>
-      <td>${escapeHtml(gasto.categoria)}?.nombre || "N/A"}</td>
+      <td>${escapeHtml(gasto.descripcion || "N/A")}</td>
+<td>${escapeHtml(gasto.cuenta?.nombre || "N/A")}</td>
+<td>${escapeHtml(gasto.categoria?.nombre || "N/A")}</td>
       <td>${gasto.flujoBancario ?? "N/A"}</td>
       <td>${gasto.porcentajeEconomiaReal ?? "N/A"}</td>
       <td>${gasto.economiaReal ?? "N/A"}</td>
       <td>
-        <button type="button" onclick="editarGasto('${gasto._id}')">Editar</button>
-        <button type="button" onclick="eliminarGasto('${gasto._id}')">Eliminar</button>
+        <button type="button" class="editar-gasto-btn" data-id="${gasto._id}">
+  Editar
+</button>
+
+<button type="button" class="eliminar-gasto-btn" data-id="${gasto._id}">
+  Eliminar
+</button>
       </td>
     </tr>
-  `
+  `,
   });
 
   attachGastoEvents();
@@ -786,11 +877,10 @@ selectAllGastos.addEventListener("change", (e) => {
 });
 
 aplicarBulkGastosBtn.addEventListener("click", aplicarBulkGastos);
-eliminarGastosSeleccionadosBtn.addEventListener("click", eliminarGastosSeleccionados);
- 
-
-window.editarGasto = editarGasto;
-window.eliminarGasto = eliminarGasto;
+eliminarGastosSeleccionadosBtn.addEventListener(
+  "click",
+  eliminarGastosSeleccionados,
+);
 
 document.addEventListener("DOMContentLoaded", async () => {
   resetFiltrosGastos();

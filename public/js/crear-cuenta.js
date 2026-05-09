@@ -1,5 +1,5 @@
 requireAuth();
-renderHeader({ title: "Crear Cuenta" });;
+renderHeader({ title: "Crear Cuenta" });
 
 const token = getToken();
 
@@ -9,7 +9,9 @@ const gestionError = document.getElementById("gestionError");
 const selectAllCuentas = document.getElementById("selectAllCuentas");
 const bulkCuentaBanco = document.getElementById("bulkCuentaBanco");
 const aplicarBulkCuentasBtn = document.getElementById("aplicarBulkCuentasBtn");
-const eliminarCuentasSeleccionadasBtn = document.getElementById("eliminarCuentasSeleccionadasBtn");
+const eliminarCuentasSeleccionadasBtn = document.getElementById(
+  "eliminarCuentasSeleccionadasBtn",
+);
 const bulkCuentasError = document.getElementById("bulkCuentasError");
 const bulkCuentasSuccess = document.getElementById("bulkCuentasSuccess");
 
@@ -43,7 +45,8 @@ function renderList(containerId, items, renderItem) {
   const container = document.getElementById(containerId);
 
   if (!items || items.length === 0) {
-    container.innerHTML = '<tr><td colspan="4">No hay elementos registrados.</td></tr>';
+    container.innerHTML =
+      '<tr><td colspan="4">No hay elementos registrados.</td></tr>';
     return;
   }
 
@@ -61,7 +64,7 @@ function actualizarEstadoSelectAll(items, checkbox) {
     return;
   }
 
-  const seleccionados = items.filter(item => item.selected);
+  const seleccionados = items.filter((item) => item.selected);
 
   if (seleccionados.length === 0) {
     checkbox.checked = false;
@@ -80,29 +83,56 @@ function actualizarEstadoSelectAll(items, checkbox) {
 }
 
 function toggleSelectAll(items, checked) {
-  items.forEach(item => {
+  items.forEach((item) => {
     item.selected = checked;
   });
 }
 
 function renderBancosEnSelects() {
-  const options = '<option value="">Seleccionar banco</option>' +
-    bancosCache.map(banco => `<option value="${banco._id}">${banco.nombre}</option>`).join("");
+  const options =
+    '<option value="">Seleccionar banco</option>' +
+    bancosCache
+      .map(
+        (banco) =>
+          `<option value="${banco._id}">${escapeHtml(banco.nombre)}</option>`,
+      )
+      .join("");
 
   modalCuentaBanco.innerHTML = options;
 
   bulkCuentaBanco.innerHTML =
     '<option value="">No cambiar</option>' +
-    bancosCache.map(banco => `<option value="${banco._id}">${banco.nombre}</option>`).join("");
+    bancosCache
+      .map(
+        (banco) =>
+          `<option value="${banco._id}">${escapeHtml(banco.nombre)}</option>`,
+      )
+      .join("");
 }
 
 function attachCuentaEvents() {
   document.querySelectorAll(".cuenta-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", (e) => {
       const id = e.target.dataset.id;
-      const cuenta = cuentasCache.find(c => c._id === id);
-      if (cuenta) cuenta.selected = e.target.checked;
+      const cuenta = cuentasCache.find((c) => c._id === id);
+
+      if (cuenta) {
+        cuenta.selected = e.target.checked;
+      }
+
       actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
+    });
+  });
+
+  document.querySelectorAll(".editar-cuenta-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editarCuenta(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll(".eliminar-cuenta-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      eliminarCuenta(btn.dataset.id);
     });
   });
 }
@@ -123,37 +153,33 @@ async function cargarCuentas() {
   try {
     const data = await apiRequest("/cuentas", "GET", null, authToken);
 
-    cuentasCache = getApiData(data).map(cuenta => ({
+    cuentasCache = getApiData(data).map((cuenta) => ({
       ...cuenta,
-      selected: false
+      selected: false,
     }));
 
     renderTableRows({
       containerId: "cuentasList",
       items: cuentasCache,
       colspan: 4,
-      renderItem: cuenta => `
+      renderItem: (cuenta) => `
       <tr>
         <td>
           <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
         </td>
-        <td>${cuenta.nombre}</td>
-        <td>${cuenta.banco?.nombre || "N/A"}</td>
-        <td>
-          <button
-            type="button"
-            onclick="editarCuenta(
-              '${cuenta._id}',
-              '${escapeQuotes(cuenta.nombre)}',
-              '${cuenta.banco?._id || cuenta.banco || ""}'
-            )"
-          >
-            Editar
-          </button>
-          <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
-        </td>
+        <td>${escapeHtml(cuenta.nombre)}</td>
+<td>${escapeHtml(cuenta.banco?.nombre || "N/A")}</td>
+<td>
+  <button type="button" class="editar-cuenta-btn" data-id="${cuenta._id}">
+    Editar
+  </button>
+
+  <button type="button" class="eliminar-cuenta-btn" data-id="${cuenta._id}">
+    Eliminar
+  </button>
+</td>
       </tr>
-    `
+    `,
     });
 
     actualizarEstadoSelectAll(cuentasCache, selectAllCuentas);
@@ -163,9 +189,13 @@ async function cargarCuentas() {
   }
 }
 
-async function editarCuenta(id, nombreActual, bancoActual) {
+async function editarCuenta(id) {
   const authToken = getAuthToken();
   if (!authToken) return;
+  const cuenta = cuentasCache.find((c) => c._id === id);
+  if (!cuenta) return;
+
+  const nombreActual = cuenta.nombre;
 
   await cargarBancos();
 
@@ -193,9 +223,9 @@ async function editarCuenta(id, nombreActual, bancoActual) {
       "PATCH",
       {
         nombre: nuevoNombre.trim(),
-        banco: bancoSeleccionado._id
+        banco: bancoSeleccionado._id,
       },
-      authToken
+      authToken,
     );
 
     await cargarCuentas();
@@ -227,7 +257,7 @@ async function aplicarBulkCuentas() {
   bulkCuentasSuccess.textContent = "";
 
   const banco = bulkCuentaBanco.value;
-  const seleccionadas = cuentasCache.filter(cuenta => cuenta.selected);
+  const seleccionadas = cuentasCache.filter((cuenta) => cuenta.selected);
 
   if (!seleccionadas.length) {
     bulkCuentasError.textContent = "No hay cuentas seleccionadas.";
@@ -249,9 +279,9 @@ async function aplicarBulkCuentas() {
         "PATCH",
         {
           nombre: cuenta.nombre,
-          banco
+          banco,
         },
-        authToken
+        authToken,
       );
       actualizadas++;
     } catch {
@@ -278,14 +308,16 @@ async function eliminarCuentasSeleccionadas() {
   bulkCuentasError.textContent = "";
   bulkCuentasSuccess.textContent = "";
 
-  const seleccionadas = cuentasCache.filter(cuenta => cuenta.selected);
+  const seleccionadas = cuentasCache.filter((cuenta) => cuenta.selected);
 
   if (!seleccionadas.length) {
     bulkCuentasError.textContent = "No hay cuentas seleccionadas.";
     return;
   }
 
-  const confirmado = confirm(`¿Seguro que querés eliminar ${seleccionadas.length} cuenta(s)?`);
+  const confirmado = confirm(
+    `¿Seguro que querés eliminar ${seleccionadas.length} cuenta(s)?`,
+  );
   if (!confirmado) return;
 
   let eliminadas = 0;
@@ -366,19 +398,24 @@ selectAllCuentas.addEventListener("change", (e) => {
     containerId: "cuentasList",
     items: cuentasCache,
     colspan: 4,
-    renderItem: cuenta => `
+    renderItem: (cuenta) => `
     <tr>
       <td>
         <input type="checkbox" class="cuenta-checkbox" data-id="${cuenta._id}" ${cuenta.selected ? "checked" : ""}>
       </td>
-      <td>${cuenta.nombre}</td>
-      <td>${cuenta.banco?.nombre || "N/A"}</td>
-      <td>
-        <button type="button" onclick="editarCuenta('${cuenta._id}', '${escapeQuotes(cuenta.nombre)}', '${cuenta.banco?._id || cuenta.banco || ""}')">Editar</button>
-        <button type="button" onclick="eliminarCuenta('${cuenta._id}')">Eliminar</button>
-      </td>
+      <td>${escapeHtml(cuenta.nombre)}</td>
+<td>${escapeHtml(cuenta.banco?.nombre || "N/A")}</td>
+<td>
+  <button type="button" class="editar-cuenta-btn" data-id="${cuenta._id}">
+    Editar
+  </button>
+
+  <button type="button" class="eliminar-cuenta-btn" data-id="${cuenta._id}">
+    Eliminar
+  </button>
+</td>
     </tr>
-  `
+  `,
   });
 
   attachCuentaEvents();
@@ -386,11 +423,10 @@ selectAllCuentas.addEventListener("change", (e) => {
 });
 
 aplicarBulkCuentasBtn.addEventListener("click", aplicarBulkCuentas);
-eliminarCuentasSeleccionadasBtn.addEventListener("click", eliminarCuentasSeleccionadas);
-logoutButton.addEventListener("click", logout);
-
-window.editarCuenta = editarCuenta;
-window.eliminarCuenta = eliminarCuenta;
+eliminarCuentasSeleccionadasBtn.addEventListener(
+  "click",
+  eliminarCuentasSeleccionadas,
+);
 
 document.addEventListener("DOMContentLoaded", async () => {
   await cargarBancos();

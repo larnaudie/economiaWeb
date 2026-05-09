@@ -1,6 +1,6 @@
 import Usuario from "../models/usuario.model.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import cloudinary from "../config/cloduinary.js";
+import cloudinary from "../config/cloudinary.js";
 import multer from "../utils/multer.utils.js";
 import { runMulterSingle } from "../utils/multer.utils.js";
 import { uploadBufferToCloudinary } from "../utils/cloudinary.utils.js"
