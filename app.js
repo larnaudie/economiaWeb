@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import express from "express";
@@ -13,6 +14,28 @@ import { sanitizeMiddleware } from "./v1/middlewares/sanitize.middleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const publicPath = path.join(__dirname, "public");
+const frontendDistPath = path.join(__dirname, "frontend", "dist");
+const reactIndexPath = path.join(frontendDistPath, "index.html");
+const hasReactBuild = fs.existsSync(reactIndexPath);
+
+const legacyHtmlRoutes = [
+  "/index.html",
+  "/login.html",
+  "/register.html",
+  "/registro.html",
+  "/crear-gasto.html",
+  "/gastos-cuenta.html",
+  "/gestionar-creaciones.html",
+  "/cargar-excel.html",
+  "/cargar-excel-personal.html",
+  "/deudas.html",
+  "/crear-banco.html",
+  "/crear-cuenta.html",
+  "/crear-categoria.html",
+  "/categorias-grupo.html",
+  "/perfil.html",
+];
 
 dotenv.config({
   path: path.join(__dirname, ".env"),
@@ -34,6 +57,8 @@ const limiter = rateLimit({
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5500",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
   "http://127.0.0.1:5500",
   "https://economia-web.vercel.app",
 ];
@@ -90,23 +115,45 @@ app.use(
   }),
 );
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use("/imagenes", express.static(path.join(publicPath, "imagenes")));
+app.use("/uploads", express.static(path.join(publicPath, "uploads")));
+
+if (hasReactBuild) {
+  app.use(express.static(frontendDistPath));
+} else {
+  app.use(express.static(publicPath));
+}
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(sanitizeMiddleware);
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.use("/v1", v1Router);
+
+if (hasReactBuild) {
+  app.get(["/", ...legacyHtmlRoutes], (req, res) => {
+    res.sendFile(reactIndexPath);
+  });
+
+  app.use((req, res, next) => {
+    if (req.originalUrl.startsWith("/v1")) {
+      return next();
+    }
+
+    return res.sendFile(reactIndexPath);
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.sendFile(path.join(publicPath, "index.html"));
+  });
+}
 
 app.use((req, res, next) => {
   if (req.originalUrl.startsWith("/v1")) {
     return notFoundMiddleware(req, res, next);
   }
 
-  res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
+  res.status(404).sendFile(path.join(publicPath, "404.html"));
 });
 app.use(errorMiddleware);
 
