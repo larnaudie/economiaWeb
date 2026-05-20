@@ -27,6 +27,7 @@ export function buildBulkUpdateGastos({ usuarioId, gastos }) {
         $set: {
           fecha: gasto.fecha,
           descripcion: gasto.descripcion,
+          estado: "creado",
           flujoBancario: gasto.flujoBancario,
           economiaReal: gasto.economiaReal,
           porcentajeEconomiaReal: gasto.porcentajeEconomiaReal,
@@ -34,6 +35,8 @@ export function buildBulkUpdateGastos({ usuarioId, gastos }) {
           cuenta: gasto.cuenta,
           incluirEnGastoBancario: gasto.incluirEnGastoBancario ?? true,
           incluirEnGastoReal: gasto.incluirEnGastoReal ?? true,
+          facturaUrl: gasto.facturaUrl || "",
+          facturaPublicId: gasto.facturaPublicId || "",
         },
       },
     },
@@ -55,8 +58,11 @@ export const buildBulkCreateGastos = ({ usuarioId, gastos }) => {
         document: {
           ...gasto,
           usuario: usuarioId,
+          estado: "creado",
           incluirEnGastoBancario: gasto.incluirEnGastoBancario ?? true,
           incluirEnGastoReal: gasto.incluirEnGastoReal ?? true,
+          facturaUrl: gasto.facturaUrl || "",
+          facturaPublicId: gasto.facturaPublicId || "",
           hashImportacion,
         },
       },

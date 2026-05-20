@@ -4,9 +4,12 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
 import { FormField } from "../components/FormField";
+import { Modal } from "../components/Modal";
+import { QuickActions } from "../components/QuickActions";
 import { PageLayout } from "../layout/PageLayout";
 import { apiRequest, getApiData, getUser, logout } from "../services/api";
 import { excelDateToISO, parseMoneyValue } from "../utils/formatters";
+import { creationActionMeta } from "../utils/quickActions";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -57,8 +60,10 @@ function getCategoryByName(categorias, name) {
 export function ImportExpenses({ mode = "bank", onLogout }) {
   const fileInputRef = useRef(null);
   const [categorias, setCategorias] = useState([]);
+  const [categoriasGrupo, setCategoriasGrupo] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [rows, setRows] = useState([]);
+  const [activeModal, setActiveModal] = useState("");
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [bulk, setBulk] = useState({
     fecha: "",
@@ -68,16 +73,20 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
     economiaReal: "",
     categoria: "",
     cuenta: "",
+    incluirEnGastoBancario: "",
+    incluirEnGastoReal: "",
   });
   const user = getUser();
   const isPersonal = mode === "personal";
 
   const loadResources = useCallback(async () => {
-    const [categoriasResp, cuentasResp] = await Promise.all([
+    const [categoriasResp, categoriasGrupoResp, cuentasResp] = await Promise.all([
       apiRequest("/categorias"),
+      apiRequest("/categorias-grupo"),
       apiRequest("/cuentas"),
     ]);
     setCategorias(normalizeItems(categoriasResp));
+    setCategoriasGrupo(normalizeItems(categoriasGrupoResp));
     setCuentas(normalizeItems(cuentasResp));
   }, []);
 
@@ -177,7 +186,12 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
 
         const next = { ...row };
         Object.entries(bulk).forEach(([key, value]) => {
-          if (value !== "") next[key] = value;
+          if (value === "") return;
+          if (key === "incluirEnGastoBancario" || key === "incluirEnGastoReal") {
+            next[key] = value === "true";
+          } else {
+            next[key] = value;
+          }
         });
 
         const flow = Number(next.flujoBancario);
@@ -222,6 +236,14 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
 
   async function createRows({ onlySelected }) {
     const targetRows = rows.filter((row) => !row.created && (!onlySelected || row.selected));
+    await createTargetRows(targetRows);
+  }
+
+  async function createSingleRow(row) {
+    await createTargetRows([row]);
+  }
+
+  async function createTargetRows(targetRows) {
     if (!targetRows.length) {
       setStatus({
         type: "error",
@@ -278,8 +300,31 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
     });
   }
 
+  async function handleCreateCategory(payload) {
+    try {
+      await apiRequest("/categorias", {
+        method: "POST",
+        body: payload,
+      });
+      setActiveModal("");
+      setStatus({
+        type: "success",
+        title: "Subcategoria creada",
+        message: "Ya podes seleccionarla en las filas importadas.",
+      });
+      await loadResources();
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo crear subcategoria",
+        message: error.message,
+      });
+    }
+  }
+
   const columns = buildColumns({
     categorias,
+    createSingleRow,
     cuentas,
     rows,
     toggleAll,
@@ -303,6 +348,15 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
       {status.message ? (
         <Alert message={status.message} title={status.title} tone={status.type} />
       ) : null}
+
+      <QuickActions
+        actions={[
+          {
+            ...creationActionMeta.categorias,
+            onClick: () => setActiveModal("categoria"),
+          },
+        ]}
+      />
 
       <Card title="Archivo">
         <div className="section-toolbar">
@@ -379,6 +433,38 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
               value={bulk.porcentajeEconomiaReal}
             />
           </FormField>
+          <FormField id="importBulkBancario" label="Incluir bancario">
+            <select
+              id="importBulkBancario"
+              onChange={(event) =>
+                setBulk((current) => ({
+                  ...current,
+                  incluirEnGastoBancario: event.target.value,
+                }))
+              }
+              value={bulk.incluirEnGastoBancario}
+            >
+              <option value="">No cambiar</option>
+              <option value="true">Si</option>
+              <option value="false">No</option>
+            </select>
+          </FormField>
+          <FormField id="importBulkReal" label="Incluir real">
+            <select
+              id="importBulkReal"
+              onChange={(event) =>
+                setBulk((current) => ({
+                  ...current,
+                  incluirEnGastoReal: event.target.value,
+                }))
+              }
+              value={bulk.incluirEnGastoReal}
+            >
+              <option value="">No cambiar</option>
+              <option value="true">Si</option>
+              <option value="false">No</option>
+            </select>
+          </FormField>
         </div>
         <div className="button-row">
           <Button onClick={() => applyBulk({ onlySelected: false })} variant="secondary">
@@ -400,6 +486,8 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
                 economiaReal: "",
                 categoria: "",
                 cuenta: "",
+                incluirEnGastoBancario: "",
+                incluirEnGastoReal: "",
               })
             }
             variant="secondary"
@@ -410,7 +498,7 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
         <p className="selection-note">Filas seleccionadas: {selectedRows.length}</p>
       </Card>
 
-      <Card className="expenses-table-card" title="Previsualizacion">
+      <Card className="expenses-table-card import-preview-card" title="Previsualizacion">
         <DataTable
           columns={columns}
           emptyMessage="Todavia no hay datos importados."
@@ -426,6 +514,18 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
           </Button>
         </div>
       </Card>
+
+      <Modal
+        onClose={() => setActiveModal("")}
+        open={activeModal === "categoria"}
+        title="Crear Subcategoria"
+      >
+        <CategoriaModalContent
+          categoriasGrupo={categoriasGrupo}
+          onCancel={() => setActiveModal("")}
+          onSubmit={handleCreateCategory}
+        />
+      </Modal>
     </PageLayout>
   );
 }
@@ -520,13 +620,14 @@ function parsePersonalSheet(sheet, categorias, XLSX) {
     .filter(Boolean);
 }
 
-function buildColumns({ categorias, cuentas, rows, toggleAll, updateRow }) {
+function buildColumns({ categorias, createSingleRow, cuentas, rows, toggleAll, updateRow }) {
   return [
     {
       key: "select",
       header: (
         <input
           checked={rows.length > 0 && rows.every((row) => row.created || row.selected)}
+          onClick={(event) => event.stopPropagation()}
           onChange={(event) => toggleAll(event.target.checked)}
           type="checkbox"
         />
@@ -535,6 +636,7 @@ function buildColumns({ categorias, cuentas, rows, toggleAll, updateRow }) {
         <input
           checked={row.selected}
           disabled={row.created}
+          onClick={(event) => event.stopPropagation()}
           onChange={(event) => updateRow(row.localId, { selected: event.target.checked })}
           type="checkbox"
         />
@@ -653,5 +755,95 @@ function buildColumns({ categorias, cuentas, rows, toggleAll, updateRow }) {
       header: "Estado",
       render: (row) => (row.created ? "Creado" : "Pendiente"),
     },
+    {
+      key: "incluirBancario",
+      header: "Bancario",
+      render: (row) => (
+        <input
+          checked={row.incluirEnGastoBancario}
+          disabled={row.created}
+          onChange={(event) =>
+            updateRow(row.localId, { incluirEnGastoBancario: event.target.checked })
+          }
+          type="checkbox"
+        />
+      ),
+    },
+    {
+      key: "incluirReal",
+      header: "Real",
+      render: (row) => (
+        <input
+          checked={row.incluirEnGastoReal}
+          disabled={row.created}
+          onChange={(event) =>
+            updateRow(row.localId, { incluirEnGastoReal: event.target.checked })
+          }
+          type="checkbox"
+        />
+      ),
+    },
+    {
+      key: "acciones",
+      header: "Acciones",
+      render: (row) => (
+        <div className="table-actions">
+          <Button
+            disabled={row.created}
+            onClick={() => createSingleRow(row)}
+            variant="secondary"
+          >
+            Crear
+          </Button>
+        </div>
+      ),
+    },
   ];
+}
+
+function CategoriaModalContent({ categoriasGrupo, onCancel, onSubmit }) {
+  const [nombre, setNombre] = useState("");
+  const [categoriaGrupo, setCategoriaGrupo] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSubmit({
+      nombre: nombre.trim(),
+      categoriaGrupo: categoriaGrupo || null,
+    });
+  }
+
+  return (
+    <form className="stack-form" onSubmit={handleSubmit}>
+      <FormField id="importCategoriaNombre" label="Nombre">
+        <input
+          id="importCategoriaNombre"
+          minLength="2"
+          onChange={(event) => setNombre(event.target.value)}
+          required
+          value={nombre}
+        />
+      </FormField>
+      <FormField id="importCategoriaGrupo" label="Categoria principal">
+        <select
+          id="importCategoriaGrupo"
+          onChange={(event) => setCategoriaGrupo(event.target.value)}
+          value={categoriaGrupo}
+        >
+          <option value="">Sin categoria principal</option>
+          {categoriasGrupo.map((item) => (
+            <option key={item._id} value={item._id}>
+              {item.nombre}
+            </option>
+          ))}
+        </select>
+      </FormField>
+      <div className="button-row button-row-end">
+        <Button onClick={onCancel} variant="secondary">
+          Cancelar
+        </Button>
+        <Button type="submit">Guardar subcategoria</Button>
+      </div>
+    </form>
+  );
 }

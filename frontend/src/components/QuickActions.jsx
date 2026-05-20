@@ -9,6 +9,7 @@ export function QuickActions({ actions, title = "Acciones rapidas" }) {
       <div className="quick-actions-grid">
         {actions.map((action) => (
           <QuickActionCard
+            actionLabel={action.actionLabel}
             accent={action.accent}
             description={action.description}
             icon={action.icon}

@@ -1,13 +1,19 @@
 import Deuda from "../models/deudas.model.js";
 import { crearGastoService } from "./gasto.service.js";
 
+function calcularMontoCuota(montoTotal, cuotasTotales) {
+  return Number((Number(montoTotal) / Number(cuotasTotales)).toFixed(2));
+}
+
 export const crearDeudaService = async ({ usuarioId, data }) => {
+  const montoCuota = calcularMontoCuota(data.montoTotal, data.cuotasTotales);
+
   const deuda = await Deuda.create({
     usuario: usuarioId,
     descripcion: data.descripcion,
     montoTotal: data.montoTotal,
     cuotasTotales: data.cuotasTotales,
-    montoCuota: data.montoCuota,
+    montoCuota,
     fechaInicio: data.fechaInicio
   });
 

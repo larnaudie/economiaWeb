@@ -8,7 +8,13 @@ import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PeriodFilter } from "../components/PeriodFilter";
 import { PageLayout } from "../layout/PageLayout";
-import { apiRequest, getApiData, getUser, logout } from "../services/api";
+import {
+  apiRequest,
+  getApiData,
+  getUser,
+  logout,
+  uploadApiFile,
+} from "../services/api";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { buildDateRange, currentMonthPeriod } from "../utils/periodFilters";
 
@@ -18,6 +24,7 @@ function currentMonthFilters() {
     categoria: "",
     cuenta: "",
     search: "",
+    estado: "",
   };
 }
 
@@ -70,6 +77,7 @@ export function Expenses({ onLogout }) {
       if (nextFilters.categoria) params.set("categoria", nextFilters.categoria);
       if (nextFilters.cuenta) params.set("cuenta", nextFilters.cuenta);
       if (nextFilters.search.trim()) params.set("busqueda", nextFilters.search.trim());
+      if (nextFilters.estado) params.set("estado", nextFilters.estado);
 
       const response = await apiRequest(`/gastos?${params.toString()}`);
       const items = normalizeItems(response);
@@ -107,6 +115,13 @@ export function Expenses({ onLogout }) {
   const totals = useMemo(() => {
     return gastos.reduce(
       (acc, gasto) => {
+        if (gasto.estado === "pendiente") {
+          acc.pendientes++;
+          return acc;
+        }
+
+        acc.creados++;
+
         if (gasto.incluirEnGastoBancario !== false) {
           acc.bancario += Number(gasto.flujoBancario || 0);
         }
@@ -117,7 +132,7 @@ export function Expenses({ onLogout }) {
 
         return acc;
       },
-      { bancario: 0, real: 0 },
+      { bancario: 0, real: 0, creados: 0, pendientes: 0 },
     );
   }, [gastos]);
 
@@ -141,8 +156,19 @@ export function Expenses({ onLogout }) {
   }
 
   async function handleCreate(payload) {
+    const { facturaFile, ...gastoPayload } = payload;
+
     try {
-      await apiRequest("/gastos", { method: "POST", body: payload });
+      const response = await apiRequest("/gastos", {
+        method: "POST",
+        body: gastoPayload,
+      });
+      const created = getApiData(response);
+
+      if (facturaFile && created?._id) {
+        await uploadApiFile(`/gastos/${created._id}/factura`, "factura", facturaFile);
+      }
+
       setIsCreateOpen(false);
       setStatus({
         type: "success",
@@ -161,12 +187,22 @@ export function Expenses({ onLogout }) {
 
   async function handleEdit(payload) {
     if (!editingExpense?._id) return;
+    const { facturaFile, ...gastoPayload } = payload;
 
     try {
       await apiRequest(`/gastos/${editingExpense._id}`, {
         method: "PATCH",
-        body: payload,
+        body: gastoPayload,
       });
+
+      if (facturaFile) {
+        await uploadApiFile(
+          `/gastos/${editingExpense._id}/factura`,
+          "factura",
+          facturaFile,
+        );
+      }
+
       setEditingExpense(null);
       setStatus({
         type: "success",
@@ -269,6 +305,11 @@ export function Expenses({ onLogout }) {
     let failed = 0;
 
     for (const gasto of selectedExpenses) {
+      if (gasto.estado === "pendiente" && !bulkValues.cuenta && !bulkValues.categoria) {
+        failed++;
+        continue;
+      }
+
       try {
         const nextPercentage = hasPorcentaje
           ? porcentaje
@@ -371,6 +412,15 @@ export function Expenses({ onLogout }) {
       ),
     },
     {
+      key: "estado",
+      header: "Estado",
+      render: (gasto) => (
+        <span className={`status-pill status-${gasto.estado || "creado"}`}>
+          {gasto.estado === "pendiente" ? "Pendiente" : "Creado"}
+        </span>
+      ),
+    },
+    {
       key: "fecha",
       header: "Fecha",
       render: (gasto) => formatDate(gasto.fecha),
@@ -401,12 +451,29 @@ export function Expenses({ onLogout }) {
       render: (gasto) => formatCurrency(gasto.economiaReal),
     },
     {
+      key: "factura",
+      header: "Factura",
+      render: (gasto) =>
+        gasto.facturaUrl ? (
+          <a
+            className="text-link table-link"
+            href={gasto.facturaUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Ver
+          </a>
+        ) : (
+          "N/A"
+        ),
+    },
+    {
       key: "acciones",
       header: "Acciones",
       render: (gasto) => (
         <div className="table-actions">
           <Button onClick={() => setEditingExpense(gasto)} variant="secondary">
-            Editar
+            {gasto.estado === "pendiente" ? "Completar" : "Editar"}
           </Button>
           <Button onClick={() => handleDelete(gasto)} variant="danger">
             Eliminar
@@ -436,6 +503,8 @@ export function Expenses({ onLogout }) {
 
       <section className="metric-grid metric-grid-wide">
         <MetricCard label="Gastos listados" value={gastos.length} />
+        <MetricCard label="Creados" value={totals.creados} />
+        <MetricCard label="Pendientes" value={totals.pendientes} />
         <MetricCard
           label="Total bancario"
           value={formatCurrency(Math.abs(totals.bancario))}
@@ -444,7 +513,6 @@ export function Expenses({ onLogout }) {
           label="Total real"
           value={formatCurrency(Math.abs(totals.real))}
         />
-        <MetricCard label="Vista" value="Actualizada" />
       </section>
 
       <Card title="Filtros">
@@ -491,6 +559,18 @@ export function Expenses({ onLogout }) {
                   {cuenta.nombre}
                 </option>
               ))}
+            </select>
+          </FormField>
+
+          <FormField id="expenseFilterEstado" label="Estado">
+            <select
+              id="expenseFilterEstado"
+              onChange={(event) => updateFilter("estado", event.target.value)}
+              value={filters.estado}
+            >
+              <option value="">Todos</option>
+              <option value="creado">Creados</option>
+              <option value="pendiente">Pendientes</option>
             </select>
           </FormField>
 
@@ -573,6 +653,9 @@ export function Expenses({ onLogout }) {
         <DataTable
           columns={columns}
           emptyMessage="No hay gastos para el filtro seleccionado."
+          getRowProps={(gasto) => ({
+            className: gasto.estado === "pendiente" ? "pending-row" : "",
+          })}
           items={gastos}
           rowKey={(gasto) => gasto._id}
         />

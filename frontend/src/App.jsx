@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { Expenses } from "./pages/Expenses";
+import { PendingExpenses } from "./pages/PendingExpenses";
 import { Creations } from "./pages/Creations";
 import { Debts } from "./pages/Debts";
+import { CreditCards } from "./pages/CreditCards";
 import { ImportExpenses } from "./pages/ImportExpenses";
 import { AccountExpenses } from "./pages/AccountExpenses";
 import { Profile } from "./pages/Profile";
@@ -95,8 +97,10 @@ function App() {
 
   if (
     routeBase === "#/gastos" ||
+    routeBase === "#/gastos-pendientes" ||
     routeBase === "#/creaciones" ||
     routeBase === "#/deudas" ||
+    routeBase === "#/tarjetas-credito" ||
     routeBase === "#/importar-excel" ||
     routeBase === "#/importar-excel-personal" ||
     routeBase === "#/gastos-cuenta" ||
@@ -115,12 +119,25 @@ function App() {
       return <Expenses onLogout={() => navigate("#/login")} />;
     }
 
+    if (routeBase === "#/gastos-pendientes") {
+      return <PendingExpenses onLogout={() => navigate("#/login")} />;
+    }
+
     if (routeBase === "#/creaciones") {
       return <Creations onLogout={() => navigate("#/login")} />;
     }
 
     if (routeBase === "#/deudas") {
       return <Debts onLogout={() => navigate("#/login")} />;
+    }
+
+    if (routeBase === "#/tarjetas-credito") {
+      return (
+        <CreditCards
+          onLogout={() => navigate("#/login")}
+          selectedTarjetaId={routeParams.get("tarjeta") || ""}
+        />
+      );
     }
 
     if (routeBase === "#/gastos-cuenta") {

@@ -25,6 +25,81 @@ function generarHashGasto({
   return `${fechaNormalizada}|${descripcionNormalizada}|${flujo}|${real}|${cuentaId}`;
 }
 
+function generarHashPendiente() {
+  return `pendiente|${Date.now()}|${Math.random().toString(36).slice(2)}`;
+}
+
+function normalizarCampoOpcional(value) {
+  return value === "" ? null : value;
+}
+
+function validarGastoCreado(gasto) {
+  const requiredFields = [
+    "fecha",
+    "descripcion",
+    "flujoBancario",
+    "economiaReal",
+    "porcentajeEconomiaReal",
+    "categoria",
+    "cuenta",
+  ];
+
+  const missingField = requiredFields.find((field) => {
+    const value = gasto[field];
+    return value === undefined || value === null || value === "";
+  });
+
+  if (missingField) {
+    const error = new Error("Para marcar el gasto como creado faltan datos obligatorios.");
+    error.status = 400;
+    throw error;
+  }
+}
+
+function inferirEstadoGasto(gasto) {
+  const requiredFields = [
+    "fecha",
+    "descripcion",
+    "flujoBancario",
+    "economiaReal",
+    "porcentajeEconomiaReal",
+    "categoria",
+    "cuenta",
+  ];
+
+  const completo = requiredFields.every((field) => {
+    const value = gasto[field];
+    return value !== undefined && value !== null && value !== "";
+  });
+
+  return completo ? "creado" : "pendiente";
+}
+
+async function validarCuentaYCategoria({ usuarioId, cuenta, categoria }) {
+  if (cuenta) {
+    const cuentaEncontrada = await Cuenta.findOne({
+      _id: cuenta,
+      usuario: usuarioId,
+    });
+
+    if (!cuentaEncontrada) {
+      throw new Error("Cuenta no encontrada");
+    }
+  }
+
+  if (categoria) {
+    const categoriaEncontrada = await Categoria.findOne({
+      _id: categoria,
+      usuario: usuarioId,
+    });
+
+    if (!categoriaEncontrada) {
+      throw new Error("Categoria no encontrada");
+    }
+  }
+
+}
+
 export const obtenerGastosService = async (
   usuarioId,
   mes,
@@ -34,6 +109,7 @@ export const obtenerGastosService = async (
   categoria,
   cuenta,
   busqueda,
+  estado,
   flujoMin,
   flujoMax,
   realMin,
@@ -47,6 +123,7 @@ export const obtenerGastosService = async (
     categoria,
     cuenta,
     busqueda,
+    estado,
     flujoMin,
     flujoMax,
     realMin,
@@ -64,7 +141,6 @@ export const obtenerGastosService = async (
       },
     },
     { $unwind: { path: "$categoria", preserveNullAndEmptyArrays: true } },
-
     {
       $lookup: {
         from: "categoriagrupos",
@@ -74,7 +150,6 @@ export const obtenerGastosService = async (
       },
     },
     { $unwind: { path: "$categoriaGrupo", preserveNullAndEmptyArrays: true } },
-
     {
       $addFields: {
         "categoria.categoriaGrupo": "$categoriaGrupo",
@@ -85,7 +160,6 @@ export const obtenerGastosService = async (
         categoriaGrupo: 0,
       },
     },
-
     {
       $lookup: {
         from: "cuentas",
@@ -95,7 +169,6 @@ export const obtenerGastosService = async (
       },
     },
     { $unwind: { path: "$cuenta", preserveNullAndEmptyArrays: true } },
-
     { $sort: { ordenCuenta: 1, fecha: -1, _id: -1 } },
   );
 
@@ -122,32 +195,23 @@ export const obtenerGastoPorIdService = async (id, usuarioId) => {
 };
 
 export const actualizarGastoService = async ({ id, usuarioId, data }) => {
-  if (data.cuenta !== undefined) {
-    const cuenta = await Cuenta.findOne({
-      _id: data.cuenta,
-      usuario: usuarioId,
-    });
-
-    if (!cuenta) {
-      throw new Error("Cuenta no encontrada");
-    }
-  }
-
-  if (data.categoria !== undefined) {
-    const categoria = await Categoria.findOne({
-      _id: data.categoria,
-      usuario: usuarioId,
-    });
-
-    if (!categoria) {
-      throw new Error("Categoría no encontrada");
-    }
-  }
   const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
 
   if (!gasto) {
     throw new Error("Gasto no encontrado");
   }
+
+  const nextCuenta =
+    data.cuenta !== undefined ? normalizarCampoOpcional(data.cuenta) : gasto.cuenta;
+  const nextCategoria =
+    data.categoria !== undefined
+      ? normalizarCampoOpcional(data.categoria)
+      : gasto.categoria;
+  await validarCuentaYCategoria({
+    usuarioId,
+    cuenta: nextCuenta,
+    categoria: nextCategoria,
+  });
 
   if (data.fecha !== undefined) gasto.fecha = data.fecha;
   if (data.descripcion !== undefined) gasto.descripcion = data.descripcion;
@@ -156,8 +220,11 @@ export const actualizarGastoService = async ({ id, usuarioId, data }) => {
   if (data.economiaReal !== undefined) gasto.economiaReal = data.economiaReal;
   if (data.porcentajeEconomiaReal !== undefined)
     gasto.porcentajeEconomiaReal = data.porcentajeEconomiaReal;
-  if (data.categoria !== undefined) gasto.categoria = data.categoria;
-  if (data.cuenta !== undefined) gasto.cuenta = data.cuenta;
+  if (data.categoria !== undefined)
+    gasto.categoria = normalizarCampoOpcional(data.categoria);
+  if (data.cuenta !== undefined) gasto.cuenta = normalizarCampoOpcional(data.cuenta);
+  if (data.facturaUrl !== undefined) gasto.facturaUrl = data.facturaUrl;
+  if (data.facturaPublicId !== undefined) gasto.facturaPublicId = data.facturaPublicId;
 
   if (data.incluirEnGastoBancario !== undefined) {
     gasto.incluirEnGastoBancario = data.incluirEnGastoBancario;
@@ -167,7 +234,39 @@ export const actualizarGastoService = async ({ id, usuarioId, data }) => {
     gasto.incluirEnGastoReal = data.incluirEnGastoReal;
   }
 
+  gasto.estado = inferirEstadoGasto(gasto);
+
+  if (gasto.estado === "creado") {
+    validarGastoCreado(gasto);
+    gasto.hashImportacion = generarHashGasto({
+      fecha: gasto.fecha,
+      descripcion: gasto.descripcion,
+      flujoBancario: gasto.flujoBancario,
+      economiaReal: gasto.economiaReal,
+      cuenta: gasto.cuenta,
+    });
+  }
+
   await gasto.save();
+  return gasto;
+};
+
+export const actualizarFacturaGastoService = async ({
+  id,
+  usuarioId,
+  facturaUrl,
+  facturaPublicId,
+}) => {
+  const gasto = await Gasto.findOne({ _id: id, usuario: usuarioId });
+
+  if (!gasto) {
+    throw new Error("Gasto no encontrado");
+  }
+
+  gasto.facturaUrl = facturaUrl;
+  gasto.facturaPublicId = facturaPublicId || "";
+  await gasto.save();
+
   return gasto;
 };
 
@@ -185,47 +284,47 @@ export const eliminarGastoService = async (id, usuarioId) => {
 };
 
 export const crearGastoService = async ({ usuarioId, data }) => {
-  const cuenta = await Cuenta.findOne({
-    _id: data.cuenta,
+  const fecha = data.fecha || new Date();
+  const cuenta = normalizarCampoOpcional(data.cuenta);
+  const categoria = normalizarCampoOpcional(data.categoria);
+
+  await validarCuentaYCategoria({ usuarioId, cuenta, categoria });
+
+  const gastoData = {
     usuario: usuarioId,
-  });
-
-  if (!cuenta) {
-    throw new Error("Cuenta no encontrada");
-  }
-
-  const categoria = await Categoria.findOne({
-    _id: data.categoria,
-    usuario: usuarioId,
-  });
-
-  if (!categoria) {
-    throw new Error("Categoría no encontrada");
-  }
-  const hashImportacion = generarHashGasto({
-    fecha: data.fecha,
+    fecha,
     descripcion: data.descripcion,
-    flujoBancario: data.flujoBancario,
-    economiaReal: data.economiaReal,
-    cuenta: data.cuenta,
-  });
+    flujoBancario: data.flujoBancario ?? null,
+    economiaReal: data.economiaReal ?? null,
+    porcentajeEconomiaReal: data.porcentajeEconomiaReal ?? null,
+    categoria,
+    cuenta,
+    incluirEnGastoBancario: data.incluirEnGastoBancario ?? true,
+    incluirEnGastoReal: data.incluirEnGastoReal ?? true,
+    facturaUrl: data.facturaUrl || "",
+    facturaPublicId: data.facturaPublicId || "",
+    origen: data.origen || "manual",
+    tarjetaCredito: data.tarjetaCredito || null,
+    movimientoTarjeta: data.movimientoTarjeta || null,
+  };
 
-  try {
-    const nuevoGasto = await Gasto.create({
-      usuario: usuarioId,
-      fecha: data.fecha,
+  gastoData.estado = inferirEstadoGasto(gastoData);
+
+  if (gastoData.estado === "creado") {
+    validarGastoCreado(gastoData);
+    gastoData.hashImportacion = generarHashGasto({
+      fecha,
       descripcion: data.descripcion,
       flujoBancario: data.flujoBancario,
       economiaReal: data.economiaReal,
-      porcentajeEconomiaReal: data.porcentajeEconomiaReal,
-      categoria: data.categoria,
-      cuenta: data.cuenta,
-      incluirEnGastoBancario: data.incluirEnGastoBancario ?? true,
-      incluirEnGastoReal: data.incluirEnGastoReal ?? true,
-      hashImportacion,
+      cuenta,
     });
+  } else {
+    gastoData.hashImportacion = data.hashImportacion || generarHashPendiente();
+  }
 
-    return nuevoGasto;
+  try {
+    return await Gasto.create(gastoData);
   } catch (error) {
     if (error.code === 11000) {
       const err = new Error("Este gasto ya existe para esta cuenta.");
@@ -246,6 +345,7 @@ export const obtenerGastosPorUsuarioService = async (
   categoria,
   cuenta,
   busqueda,
+  estado,
   flujoMin,
   flujoMax,
   realMin,
@@ -260,6 +360,7 @@ export const obtenerGastosPorUsuarioService = async (
     categoria,
     cuenta,
     busqueda,
+    estado,
     flujoMin,
     flujoMax,
     realMin,
@@ -273,23 +374,11 @@ export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
   }
 
   for (const gasto of gastos) {
-    const cuenta = await Cuenta.findOne({
-      _id: gasto.cuenta,
-      usuario: usuarioId,
+    await validarCuentaYCategoria({
+      usuarioId,
+      cuenta: gasto.cuenta,
+      categoria: gasto.categoria,
     });
-
-    if (!cuenta) {
-      throw new Error("Cuenta no encontrada");
-    }
-
-    const categoria = await Categoria.findOne({
-      _id: gasto.categoria,
-      usuario: usuarioId,
-    });
-
-    if (!categoria) {
-      throw new Error("Categoría no encontrada");
-    }
   }
 
   const operaciones = buildBulkCreateGastos({ usuarioId, gastos });
@@ -305,7 +394,7 @@ export const crearGastosBulkService = async ({ usuarioId, gastos }) => {
       error.code === 11000 ||
       error.writeErrors?.some((e) => e.code === 11000)
     ) {
-      const err = new Error("Uno o más gastos ya existen para esta cuenta.");
+      const err = new Error("Uno o mas gastos ya existen para esta cuenta.");
       err.status = 409;
       throw err;
     }
@@ -320,26 +409,12 @@ export const actualizarGastosBulkService = async ({ usuarioId, gastos }) => {
   }
 
   for (const gasto of gastos) {
-    if (gasto.cuenta !== undefined) {
-      const cuenta = await Cuenta.findOne({
-        _id: gasto.cuenta,
-        usuario: usuarioId,
+    if (gasto.cuenta !== undefined || gasto.categoria !== undefined) {
+      await validarCuentaYCategoria({
+        usuarioId,
+        cuenta: gasto.cuenta,
+        categoria: gasto.categoria,
       });
-
-      if (!cuenta) {
-        throw new Error("Cuenta no encontrada");
-      }
-    }
-
-    if (gasto.categoria !== undefined) {
-      const categoria = await Categoria.findOne({
-        _id: gasto.categoria,
-        usuario: usuarioId,
-      });
-
-      if (!categoria) {
-        throw new Error("Categoría no encontrada");
-      }
     }
   }
 

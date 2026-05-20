@@ -8,7 +8,13 @@ import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PeriodFilter } from "../components/PeriodFilter";
 import { PageLayout } from "../layout/PageLayout";
-import { apiRequest, getApiData, getUser, logout } from "../services/api";
+import {
+  apiRequest,
+  getApiData,
+  getUser,
+  logout,
+  uploadApiFile,
+} from "../services/api";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { buildDateRange, currentMonthPeriod } from "../utils/periodFilters";
 
@@ -118,22 +124,24 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   }, [appliedFilters, loadExpenses, selectedCuenta]);
 
   const totals = useMemo(() => {
-    return gastos.reduce(
-      (acc, gasto) => {
-        const flujo = Number(gasto.flujoBancario || 0);
-        const real = Number(gasto.economiaReal || 0);
-        acc.saldo += flujo;
-        if (gasto.incluirEnGastoBancario !== false && flujo < 0) acc.bancario += flujo;
-        if (gasto.incluirEnGastoReal !== false && real < 0) acc.real += real;
-        return acc;
-      },
-      { bancario: 0, real: 0, saldo: 0 },
-    );
+    return gastos
+      .filter((gasto) => gasto.estado !== "pendiente")
+      .reduce(
+        (acc, gasto) => {
+          const flujo = Number(gasto.flujoBancario || 0);
+          const real = Number(gasto.economiaReal || 0);
+          acc.saldo += flujo;
+          if (gasto.incluirEnGastoBancario !== false && flujo < 0) acc.bancario += flujo;
+          if (gasto.incluirEnGastoReal !== false && real < 0) acc.real += real;
+          return acc;
+        },
+        { bancario: 0, real: 0, saldo: 0 },
+      );
   }, [gastos]);
 
   const categoryTotals = useMemo(() => {
     const map = new Map();
-    gastos.forEach((gasto) => {
+    gastos.filter((gasto) => gasto.estado !== "pendiente").forEach((gasto) => {
       if (gasto.incluirEnGastoReal === false) return;
       const key = gasto.categoria?.nombre || "Sin categoria";
       map.set(key, (map.get(key) || 0) + Math.abs(Number(gasto.economiaReal || 0)));
@@ -172,11 +180,19 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   }
 
   async function handleCreate(payload) {
+    const { facturaFile, ...gastoPayload } = payload;
+
     try {
-      await apiRequest("/gastos", {
+      const response = await apiRequest("/gastos", {
         method: "POST",
-        body: { ...payload, cuenta: selectedCuenta },
+        body: { ...gastoPayload, cuenta: selectedCuenta },
       });
+      const created = getApiData(response);
+
+      if (facturaFile && created?._id) {
+        await uploadApiFile(`/gastos/${created._id}/factura`, "factura", facturaFile);
+      }
+
       setIsCreateOpen(false);
       setStatus({ type: "success", title: "Gasto creado", message: "Se guardo correctamente." });
       await loadExpenses(selectedCuenta, appliedFilters);
@@ -187,12 +203,22 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
 
   async function handleEdit(payload) {
     if (!editingExpense?._id) return;
+    const { facturaFile, ...gastoPayload } = payload;
 
     try {
       await apiRequest(`/gastos/${editingExpense._id}`, {
         method: "PATCH",
-        body: { ...payload, cuenta: selectedCuenta },
+        body: { ...gastoPayload, cuenta: selectedCuenta },
       });
+
+      if (facturaFile) {
+        await uploadApiFile(
+          `/gastos/${editingExpense._id}/factura`,
+          "factura",
+          facturaFile,
+        );
+      }
+
       setEditingExpense(null);
       setStatus({ type: "success", title: "Gasto actualizado", message: "Se guardo correctamente." });
       await loadExpenses(selectedCuenta, appliedFilters);
@@ -357,11 +383,37 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
         />
       ),
     },
+    {
+      key: "estado",
+      header: "Estado",
+      render: (gasto) => (
+        <span className={`status-pill status-${gasto.estado || "creado"}`}>
+          {gasto.estado === "pendiente" ? "Pendiente" : "Creado"}
+        </span>
+      ),
+    },
     { key: "fecha", header: "Fecha", render: (gasto) => formatDate(gasto.fecha) },
     { key: "descripcion", header: "Descripcion", render: (gasto) => gasto.descripcion || "N/A" },
     { key: "bancario", header: "Bancario", render: (gasto) => formatCurrency(gasto.flujoBancario) },
     { key: "real", header: "Real", render: (gasto) => formatCurrency(gasto.economiaReal) },
     { key: "categoria", header: "Categoria", render: (gasto) => gasto.categoria?.nombre || "N/A" },
+    {
+      key: "factura",
+      header: "Factura",
+      render: (gasto) =>
+        gasto.facturaUrl ? (
+          <a
+            className="text-link table-link"
+            href={gasto.facturaUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Ver
+          </a>
+        ) : (
+          "N/A"
+        ),
+    },
     {
       key: "acciones",
       header: "Acciones",

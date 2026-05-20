@@ -37,11 +37,15 @@ export function ExpenseForm({
   categorias,
   cuentas,
   expense,
+  mode = "full",
   onCancel,
   onSubmit,
   submitLabel = "Guardar gasto",
 }) {
   const [form, setForm] = useState(() => getInitialState(expense));
+  const [facturaFile, setFacturaFile] = useState(null);
+  const [showAccountingFields, setShowAccountingFields] = useState(mode !== "quick");
+  const isQuickMode = mode === "quick";
 
   const economiaReal = useMemo(() => {
     if (form.flujoBancario === "" || form.porcentajeEconomiaReal === "") {
@@ -66,44 +70,23 @@ export function ExpenseForm({
     onSubmit({
       fecha: form.fecha,
       descripcion: form.descripcion.trim(),
-      flujoBancario: Number(form.flujoBancario),
-      economiaReal: Number(economiaReal),
-      porcentajeEconomiaReal: Number(form.porcentajeEconomiaReal),
-      categoria: form.categoria,
-      cuenta: form.cuenta,
+      flujoBancario: form.flujoBancario === "" ? null : Number(form.flujoBancario),
+      economiaReal: economiaReal === "" ? null : Number(economiaReal),
+      porcentajeEconomiaReal:
+        form.porcentajeEconomiaReal === ""
+          ? null
+          : Number(form.porcentajeEconomiaReal),
+      categoria: form.categoria || null,
+      cuenta: form.cuenta || null,
       incluirEnGastoBancario:
         Number(form.flujoBancario) !== 0 && form.incluirEnGastoBancario,
       incluirEnGastoReal: Number(economiaReal) !== 0 && form.incluirEnGastoReal,
+      facturaFile,
     });
   }
 
   return (
     <form className="stack-form" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <FormField id="expenseFecha" label="Fecha">
-          <input
-            id="expenseFecha"
-            onChange={(event) => updateField("fecha", event.target.value)}
-            required
-            type="date"
-            value={form.fecha}
-          />
-        </FormField>
-
-        <FormField id="expenseFlujo" label="Gasto bancario">
-          <input
-            id="expenseFlujo"
-            onChange={(event) =>
-              updateField("flujoBancario", event.target.value)
-            }
-            required
-            step="0.01"
-            type="number"
-            value={form.flujoBancario}
-          />
-        </FormField>
-      </div>
-
       <FormField id="expenseDescripcion" label="Descripcion">
         <textarea
           id="expenseDescripcion"
@@ -115,83 +98,140 @@ export function ExpenseForm({
         />
       </FormField>
 
-      <div className="form-grid">
-        <FormField id="expensePorcentaje" label="Porcentaje gasto real">
-          <input
-            id="expensePorcentaje"
-            max="100"
-            min="0"
-            onChange={(event) =>
-              updateField("porcentajeEconomiaReal", event.target.value)
-            }
-            required
-            step="0.01"
-            type="number"
-            value={form.porcentajeEconomiaReal}
-          />
-        </FormField>
+      <FormField id="expenseFecha" label="Fecha">
+        <input
+          id="expenseFecha"
+          onChange={(event) => updateField("fecha", event.target.value)}
+          type="date"
+          value={form.fecha}
+        />
+      </FormField>
 
-        <FormField id="expenseEconomia" label="Gasto real">
-          <input id="expenseEconomia" readOnly type="number" value={economiaReal} />
-        </FormField>
-      </div>
-
-      <div className="form-grid">
-        <FormField id="expenseCategoria" label="Subcategoria">
-          <select
-            id="expenseCategoria"
-            onChange={(event) => updateField("categoria", event.target.value)}
-            required
-            value={form.categoria}
+      <FormField id="expenseFactura" label="Factura">
+        <input
+          accept="image/*"
+          capture="environment"
+          id="expenseFactura"
+          onChange={(event) => setFacturaFile(event.target.files?.[0] || null)}
+          type="file"
+        />
+        {expense?.facturaUrl ? (
+          <a
+            className="text-link"
+            href={expense.facturaUrl}
+            rel="noreferrer"
+            target="_blank"
           >
-            <option value="">Seleccionar subcategoria</option>
-            {categorias.map((categoria) => (
-              <option key={categoria._id} value={categoria._id}>
-                {categoria.nombre}
-              </option>
-            ))}
-          </select>
-        </FormField>
+            Ver factura actual
+          </a>
+        ) : null}
+        <small className="field-hint">
+          Opcional. Desde celular podes sacar foto o elegir una imagen.
+        </small>
+      </FormField>
 
-        <FormField id="expenseCuenta" label="Cuenta">
-          <select
-            id="expenseCuenta"
-            onChange={(event) => updateField("cuenta", event.target.value)}
-            required
-            value={form.cuenta}
+      {isQuickMode ? (
+        <div className="quick-expense-note">
+          <strong>Lo podes completar despues</strong>
+          <span>Si faltan monto, cuenta o categoria, el sistema lo guarda como pendiente.</span>
+          <Button
+            onClick={() => setShowAccountingFields((current) => !current)}
+            variant="secondary"
           >
-            <option value="">Seleccionar cuenta</option>
-            {cuentas.map((cuenta) => (
-              <option key={cuenta._id} value={cuenta._id}>
-                {cuenta.nombre}
-              </option>
-            ))}
-          </select>
-        </FormField>
-      </div>
+            {showAccountingFields ? "Ocultar detalles" : "Agregar detalles ahora"}
+          </Button>
+        </div>
+      ) : null}
 
-      <div className="check-row">
-        <label>
-          <input
-            checked={form.incluirEnGastoBancario}
-            onChange={(event) =>
-              updateField("incluirEnGastoBancario", event.target.checked)
-            }
-            type="checkbox"
-          />
-          Incluir en gasto bancario
-        </label>
-        <label>
-          <input
-            checked={form.incluirEnGastoReal}
-            onChange={(event) =>
-              updateField("incluirEnGastoReal", event.target.checked)
-            }
-            type="checkbox"
-          />
-          Incluir en gasto real
-        </label>
-      </div>
+      {showAccountingFields ? (
+        <>
+          <div className="form-grid">
+            <FormField id="expenseFlujo" label="Gasto bancario">
+              <input
+                id="expenseFlujo"
+                onChange={(event) =>
+                  updateField("flujoBancario", event.target.value)
+                }
+                step="0.01"
+                type="number"
+                value={form.flujoBancario}
+              />
+            </FormField>
+            <FormField id="expensePorcentaje" label="Porcentaje gasto real">
+              <input
+                id="expensePorcentaje"
+                max="100"
+                min="0"
+                onChange={(event) =>
+                  updateField("porcentajeEconomiaReal", event.target.value)
+                }
+                step="0.01"
+                type="number"
+                value={form.porcentajeEconomiaReal}
+              />
+            </FormField>
+
+            <FormField id="expenseEconomia" label="Gasto real">
+              <input id="expenseEconomia" readOnly type="number" value={economiaReal} />
+            </FormField>
+          </div>
+
+          <div className="form-grid">
+            <FormField id="expenseCategoria" label="Subcategoria">
+              <select
+                id="expenseCategoria"
+                onChange={(event) => updateField("categoria", event.target.value)}
+                value={form.categoria}
+              >
+                <option value="">Seleccionar subcategoria</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria._id} value={categoria._id}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField id="expenseCuenta" label="Cuenta">
+              <select
+                id="expenseCuenta"
+                onChange={(event) => updateField("cuenta", event.target.value)}
+                value={form.cuenta}
+              >
+                <option value="">Seleccionar cuenta</option>
+                {cuentas.map((cuenta) => (
+                  <option key={cuenta._id} value={cuenta._id}>
+                    {cuenta.nombre}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+
+          <div className="check-row">
+            <label>
+              <input
+                checked={form.incluirEnGastoBancario}
+                onChange={(event) =>
+                  updateField("incluirEnGastoBancario", event.target.checked)
+                }
+                type="checkbox"
+              />
+              Incluir en gasto bancario
+            </label>
+            <label>
+              <input
+                checked={form.incluirEnGastoReal}
+                onChange={(event) =>
+                  updateField("incluirEnGastoReal", event.target.checked)
+                }
+                type="checkbox"
+              />
+              Incluir en gasto real
+            </label>
+          </div>
+        </>
+      ) : null}
 
       <div className="button-row button-row-end">
         {onCancel ? (

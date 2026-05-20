@@ -8,6 +8,7 @@ import { Modal } from "../components/Modal";
 import { QuickActions } from "../components/QuickActions";
 import { PageLayout } from "../layout/PageLayout";
 import { apiRequest, getApiData, getUser, logout } from "../services/api";
+import { buildQuickActions } from "../utils/quickActions";
 
 const entityConfig = {
   bancos: {
@@ -35,6 +36,10 @@ const entityConfig = {
 function normalizeItems(response) {
   const data = getApiData(response);
   return Array.isArray(data) ? data : [];
+}
+
+function navigateToExpenses() {
+  window.location.assign("#/gastos");
 }
 
 export function Creations({ onLogout }) {
@@ -90,27 +95,28 @@ export function Creations({ onLogout }) {
 
   const activeConfig = entityConfig[activeEntity];
   const activeItems = itemsByEntity[activeEntity];
-  const quickActions = [
+  const quickActions = buildQuickActions(
     {
-      accent: "primary",
-      description: "Crear un gasto desde la pantalla de gastos.",
-      icon: "+",
-      title: "Crear Gasto",
-      onClick: () => {
-        window.location.hash = "#/gastos";
-      },
-    },
-    ...Object.entries(entityConfig).map(([key, config]) => ({
-      accent: activeEntity === key ? "primary" : "neutral",
-      description: `Crear un nuevo ${config.singular.toLowerCase()}.`,
-      icon: config.singular.slice(0, 1),
-      title: `Crear ${config.singular}`,
-      onClick: () => {
-        setActiveEntity(key);
+      gasto: navigateToExpenses,
+      categoriasGrupo: () => {
+        setActiveEntity("categoriasGrupo");
         setModalState({ mode: "create", item: null });
       },
-    })),
-  ];
+      categorias: () => {
+        setActiveEntity("categorias");
+        setModalState({ mode: "create", item: null });
+      },
+      bancos: () => {
+        setActiveEntity("bancos");
+        setModalState({ mode: "create", item: null });
+      },
+      cuentas: () => {
+        setActiveEntity("cuentas");
+        setModalState({ mode: "create", item: null });
+      },
+    },
+    { activeKey: activeEntity },
+  );
 
   const columns = buildColumns({
     entity: activeEntity,
@@ -200,9 +206,7 @@ export function Creations({ onLogout }) {
         <div className="tabs-row" role="tablist">
           <button
             className="tab-button"
-            onClick={() => {
-              window.location.hash = "#/gastos";
-            }}
+            onClick={navigateToExpenses}
             type="button"
           >
             Gastos

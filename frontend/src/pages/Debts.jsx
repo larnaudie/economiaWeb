@@ -253,8 +253,18 @@ function DebtForm({ onCancel, onSubmit }) {
   const [descripcion, setDescripcion] = useState("");
   const [montoTotal, setMontoTotal] = useState("");
   const [cuotasTotales, setCuotasTotales] = useState("");
-  const [montoCuota, setMontoCuota] = useState("");
   const [fechaInicio, setFechaInicio] = useState(todayInputValue());
+
+  const cuotaCalculada = useMemo(() => {
+    const total = Number(montoTotal);
+    const cuotas = Number(cuotasTotales);
+
+    if (!total || !cuotas || Number.isNaN(total) || Number.isNaN(cuotas)) {
+      return 0;
+    }
+
+    return Number((total / cuotas).toFixed(2));
+  }, [cuotasTotales, montoTotal]);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -262,7 +272,6 @@ function DebtForm({ onCancel, onSubmit }) {
       descripcion: descripcion.trim(),
       montoTotal: Number(montoTotal),
       cuotasTotales: Number(cuotasTotales),
-      montoCuota: Number(montoCuota),
       fechaInicio,
     });
   }
@@ -301,17 +310,12 @@ function DebtForm({ onCancel, onSubmit }) {
         </FormField>
       </div>
 
+      <div className="calculated-preview">
+        <span>Cuota calculada</span>
+        <strong>{formatCurrency(cuotaCalculada)}</strong>
+      </div>
+
       <div className="form-grid">
-        <FormField id="debtInstallmentAmount" label="Monto cuota">
-          <input
-            id="debtInstallmentAmount"
-            onChange={(event) => setMontoCuota(event.target.value)}
-            required
-            step="0.01"
-            type="number"
-            value={montoCuota}
-          />
-        </FormField>
         <FormField id="debtStartDate" label="Fecha inicio">
           <input
             id="debtStartDate"

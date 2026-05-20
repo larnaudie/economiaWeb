@@ -3,14 +3,23 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { ComparisonBars, MiniBarChart, MonthlyBars } from "../components/Charts";
+import { ExpenseForm } from "../components/ExpenseForm";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PeriodFilter } from "../components/PeriodFilter";
 import { QuickActions } from "../components/QuickActions";
 import { PageLayout } from "../layout/PageLayout";
-import { apiRequest, getApiData, getToken, getUser, logout } from "../services/api";
+import {
+  apiRequest,
+  getApiData,
+  getToken,
+  getUser,
+  logout,
+  uploadApiFile,
+} from "../services/api";
 import { formatCurrency } from "../utils/formatters";
 import { buildDateRange, currentMonthPeriod } from "../utils/periodFilters";
+import { buildQuickActions } from "../utils/quickActions";
 
 const initialStatus = {
   type: "",
@@ -18,29 +27,9 @@ const initialStatus = {
   message: "",
 };
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function normalizeItems(response) {
   const data = getApiData(response);
   return Array.isArray(data) ? data : [];
-}
-
-async function fetchAllExpenses() {
-  let page = 1;
-  let all = [];
-  let keepGoing = true;
-
-  while (keepGoing) {
-    const response = await apiRequest(`/gastos?pagina=${page}`);
-    const items = normalizeItems(response);
-    all = [...all, ...items];
-    keepGoing = items.length === 20;
-    page++;
-  }
-
-  return all;
 }
 
 export function Dashboard({ authVersion, onLogout }) {
@@ -85,7 +74,8 @@ export function Dashboard({ authVersion, onLogout }) {
       setCuentas(normalizeItems(cuentasResp));
       setCategorias(normalizeItems(categoriasResp));
       setCategoriasGrupo(normalizeItems(gruposResp));
-      const gastosData = await fetchAllExpenses();
+      const gastosResp = await apiRequest("/gastos");
+      const gastosData = normalizeItems(gastosResp);
       setGastos(gastosData);
       setDeudas(normalizeItems(deudasResp));
       setPendingCount(gastosData.filter((gasto) => gasto.estado === "pendiente").length);
@@ -112,10 +102,11 @@ export function Dashboard({ authVersion, onLogout }) {
     setStatus(initialStatus);
 
     try {
-      await apiRequest(endpoint, {
+      const response = await apiRequest(endpoint, {
         method: "POST",
         body: payload,
       });
+      const created = getApiData(response);
 
       setStatus({
         type: "success",
@@ -124,12 +115,14 @@ export function Dashboard({ authVersion, onLogout }) {
       });
       setActiveModal("");
       await loadResources();
+      return created;
     } catch (error) {
       setStatus({
         type: "error",
         title: "No se pudo guardar",
         message: error.message,
       });
+      return null;
     }
   }
 
@@ -153,11 +146,27 @@ export function Dashboard({ authVersion, onLogout }) {
     });
   }, [cuentas, selectedBanco]);
 
+  const dashboardScope = useMemo(() => {
+    if (selectedCuenta) {
+      const cuenta = cuentas.find((item) => item._id === selectedCuenta);
+      return cuenta?.nombre || "Cuenta seleccionada";
+    }
+
+    if (selectedBanco) {
+      const banco = bancos.find((item) => item._id === selectedBanco);
+      return banco ? `Banco ${banco.nombre}` : "Banco seleccionado";
+    }
+
+    return "Todas las cuentas";
+  }, [bancos, cuentas, selectedBanco, selectedCuenta]);
+
   const gastosFiltrados = useMemo(() => {
     const cuentasPermitidas = new Set(cuentasFiltradas.map((cuenta) => cuenta._id));
     const { fechaDesde, fechaHasta } = buildDateRange(periodFilters);
 
     return gastos.filter((gasto) => {
+      if (gasto.estado === "pendiente") return false;
+
       const cuentaId =
         typeof gasto.cuenta === "object" ? gasto.cuenta?._id : gasto.cuenta;
       const fecha = gasto.fecha ? new Date(gasto.fecha).toISOString().slice(0, 10) : "";
@@ -175,11 +184,14 @@ export function Dashboard({ authVersion, onLogout }) {
     let real = 0;
 
     gastosFiltrados.forEach((gasto) => {
-      if (gasto.incluirEnGastoBancario !== false) {
+      const flujo = Number(gasto.flujoBancario || 0);
+      const realValue = Number(gasto.economiaReal || 0);
+
+      if (gasto.incluirEnGastoBancario !== false && flujo < 0) {
         bancario += Number(gasto.flujoBancario || 0);
       }
 
-      if (gasto.incluirEnGastoReal !== false) {
+      if (gasto.incluirEnGastoReal !== false && realValue < 0) {
         real += Number(gasto.economiaReal || 0);
       }
     });
@@ -187,7 +199,7 @@ export function Dashboard({ authVersion, onLogout }) {
     return {
       bancario,
       real,
-      cantidad: gastosFiltrados.length,
+      cantidad: gastosFiltrados.filter((gasto) => gasto.estado !== "pendiente").length,
     };
   }, [gastosFiltrados]);
 
@@ -196,13 +208,15 @@ export function Dashboard({ authVersion, onLogout }) {
 
     gastosFiltrados.forEach((gasto) => {
       if (gasto.incluirEnGastoReal === false) return;
+      const realValue = Number(gasto.economiaReal || 0);
+      if (realValue >= 0) return;
 
       const nombre =
         categoryGrouping === "principal"
           ? gasto.categoria?.categoriaGrupo?.nombre || "Sin categoria principal"
           : gasto.categoria?.nombre || "Sin categoria";
       const actual = map.get(nombre) || 0;
-      map.set(nombre, actual + Math.abs(Number(gasto.economiaReal || 0)));
+      map.set(nombre, actual + Math.abs(realValue));
     });
 
     return Array.from(map.entries())
@@ -216,13 +230,15 @@ export function Dashboard({ authVersion, onLogout }) {
 
     gastosFiltrados.forEach((gasto) => {
       if (gasto.incluirEnGastoBancario === false) return;
+      const flujo = Number(gasto.flujoBancario || 0);
+      if (flujo >= 0) return;
 
       const nombre =
         categoryGrouping === "principal"
           ? gasto.categoria?.categoriaGrupo?.nombre || "Sin categoria principal"
           : gasto.categoria?.nombre || "Sin categoria";
       const actual = map.get(nombre) || 0;
-      map.set(nombre, actual + Math.abs(Number(gasto.flujoBancario || 0)));
+      map.set(nombre, actual + Math.abs(flujo));
     });
 
     return Array.from(map.entries())
@@ -246,11 +262,15 @@ export function Dashboard({ authVersion, onLogout }) {
 
       const item = map.get(key);
 
-      if (gasto.incluirEnGastoBancario !== false) {
+      const flujo = Number(gasto.flujoBancario || 0);
+
+      if (gasto.incluirEnGastoBancario !== false && flujo < 0) {
         item.bancario += Number(gasto.flujoBancario || 0);
       }
 
-      if (gasto.incluirEnGastoReal !== false) {
+      const realValue = Number(gasto.economiaReal || 0);
+
+      if (gasto.incluirEnGastoReal !== false && realValue < 0) {
         item.real += Number(gasto.economiaReal || 0);
       }
     });
@@ -276,40 +296,13 @@ export function Dashboard({ authVersion, onLogout }) {
     };
   }, [deudas]);
 
-  const quickActions = [
-    {
-      accent: "primary",
-      icon: "+",
-      title: "Crear Gasto",
-      description:
-        "Primer flujo del usuario. Luego lo convertiremos en gasto pendiente con factura.",
-      onClick: () => setActiveModal("gasto"),
-    },
-    {
-      icon: "C",
-      title: "Crear Categoria Principal",
-      description: "Agrupa subcategorias y mejora el dashboard.",
-      onClick: () => setActiveModal("categoriaGrupo"),
-    },
-    {
-      icon: "S",
-      title: "Crear Subcategoria",
-      description: "Clasifica gastos con menos pasos.",
-      onClick: () => setActiveModal("categoria"),
-    },
-    {
-      icon: "B",
-      title: "Crear Banco",
-      description: "Registra una institucion para tus cuentas.",
-      onClick: () => setActiveModal("banco"),
-    },
-    {
-      icon: "$",
-      title: "Crear Cuenta",
-      description: "Asocia una cuenta a un banco existente.",
-      onClick: () => setActiveModal("cuenta"),
-    },
-  ];
+  const quickActions = buildQuickActions({
+    gasto: () => setActiveModal("gasto"),
+    categoriasGrupo: () => setActiveModal("categoriaGrupo"),
+    categorias: () => setActiveModal("categoria"),
+    bancos: () => setActiveModal("banco"),
+    cuentas: () => setActiveModal("cuenta"),
+  });
 
   function updatePeriodFilter(field, value) {
     setPeriodFilters((current) => ({ ...current, [field]: value }));
@@ -318,7 +311,7 @@ export function Dashboard({ authVersion, onLogout }) {
   return (
     <PageLayout
       title="Dashboard"
-      subtitle="Acciones rapidas fijas y datos reales desde MongoDB."
+      subtitle="Tu resumen diario y los accesos principales para cargar movimientos sin perder tiempo."
       user={user}
       onLogout={() => {
         logout();
@@ -334,11 +327,20 @@ export function Dashboard({ authVersion, onLogout }) {
       ) : null}
 
       {pendingCount > 0 ? (
-        <Alert
-          tone="warning"
-          title={`Tienes ${pendingCount} gastos pendientes por crear`}
-          message="Este banner ya esta preparado. En el siguiente punto ajustaremos el backend para crear y completar pendientes."
-        />
+        <section className="pending-warning-banner">
+          <div>
+            <strong>Tienes {pendingCount} gastos pendientes por crear</strong>
+            <span>Completa cuenta, categoria y montos para que entren en tus totales.</span>
+          </div>
+          <Button
+            onClick={() => {
+              window.location.hash = "#/gastos-pendientes";
+            }}
+            variant="secondary"
+          >
+            Ver pendientes
+          </Button>
+        </section>
       ) : null}
 
       {status.message ? (
@@ -353,7 +355,7 @@ export function Dashboard({ authVersion, onLogout }) {
         <Alert
           tone="info"
           title="Cargando Dashboard"
-          message="Estoy consultando bancos, cuentas, categorias y gastos desde MongoDB."
+          message="Actualizando tus cuentas, categorias, gastos y deudas."
         />
       ) : null}
 
@@ -437,7 +439,8 @@ export function Dashboard({ authVersion, onLogout }) {
       </section>
 
       <section className="metric-grid metric-grid-wide">
-        <MetricCard label="Gastos filtrados" value={financialSummary.cantidad} />
+        <MetricCard label="Vista" value={dashboardScope} />
+        <MetricCard label="Gastos creados" value={financialSummary.cantidad} />
         <MetricCard
           label="Gasto bancario"
           value={formatCurrency(Math.abs(financialSummary.bancario))}
@@ -774,144 +777,29 @@ function CategoriaModal({ open, onClose, onSubmit, categoriasGrupo }) {
 }
 
 function GastoModal({ open, onClose, onSubmit, categorias, cuentas }) {
-  const [fecha, setFecha] = useState(todayInputValue());
-  const [descripcion, setDescripcion] = useState("");
-  const [flujoBancario, setFlujoBancario] = useState("");
-  const [porcentajeEconomiaReal, setPorcentajeEconomiaReal] = useState("100");
-  const [categoria, setCategoria] = useState("");
-  const [cuenta, setCuenta] = useState("");
-
-  const economiaReal = useMemo(() => {
-    if (flujoBancario === "" || porcentajeEconomiaReal === "") return "";
-
-    const flujo = Number(flujoBancario);
-    const porcentaje = Number(porcentajeEconomiaReal);
-
-    if (Number.isNaN(flujo) || Number.isNaN(porcentaje)) return "";
-
-    return (flujo * (porcentaje / 100)).toFixed(2);
-  }, [flujoBancario, porcentajeEconomiaReal]);
-
-  function handleSubmit(event) {
-    event.preventDefault();
-    onSubmit(
+  async function handleSubmit(payload) {
+    const { facturaFile, ...gastoPayload } = payload;
+    const created = await onSubmit(
       "/gastos",
-      {
-        fecha,
-        descripcion: descripcion.trim(),
-        flujoBancario: Number(flujoBancario),
-        economiaReal: Number(economiaReal),
-        porcentajeEconomiaReal: Number(porcentajeEconomiaReal),
-        categoria,
-        cuenta,
-        incluirEnGastoBancario: Number(flujoBancario) !== 0,
-        incluirEnGastoReal: Number(economiaReal) !== 0,
-      },
+      gastoPayload,
       "Gasto creado correctamente.",
     );
-    setFecha(todayInputValue());
-    setDescripcion("");
-    setFlujoBancario("");
-    setPorcentajeEconomiaReal("100");
-    setCategoria("");
-    setCuenta("");
+
+    if (facturaFile && created?._id) {
+      await uploadApiFile(`/gastos/${created._id}/factura`, "factura", facturaFile);
+    }
   }
 
   return (
     <Modal open={open} onClose={onClose} title="Crear Gasto">
-      <form className="stack-form" onSubmit={handleSubmit}>
-        <Alert
-          tone="info"
-          title="Flujo actual"
-          message="Este modal crea gastos completos con la logica existente. En el proximo punto lo convertiremos en gasto pendiente con factura."
-        />
-        <div className="form-grid">
-          <FormField id="gastoFecha" label="Fecha">
-            <input
-              id="gastoFecha"
-              onChange={(event) => setFecha(event.target.value)}
-              required
-              type="date"
-              value={fecha}
-            />
-          </FormField>
-          <FormField id="gastoFlujo" label="Gasto bancario">
-            <input
-              id="gastoFlujo"
-              onChange={(event) => setFlujoBancario(event.target.value)}
-              required
-              step="0.01"
-              type="number"
-              value={flujoBancario}
-            />
-          </FormField>
-        </div>
-
-        <FormField id="gastoDescripcion" label="Descripcion">
-          <textarea
-            id="gastoDescripcion"
-            maxLength="500"
-            minLength="2"
-            onChange={(event) => setDescripcion(event.target.value)}
-            placeholder="Ej: Compra supermercado"
-            required
-            value={descripcion}
-          />
-        </FormField>
-
-        <div className="form-grid">
-          <FormField id="gastoPorcentaje" label="Porcentaje gasto real">
-            <input
-              id="gastoPorcentaje"
-              max="100"
-              min="0"
-              onChange={(event) => setPorcentajeEconomiaReal(event.target.value)}
-              required
-              step="0.01"
-              type="number"
-              value={porcentajeEconomiaReal}
-            />
-          </FormField>
-          <FormField id="gastoEconomia" label="Gasto real">
-            <input id="gastoEconomia" readOnly type="number" value={economiaReal} />
-          </FormField>
-        </div>
-
-        <div className="form-grid">
-          <FormField id="gastoCategoria" label="Subcategoria">
-            <select
-              id="gastoCategoria"
-              onChange={(event) => setCategoria(event.target.value)}
-              required
-              value={categoria}
-            >
-              <option value="">Seleccionar subcategoria</option>
-              {categorias.map((item) => (
-                <option key={item._id} value={item._id}>
-                  {item.nombre}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField id="gastoCuenta" label="Cuenta">
-            <select
-              id="gastoCuenta"
-              onChange={(event) => setCuenta(event.target.value)}
-              required
-              value={cuenta}
-            >
-              <option value="">Seleccionar cuenta</option>
-              {cuentas.map((item) => (
-                <option key={item._id} value={item._id}>
-                  {item.nombre}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        </div>
-
-        <Button type="submit">Guardar gasto</Button>
-      </form>
+      <ExpenseForm
+        categorias={categorias}
+        cuentas={cuentas}
+        mode="quick"
+        onCancel={onClose}
+        onSubmit={handleSubmit}
+        submitLabel="Guardar gasto rapido"
+      />
     </Modal>
   );
 }

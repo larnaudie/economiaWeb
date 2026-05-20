@@ -1,4 +1,67 @@
+import {
+  Banknote,
+  CircleUserRound,
+  CircleAlert,
+  FileSpreadsheet,
+  FolderPlus,
+  Gauge,
+  Landmark,
+  ReceiptText,
+  CreditCard,
+  WalletCards,
+} from "lucide-react";
+
+const navGroups = [
+  {
+    title: "Uso diario",
+    items: [
+      { href: "#/", icon: <Gauge size={17} />, label: "Dashboard" },
+      { href: "#/gastos", icon: <ReceiptText size={17} />, label: "Mis Gastos" },
+      {
+        href: "#/gastos-pendientes",
+        icon: <CircleAlert size={17} />,
+        label: "Pendientes",
+      },
+      {
+        href: "#/gastos-cuenta",
+        icon: <WalletCards size={17} />,
+        label: "Gastos por Cuenta",
+      },
+      { href: "#/deudas", icon: <Banknote size={17} />, label: "Mis Deudas" },
+      {
+        href: "#/tarjetas-credito",
+        icon: <CreditCard size={17} />,
+        label: "Tarjetas",
+      },
+    ],
+  },
+  {
+    title: "Gestion",
+    items: [
+      { href: "#/creaciones", icon: <FolderPlus size={17} />, label: "Creaciones" },
+      {
+        href: "#/importar-excel",
+        icon: <FileSpreadsheet size={17} />,
+        label: "Importar Excel",
+      },
+      {
+        href: "#/importar-excel-personal",
+        icon: <Landmark size={17} />,
+        label: "Excel Personal",
+      },
+      { href: "#/perfil", icon: <CircleUserRound size={17} />, label: "Perfil" },
+    ],
+  },
+];
+
+function getCurrentHash() {
+  if (typeof window === "undefined") return "#/";
+  return window.location.hash || "#/";
+}
+
 export function PageLayout({ title, subtitle, children, user, onLogout }) {
+  const currentHash = getCurrentHash();
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -11,14 +74,30 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
         </div>
 
         <nav className="sidebar-nav" aria-label="Navegacion principal">
-          <a href="#/">Dashboard</a>
-          <a href="#/gastos">Mis Gastos</a>
-          <a href="#/gastos-cuenta">Gastos por Cuenta</a>
-          <a href="#/creaciones">Gestionar Creaciones</a>
-          <a href="#/deudas">Mis Deudas</a>
-          <a href="#/importar-excel">Importar Excel</a>
-          <a href="#/importar-excel-personal">Importar Excel Personal</a>
-          <a href="#/perfil">Perfil</a>
+          {navGroups.map((group) => (
+            <div className="sidebar-nav-group" key={group.title}>
+              <span className="sidebar-nav-title">{group.title}</span>
+              {group.items.map((item) => {
+                const isActive =
+                  currentHash === item.href ||
+                  (item.href !== "#/" && currentHash.startsWith(item.href));
+
+                return (
+                  <a
+                    aria-current={isActive ? "page" : undefined}
+                    className={isActive ? "active" : ""}
+                    href={item.href}
+                    key={item.href}
+                  >
+                    <span className="nav-icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                    <span>{item.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {user ? (

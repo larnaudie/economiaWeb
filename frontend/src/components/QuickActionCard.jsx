@@ -3,6 +3,7 @@ export function QuickActionCard({
   description,
   icon,
   accent = "neutral",
+  actionLabel = "Abrir",
   onClick,
 }) {
   return (
@@ -17,6 +18,10 @@ export function QuickActionCard({
       <span>
         <strong>{title}</strong>
         <small>{description}</small>
+      </span>
+      <span className="quick-action-footer">
+        {actionLabel}
+        <span aria-hidden="true">-&gt;</span>
       </span>
     </button>
   );

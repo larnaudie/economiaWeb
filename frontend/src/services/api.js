@@ -76,3 +76,43 @@ export async function apiRequest(endpoint, options = {}) {
 
   return data;
 }
+
+export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
+  const { token = getToken() } = options;
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const formData = new FormData();
+  formData.append(fieldName, file);
+
+  let response;
+
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new Error(
+      "No se pudo conectar con la API. Verifica que el backend este corriendo.",
+    );
+  }
+
+  const data = await response.json().catch(() => null);
+
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    throw new Error("Sesion expirada o invalida");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || `Error HTTP ${response.status}`);
+  }
+
+  return data;
+}
