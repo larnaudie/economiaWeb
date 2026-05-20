@@ -7,10 +7,15 @@ import {
     crearGastosBulkService,
     actualizarGastosBulkService,
     actualizarOrdenGastosCuentaService,
-    eliminarTodosLosGastosService
+    eliminarTodosLosGastosService,
+    actualizarFacturaGastoService
 } from "../services/gasto.service.js";
 import { successResponse } from "../utils/apiResponse.js";
 import { crearAuditLogService } from "../services/auditLog.service.js";
+import { upload } from "../middlewares/multer.middleware.js";
+import cloudinary from "../config/cloudinary.js";
+import { runMulterSingle } from "../utils/multer.utils.js";
+import { uploadBufferToCloudinary } from "../utils/cloudinary.utils.js";
 
 export const obtenerGastos = async (req, res, next) => {
     try {
@@ -22,6 +27,7 @@ export const obtenerGastos = async (req, res, next) => {
             categoria,
             cuenta,
             busqueda,
+            estado,
             flujoMin,
             flujoMax,
             realMin,
@@ -37,6 +43,7 @@ export const obtenerGastos = async (req, res, next) => {
             categoria,
             cuenta,
             busqueda,
+            estado,
             flujoMin,
             flujoMax,
             realMin,
@@ -158,4 +165,36 @@ export const eliminarTodosLosGastos = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+export const subirFacturaGasto = async (req, res, next) => {
+    try {
+        await runMulterSingle(upload, "factura", req, res);
+
+        if (!req.file) {
+            const error = new Error("No se subio ninguna factura");
+            error.status = 400;
+            throw error;
+        }
+
+        const result = await uploadBufferToCloudinary(
+            cloudinary,
+            req.file.buffer,
+            {
+                resource_type: "image",
+                folder: "economia-web/facturas",
+            }
+        );
+
+        const gastoActualizado = await actualizarFacturaGastoService({
+            id: req.params.id,
+            usuarioId: req.user.id,
+            facturaUrl: result.secure_url,
+            facturaPublicId: result.public_id,
+        });
+
+        successResponse(res, "Factura subida", gastoActualizado);
+    } catch (error) {
+        next(error);
+    }
 };

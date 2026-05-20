@@ -7,6 +7,7 @@ import cuentasRouter from "./routes/cuentas.routes.js";
 import gastosRouter from "./routes/gastos.routes.js";
 import categoriaRouter from "./routes/categorias.routes.js";
 import deudasRoutes from "./routes/deudas.routes.js";
+import tarjetasCreditoRoutes from "./routes/tarjetasCredito.routes.js";
 import categoriasGrupoRoutes from "./routes/categoriaGrupo.routes.js"
 import uploadRoutes from "./routes/upload.routes.js";
 
@@ -25,6 +26,7 @@ router.use("/cuentas", cuentasRouter);
 router.use("/gastos", gastosRouter);
 router.use("/categorias", categoriaRouter);
 router.use("/deudas", deudasRoutes);
+router.use("/tarjetas-credito", tarjetasCreditoRoutes);
 router.use("/categorias-grupo", categoriasGrupoRoutes);
 
 export default router; 

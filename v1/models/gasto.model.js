@@ -1,9 +1,16 @@
 import mongoose from "mongoose";
 
 const gastoSchema = new mongoose.Schema({
+  estado: {
+    type: String,
+    enum: ["pendiente", "creado"],
+    default: "creado",
+  },
+
   fecha: {
     type: Date,
     required: true,
+    default: Date.now,
   },
 
   descripcion: {
@@ -13,29 +20,29 @@ const gastoSchema = new mongoose.Schema({
 
   flujoBancario: {
     type: Number,
-    required: true,
+    default: null,
   },
 
   economiaReal: {
     type: Number,
-    required: true,
+    default: null,
   },
 
   porcentajeEconomiaReal: {
     type: Number,
-    required: true,
+    default: null,
   },
 
   categoria: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Categoria",
-    required: true,
+    default: null,
   },
 
   cuenta: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Cuenta",
-    required: true,
+    default: null,
   },
 
   usuario: {
@@ -57,6 +64,34 @@ const gastoSchema = new mongoose.Schema({
   hashImportacion: {
     type: String,
     required: true,
+  },
+
+  facturaUrl: {
+    type: String,
+    default: "",
+  },
+
+  facturaPublicId: {
+    type: String,
+    default: "",
+  },
+
+  origen: {
+    type: String,
+    enum: ["manual", "excel_bancario", "tarjeta_credito", "deuda"],
+    default: "manual",
+  },
+
+  tarjetaCredito: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "TarjetaCredito",
+    default: null,
+  },
+
+  movimientoTarjeta: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "MovimientoTarjeta",
+    default: null,
   },
 });
 

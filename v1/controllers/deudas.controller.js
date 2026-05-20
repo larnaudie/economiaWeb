@@ -81,7 +81,10 @@ export const pagarCuotaDeuda = async (req, res, next) => {
       usuarioId: req.user.id,
       cuenta: req.body.cuenta,
       categoria: req.body.categoria,
-      fecha: req.body.fecha
+      fecha: req.body.fecha,
+      montoDebitadoUYU: req.body.montoDebitadoUYU,
+      montoMonedaOrigen: req.body.montoMonedaOrigen,
+      cotizacion: req.body.cotizacion
     });
 
     successResponse(res, "Cuota pagada", resultado, 201);

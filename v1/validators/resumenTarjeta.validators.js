@@ -1,0 +1,25 @@
+import Joi from "joi";
+
+export const resumenTarjetaSchema = Joi.object({
+  periodo: Joi.string().min(3).max(80).trim().required(),
+  fechaCierre: Joi.date().optional().allow(null),
+  fechaVencimiento: Joi.date().optional().allow(null),
+  limiteUYU: Joi.number().optional().allow(null),
+  limiteUSD: Joi.number().optional().allow(null),
+  creditoDisponibleUYU: Joi.number().optional().allow(null),
+  creditoDisponibleUSD: Joi.number().optional().allow(null),
+  saldoAnteriorUYU: Joi.number().optional(),
+  saldoAnteriorUSD: Joi.number().optional(),
+  cargosMesUYU: Joi.number().optional(),
+  cargosMesUSD: Joi.number().optional(),
+  pagoContadoUYU: Joi.number().optional(),
+  pagoContadoUSD: Joi.number().optional(),
+  pagoMinimoUYU: Joi.number().optional(),
+  pagoMinimoUSD: Joi.number().optional(),
+  tasaPesosTEA: Joi.number().optional().allow(null),
+  tasaPesosTEM: Joi.number().optional().allow(null),
+  tasaDolaresTEA: Joi.number().optional().allow(null),
+  tasaDolaresTEM: Joi.number().optional().allow(null),
+  origenImportacion: Joi.string().optional(),
+  hashImportacion: Joi.string().optional(),
+});

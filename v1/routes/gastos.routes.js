@@ -8,7 +8,8 @@ import {
     crearGastosBulk,
     actualizarGastosBulk,
     actualizarOrdenGastosCuenta,
-    eliminarTodosLosGastos
+    eliminarTodosLosGastos,
+    subirFacturaGasto
 } from "../controllers/gastos.controller.js";
 import {
     gastoSchema,
@@ -30,6 +31,7 @@ router.delete("/eliminar-todo", requireAdmin, eliminarTodosLosGastos);
 router.post("/bulk", validateBody(gastosBulkSchema), crearGastosBulk);
 router.patch("/bulk", validateBody(gastosBulkUpdateSchema), actualizarGastosBulk);
 router.get("/:id",validateObjectId, obtenerGastoPorId)
+router.post("/:id/factura",validateObjectId, subirFacturaGasto);
 router.patch("/:id",validateObjectId, validateBody(gastoUpdateSchema), actualizarGasto);
 router.delete("/:id",validateObjectId, eliminarGasto)
 export default router;

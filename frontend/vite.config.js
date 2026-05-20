@@ -1,0 +1,26 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import process from 'node:process'
+
+const apiTarget = process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3000'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/v1': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      '/imagenes': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+    },
+  },
+})
