@@ -1,22 +1,21 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/v1/:path*",
-      "destination": "/v1/:path*"
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
     },
     {
-      "source": "/imagenes/:path*",
-      "destination": "/imagenes/:path*"
-    },
-    {
-      "source": "/uploads/:path*",
-      "destination": "/uploads/:path*"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "src": "/.*",
+      "dest": "/index.html"
     }
   ]
 }
