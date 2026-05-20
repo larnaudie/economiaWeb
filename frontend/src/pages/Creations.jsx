@@ -33,6 +33,12 @@ const entityConfig = {
   },
 };
 
+const accountTypeLabels = {
+  caja_ahorro: "Caja de ahorro",
+  cuenta_corriente: "Cuenta corriente",
+  tarjeta_credito: "Tarjeta de credito",
+};
+
 function normalizeItems(response) {
   const data = getApiData(response);
   return Array.isArray(data) ? data : [];
@@ -280,6 +286,11 @@ function buildColumns({ entity, onEdit, onDelete }) {
       header: "Banco",
       render: (item) => item.banco?.nombre || "N/A",
     });
+    baseColumns.push({
+      key: "tipo",
+      header: "Tipo",
+      render: (item) => accountTypeLabels[item.tipo] || accountTypeLabels.caja_ahorro,
+    });
   }
 
   if (entity === "categorias") {
@@ -318,6 +329,7 @@ function CreationForm({
 }) {
   const [nombre, setNombre] = useState(() => item?.nombre || "");
   const [banco, setBanco] = useState(() => item?.banco?._id || item?.banco || "");
+  const [tipo, setTipo] = useState(() => item?.tipo || "caja_ahorro");
   const [categoriaGrupo, setCategoriaGrupo] = useState(
     () => item?.categoriaGrupo?._id || item?.categoriaGrupo || "",
   );
@@ -329,6 +341,7 @@ function CreationForm({
 
     if (entity === "cuentas") {
       payload.banco = banco;
+      payload.tipo = tipo;
     }
 
     if (entity === "categorias") {
@@ -351,21 +364,35 @@ function CreationForm({
       </FormField>
 
       {entity === "cuentas" ? (
-        <FormField id="creationBanco" label="Banco">
-          <select
-            id="creationBanco"
-            onChange={(event) => setBanco(event.target.value)}
-            required
-            value={banco}
-          >
-            <option value="">Seleccionar banco</option>
-            {bancos.map((itemBanco) => (
-              <option key={itemBanco._id} value={itemBanco._id}>
-                {itemBanco.nombre}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <>
+          <FormField id="creationBanco" label="Banco">
+            <select
+              id="creationBanco"
+              onChange={(event) => setBanco(event.target.value)}
+              required
+              value={banco}
+            >
+              <option value="">Seleccionar banco</option>
+              {bancos.map((itemBanco) => (
+                <option key={itemBanco._id} value={itemBanco._id}>
+                  {itemBanco.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField id="creationTipo" label="Tipo de cuenta">
+            <select
+              id="creationTipo"
+              onChange={(event) => setTipo(event.target.value)}
+              required
+              value={tipo}
+            >
+              <option value="caja_ahorro">Caja de ahorro</option>
+              <option value="cuenta_corriente">Cuenta corriente</option>
+              <option value="tarjeta_credito">Tarjeta de credito</option>
+            </select>
+          </FormField>
+        </>
       ) : null}
 
       {entity === "categorias" ? (

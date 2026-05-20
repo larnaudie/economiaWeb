@@ -16,12 +16,18 @@ export const cuentaSchema = Joi.object({
         .required()
         .regex(/^[0-9a-fA-F]{24}$/)
         .messages({
-            "string.pattern.base": "El banco debe ser un ObjectId válido",
+            "string.pattern.base": "El banco debe ser un ObjectId valido",
             "any.required": "El banco es obligatorio"
+        }),
+    tipo: Joi.string()
+        .valid("caja_ahorro", "cuenta_corriente", "tarjeta_credito")
+        .optional()
+        .messages({
+            "any.only": "El tipo de cuenta no es valido"
         })
 });
 
 export const cuentaUpdateSchema = cuentaSchema.fork(
-    ["nombre", "banco"],
+    ["nombre", "banco", "tipo"],
     (schema) => schema.optional()
 );

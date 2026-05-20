@@ -27,6 +27,12 @@ const initialStatus = {
   message: "",
 };
 
+const accountTypeLabels = {
+  caja_ahorro: "Caja de ahorro",
+  cuenta_corriente: "Cuenta corriente",
+  tarjeta_credito: "Tarjeta de credito",
+};
+
 function normalizeItems(response) {
   const data = getApiData(response);
   return Array.isArray(data) ? data : [];
@@ -605,6 +611,7 @@ function AccountCarousel({ cuentas }) {
             >
               <strong>{cuenta.nombre}</strong>
               <span>{cuenta.banco?.nombre || "Banco no cargado"}</span>
+              <small>{accountTypeLabels[cuenta.tipo] || accountTypeLabels.caja_ahorro}</small>
               <small>Ver gastos</small>
             </a>
           ))}
@@ -647,16 +654,18 @@ function BancoModal({ open, onClose, onSubmit }) {
 function CuentaModal({ open, onClose, onSubmit, bancos }) {
   const [nombre, setNombre] = useState("");
   const [banco, setBanco] = useState("");
+  const [tipo, setTipo] = useState("caja_ahorro");
 
   function handleSubmit(event) {
     event.preventDefault();
     onSubmit(
       "/cuentas",
-      { nombre: nombre.trim(), banco },
+      { nombre: nombre.trim(), banco, tipo },
       "Cuenta creada correctamente.",
     );
     setNombre("");
     setBanco("");
+    setTipo("caja_ahorro");
   }
 
   return (
@@ -685,6 +694,18 @@ function CuentaModal({ open, onClose, onSubmit, bancos }) {
                 {item.nombre}
               </option>
             ))}
+          </select>
+        </FormField>
+        <FormField id="cuentaTipo" label="Tipo de cuenta">
+          <select
+            id="cuentaTipo"
+            onChange={(event) => setTipo(event.target.value)}
+            required
+            value={tipo}
+          >
+            <option value="caja_ahorro">Caja de ahorro</option>
+            <option value="cuenta_corriente">Cuenta corriente</option>
+            <option value="tarjeta_credito">Tarjeta de credito</option>
           </select>
         </FormField>
         <Button type="submit">Guardar cuenta</Button>

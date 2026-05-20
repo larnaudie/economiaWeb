@@ -10,6 +10,12 @@ const cuentaSchema = new mongoose.Schema({
         ref: "Banco",
         required: true
     },
+    tipo: {
+        type: String,
+        enum: ["caja_ahorro", "cuenta_corriente", "tarjeta_credito"],
+        default: "caja_ahorro",
+        required: true
+    },
     usuario: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Usuario",
