@@ -3,6 +3,8 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
+import { EditIconButton } from "../components/EditIconButton";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PageLayout } from "../layout/PageLayout";
@@ -18,12 +20,106 @@ function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function dateInputValue(value) {
+  if (!value) return todayInputValue();
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 function formatDebtMoney(value, moneda = "UYU") {
   const amount = Number(value || 0);
 
   if (moneda === "USD") return `US$ ${amount.toFixed(2)}`;
   if (moneda === "UI") return `UI ${amount.toFixed(2)}`;
   return formatCurrency(amount);
+}
+
+function getEstimatedTotalsByCurrency({ total, moneda, cotizacionUsd, valorUi }) {
+  const amount = Number(total || 0);
+  const usdRate = Number(cotizacionUsd);
+  const uiRate = Number(valorUi);
+  const hasUsdRate = usdRate > 0 && !Number.isNaN(usdRate);
+  const hasUiRate = uiRate > 0 && !Number.isNaN(uiRate);
+
+  let totalUyu = null;
+
+  if (moneda === "UYU") totalUyu = amount;
+  if (moneda === "USD" && hasUsdRate) totalUyu = amount * usdRate;
+  if (moneda === "UI" && hasUiRate) totalUyu = amount * uiRate;
+
+  return [
+    {
+      moneda: "USD",
+      value:
+        moneda === "USD"
+          ? amount
+          : totalUyu !== null && hasUsdRate
+            ? totalUyu / usdRate
+            : null,
+    },
+    {
+      moneda: "UI",
+      value:
+        moneda === "UI"
+          ? amount
+          : totalUyu !== null && hasUiRate
+            ? totalUyu / uiRate
+            : null,
+    },
+    {
+      moneda: "UYU",
+      value: moneda === "UYU" ? amount : totalUyu,
+    },
+  ];
+}
+
+function convertCurrencyAmount({ amount, fromCurrency, toCurrency, cotizacionUsd, valorUi }) {
+  const value = Number(amount);
+  const usdRate = Number(cotizacionUsd);
+  const uiRate = Number(valorUi);
+  const hasUsdRate = usdRate > 0 && !Number.isNaN(usdRate);
+  const hasUiRate = uiRate > 0 && !Number.isNaN(uiRate);
+
+  if (!value || Number.isNaN(value)) return null;
+  if (fromCurrency === toCurrency) return value;
+
+  let amountUyu = null;
+
+  if (fromCurrency === "UYU") amountUyu = value;
+  if (fromCurrency === "USD" && hasUsdRate) amountUyu = value * usdRate;
+  if (fromCurrency === "UI" && hasUiRate) amountUyu = value * uiRate;
+
+  if (amountUyu === null) return null;
+
+  if (toCurrency === "UYU") return amountUyu;
+  if (toCurrency === "USD" && hasUsdRate) return amountUyu / usdRate;
+  if (toCurrency === "UI" && hasUiRate) return amountUyu / uiRate;
+
+  return null;
+}
+
+function formatYearsFromInstallments(cuotas) {
+  return String(Math.ceil(Number(cuotas) / 12));
+}
+
+function calculateInstallment({ montoTotal, cuotasTotales, tasaInteres, montoCuota }) {
+  if (montoCuota !== "") return Number(montoCuota);
+
+  const total = Number(montoTotal);
+  const cuotas = Number(cuotasTotales);
+  const tasaAnual = Number(tasaInteres);
+
+  if (!total || !cuotas || Number.isNaN(total) || Number.isNaN(cuotas)) {
+    return 0;
+  }
+
+  if (!tasaAnual || Number.isNaN(tasaAnual)) {
+    return Number((total / cuotas).toFixed(2));
+  }
+
+  const tasaMensual = tasaAnual / 100 / 12;
+  const cuota = (total * tasaMensual) / (1 - (1 + tasaMensual) ** -cuotas);
+
+  return Number(cuota.toFixed(2));
 }
 
 const debtTypeLabels = {
@@ -33,14 +129,55 @@ const debtTypeLabels = {
   hipotecario: "Hipotecario",
 };
 
+function formatDebtDisplay(value, sourceCurrency, viewCurrency, rates) {
+  if (viewCurrency === "original" || sourceCurrency === viewCurrency) {
+    return {
+      main: formatDebtMoney(value, sourceCurrency),
+      original: "",
+    };
+  }
+
+  const converted = convertCurrencyAmount({
+    amount: value,
+    fromCurrency: sourceCurrency,
+    toCurrency: viewCurrency,
+    cotizacionUsd: rates.cotizacionUsd,
+    valorUi: rates.valorUi,
+  });
+
+  return {
+    main:
+      converted === null
+        ? "Falta cotizacion"
+        : formatDebtMoney(converted, viewCurrency),
+    original: formatDebtMoney(value, sourceCurrency),
+  };
+}
+
+function DebtMoneyCell({ value, sourceCurrency, viewCurrency, rates }) {
+  const display = formatDebtDisplay(value, sourceCurrency, viewCurrency, rates);
+
+  return (
+    <div className="movement-detail-cell debt-money-cell">
+      <strong>{display.main}</strong>
+      {display.original ? <small>Original: {display.original}</small> : null}
+    </div>
+  );
+}
+
 export function Debts({ onLogout }) {
   const [deudas, setDeudas] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createInProgressOpen, setCreateInProgressOpen] = useState(false);
+  const [editingDebt, setEditingDebt] = useState(null);
   const [payingDebt, setPayingDebt] = useState(null);
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
+  const [viewCurrency, setViewCurrency] = useState("original");
+  const [viewUsdRate, setViewUsdRate] = useState("40");
+  const [viewUiRate, setViewUiRate] = useState("6.5");
   const user = getUser();
 
   const loadData = useCallback(async () => {
@@ -80,7 +217,9 @@ export function Debts({ onLogout }) {
         return acc + Math.max(0, Number(deuda.saldoPendiente || 0));
       }
 
-      const pagado = Number(deuda.montoCuota || 0) * Number(deuda.cuotaActual || 0);
+      const pagado =
+        Number(deuda.montoCuota || 0) * Number(deuda.cuotaActual || 0) +
+        Number(deuda.montoPagadoInicial || 0);
       return acc + Math.max(0, Number(deuda.montoTotal || 0) - pagado);
     }, 0);
 
@@ -91,10 +230,45 @@ export function Debts({ onLogout }) {
     };
   }, [deudas]);
 
-  async function handleCreate(payload) {
+  const displayRates = useMemo(
+    () => ({ cotizacionUsd: viewUsdRate, valorUi: viewUiRate }),
+    [viewUiRate, viewUsdRate],
+  );
+
+  const displaySummarySaldo = useMemo(() => {
+    if (viewCurrency === "original") return formatCurrency(summary.saldo);
+
+    const converted = deudas
+      .filter((deuda) => deuda.activa)
+      .reduce((acc, deuda) => {
+        const saldo =
+          deuda.saldoPendiente !== undefined && deuda.saldoPendiente !== null
+            ? Math.max(0, Number(deuda.saldoPendiente || 0))
+            : Math.max(
+                0,
+                Number(deuda.montoTotal || 0) -
+                  (Number(deuda.montoCuota || 0) * Number(deuda.cuotaActual || 0) +
+                    Number(deuda.montoPagadoInicial || 0)),
+              );
+
+        const value = convertCurrencyAmount({
+          amount: saldo,
+          fromCurrency: deuda.moneda,
+          toCurrency: viewCurrency,
+          cotizacionUsd: viewUsdRate,
+          valorUi: viewUiRate,
+        });
+
+        return value === null ? acc : acc + value;
+      }, 0);
+
+    return formatDebtMoney(converted, viewCurrency);
+  }, [deudas, summary.saldo, viewCurrency, viewUiRate, viewUsdRate]);
+
+  async function handleCreate(payload, closeModal = () => setCreateOpen(false)) {
     try {
       await apiRequest("/deudas", { method: "POST", body: payload });
-      setCreateOpen(false);
+      closeModal();
       setStatus({
         type: "success",
         title: "Deuda creada",
@@ -105,6 +279,33 @@ export function Debts({ onLogout }) {
       setStatus({
         type: "error",
         title: "No se pudo crear",
+        message: error.message,
+      });
+    }
+  }
+
+  async function handleEdit(payload) {
+    if (!editingDebt?._id) return;
+
+    try {
+      await apiRequest(`/deudas/${editingDebt._id}`, {
+        method: "PATCH",
+        body: {
+          ...payload,
+          saldoPendiente: editingDebt.saldoPendiente,
+        },
+      });
+      setEditingDebt(null);
+      setStatus({
+        type: "success",
+        title: "Deuda actualizada",
+        message: "Los cambios se guardaron correctamente.",
+      });
+      await loadData();
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo editar",
         message: error.message,
       });
     }
@@ -165,7 +366,7 @@ export function Debts({ onLogout }) {
       key: "descripcion",
       header: "Descripcion",
       render: (deuda) => (
-        <div className="movement-detail-cell">
+        <div className="movement-detail-cell debt-description-cell">
           <strong>{deuda.descripcion}</strong>
           <small>{deuda.entidad || "Sin entidad"}</small>
         </div>
@@ -174,17 +375,53 @@ export function Debts({ onLogout }) {
     {
       key: "montoTotal",
       header: "Monto total",
-      render: (deuda) => formatDebtMoney(deuda.montoTotal, deuda.moneda),
+      render: (deuda) => (
+        <DebtMoneyCell
+          rates={displayRates}
+          sourceCurrency={deuda.moneda}
+          value={deuda.montoTotal}
+          viewCurrency={viewCurrency}
+        />
+      ),
     },
     {
       key: "saldo",
       header: "Saldo",
-      render: (deuda) => formatDebtMoney(deuda.saldoPendiente, deuda.moneda),
+      render: (deuda) => (
+        <DebtMoneyCell
+          rates={displayRates}
+          sourceCurrency={deuda.moneda}
+          value={deuda.saldoPendiente}
+          viewCurrency={viewCurrency}
+        />
+      ),
+    },
+    {
+      key: "pagado",
+      header: "Pagado",
+      render: (deuda) => (
+        <DebtMoneyCell
+          rates={displayRates}
+          sourceCurrency={deuda.moneda}
+          value={
+            Number(deuda.montoCuota || 0) * Number(deuda.cuotaActual || 0) +
+            Number(deuda.montoPagadoInicial || 0)
+          }
+          viewCurrency={viewCurrency}
+        />
+      ),
     },
     {
       key: "cuota",
       header: "Cuota",
-      render: (deuda) => formatDebtMoney(deuda.montoCuota, deuda.moneda),
+      render: (deuda) => (
+        <DebtMoneyCell
+          rates={displayRates}
+          sourceCurrency={deuda.moneda}
+          value={deuda.montoCuota}
+          viewCurrency={viewCurrency}
+        />
+      ),
     },
     {
       key: "progreso",
@@ -208,9 +445,14 @@ export function Debts({ onLogout }) {
           >
             Pagar
           </Button>
-          <Button onClick={() => handleDelete(deuda)} variant="danger">
-            Eliminar
-          </Button>
+          <EditIconButton
+            label="Editar deuda"
+            onClick={() => setEditingDebt(deuda)}
+          />
+          <DeleteIconButton
+            label="Eliminar deuda"
+            onClick={() => handleDelete(deuda)}
+          />
         </div>
       ),
     },
@@ -237,17 +479,58 @@ export function Debts({ onLogout }) {
       <section className="metric-grid metric-grid-wide">
         <MetricCard label="Deudas" value={summary.total} />
         <MetricCard label="Activas" value={summary.active} />
-        <MetricCard label="Saldo pendiente" value={formatCurrency(summary.saldo)} />
+        <MetricCard label="Saldo pendiente" value={displaySummarySaldo} />
         <MetricCard label="Estado" value={loading ? "Cargando" : "Actualizado"} />
       </section>
 
-      <Card title="Gestion de deudas">
+      <Card className="debts-card" title="Gestion de deudas">
         <div className="section-toolbar">
           <div>
             <h2>Mis deudas</h2>
             <p>{deudas.length} deuda(s) cargada(s).</p>
           </div>
-          <Button onClick={() => setCreateOpen(true)}>Crear deuda</Button>
+          <div className="button-row">
+            <Button onClick={() => setCreateOpen(true)}>Crear deuda</Button>
+            <Button
+              onClick={() => setCreateInProgressOpen(true)}
+              variant="secondary"
+            >
+              Crear deuda en curso
+            </Button>
+          </div>
+        </div>
+
+        <div className="debt-view-controls">
+          <FormField id="debtViewCurrency" label="Ver montos en">
+            <select
+              id="debtViewCurrency"
+              onChange={(event) => setViewCurrency(event.target.value)}
+              value={viewCurrency}
+            >
+              <option value="original">Moneda original</option>
+              <option value="UYU">UYU</option>
+              <option value="USD">USD</option>
+              <option value="UI">UI</option>
+            </select>
+          </FormField>
+          <FormField id="debtViewUsdRate" label="USD a UYU">
+            <input
+              id="debtViewUsdRate"
+              onChange={(event) => setViewUsdRate(event.target.value)}
+              step="0.01"
+              type="number"
+              value={viewUsdRate}
+            />
+          </FormField>
+          <FormField id="debtViewUiRate" label="UI en UYU">
+            <input
+              id="debtViewUiRate"
+              onChange={(event) => setViewUiRate(event.target.value)}
+              step="0.0001"
+              type="number"
+              value={viewUiRate}
+            />
+          </FormField>
         </div>
 
         <DataTable
@@ -267,6 +550,34 @@ export function Debts({ onLogout }) {
       </Modal>
 
       <Modal
+        onClose={() => setCreateInProgressOpen(false)}
+        open={createInProgressOpen}
+        title="Crear Deuda en Curso"
+      >
+        <DebtForm
+          allowInitialProgress
+          onCancel={() => setCreateInProgressOpen(false)}
+          onSubmit={(payload) =>
+            handleCreate(payload, () => setCreateInProgressOpen(false))
+          }
+          submitLabel="Guardar deuda en curso"
+        />
+      </Modal>
+
+      <Modal
+        onClose={() => setEditingDebt(null)}
+        open={Boolean(editingDebt)}
+        title="Editar Deuda"
+      >
+        <DebtForm
+          debt={editingDebt}
+          onCancel={() => setEditingDebt(null)}
+          onSubmit={handleEdit}
+          submitLabel="Guardar cambios"
+        />
+      </Modal>
+
+      <Modal
         onClose={() => setPayingDebt(null)}
         open={Boolean(payingDebt)}
         title="Pagar Cuota"
@@ -283,42 +594,259 @@ export function Debts({ onLogout }) {
   );
 }
 
-function DebtForm({ onCancel, onSubmit }) {
-  const [tipo, setTipo] = useState("financiacion");
-  const [moneda, setMoneda] = useState("UYU");
-  const [descripcion, setDescripcion] = useState("");
-  const [entidad, setEntidad] = useState("");
-  const [montoTotal, setMontoTotal] = useState("");
-  const [cuotasTotales, setCuotasTotales] = useState("");
-  const [montoCuota, setMontoCuota] = useState("");
-  const [tasaInteres, setTasaInteres] = useState("");
-  const [plazoAnios, setPlazoAnios] = useState("");
-  const [diaVencimiento, setDiaVencimiento] = useState("");
-  const [fechaInicio, setFechaInicio] = useState(todayInputValue());
+function DebtForm({
+  allowInitialProgress = false,
+  debt,
+  onCancel,
+  onSubmit,
+  submitLabel = "Guardar deuda",
+}) {
+  const [tipo, setTipo] = useState(() => debt?.tipo || "financiacion");
+  const [moneda, setMoneda] = useState(() => debt?.moneda || "UYU");
+  const [descripcion, setDescripcion] = useState(() => debt?.descripcion || "");
+  const [entidad, setEntidad] = useState(() => debt?.entidad || "");
+  const [montoTotal, setMontoTotal] = useState(() =>
+    debt?.montoOriginalAntesEntrega
+      ? String(debt.montoOriginalAntesEntrega)
+      : debt?.montoTotal
+        ? String(debt.montoTotal)
+        : "",
+  );
+  const [cuotasTotales, setCuotasTotales] = useState(() =>
+    debt?.cuotasTotales ? String(debt.cuotasTotales) : "",
+  );
+  const [montoCuota, setMontoCuota] = useState(() =>
+    debt?.montoCuota ? String(debt.montoCuota) : "",
+  );
+  const [tasaInteres, setTasaInteres] = useState(() =>
+    debt?.tasaInteres !== null && debt?.tasaInteres !== undefined
+      ? String(debt.tasaInteres)
+      : "",
+  );
+  const [plazoAnios, setPlazoAnios] = useState(() =>
+    debt?.plazoAnios ? String(debt.plazoAnios) : "",
+  );
+  const [diaVencimiento, setDiaVencimiento] = useState(() =>
+    debt?.diaVencimiento ? String(debt.diaVencimiento) : "",
+  );
+  const [cotizacionUsd, setCotizacionUsd] = useState("40");
+  const [valorUi, setValorUi] = useState("6.5");
+  const [montoConocido, setMontoConocido] = useState("");
+  const [monedaMontoConocido, setMonedaMontoConocido] = useState("USD");
+  const [entregaInicial, setEntregaInicial] = useState(() =>
+    debt?.entregaInicialMonto ? String(debt.entregaInicialMonto) : "",
+  );
+  const [monedaEntregaInicial, setMonedaEntregaInicial] = useState(
+    () => debt?.entregaInicialMoneda || "USD",
+  );
+  const [porcentajeFinanciacion, setPorcentajeFinanciacion] = useState(() =>
+    debt?.porcentajeFinanciacion !== null &&
+    debt?.porcentajeFinanciacion !== undefined
+      ? String(debt.porcentajeFinanciacion)
+      : "",
+  );
+  const [cuotasPagasIniciales, setCuotasPagasIniciales] = useState(() =>
+    debt?.cuotaActual ? String(debt.cuotaActual) : "",
+  );
+  const [montoPagadoInicial, setMontoPagadoInicial] = useState(() =>
+    debt?.montoPagadoInicial ? String(debt.montoPagadoInicial) : "",
+  );
+  const [fechaInicio, setFechaInicio] = useState(() =>
+    dateInputValue(debt?.fechaInicio),
+  );
 
-  const cuotaCalculada = useMemo(() => {
-    const total = Number(montoTotal);
-    const cuotas = Number(cuotasTotales);
+  function handleInstallmentsChange(value) {
+    setCuotasTotales(value);
 
-    if (!total || !cuotas || Number.isNaN(total) || Number.isNaN(cuotas)) {
-      return 0;
+    const cuotas = Number(value);
+    if (!cuotas || Number.isNaN(cuotas)) {
+      setPlazoAnios("");
+      return;
     }
 
-    if (montoCuota) return Number(montoCuota);
+    setPlazoAnios(formatYearsFromInstallments(cuotas));
+  }
 
-    return Number((total / cuotas).toFixed(2));
-  }, [cuotasTotales, montoCuota, montoTotal]);
+  function handleTermYearsChange(value) {
+    setPlazoAnios(value);
+
+    const years = Number(value);
+    if (!years || Number.isNaN(years)) {
+      setCuotasTotales("");
+      return;
+    }
+
+    setCuotasTotales(String(years * 12));
+  }
+
+  const cuotasDerivadas = useMemo(() => {
+    if (cuotasTotales) return Number(cuotasTotales);
+
+    const years = Number(plazoAnios);
+    if (!years || Number.isNaN(years)) return 0;
+
+    return years * 12;
+  }, [cuotasTotales, plazoAnios]);
+
+  const entregaInicialConvertida = useMemo(
+    () =>
+      convertCurrencyAmount({
+        amount: entregaInicial,
+        fromCurrency: monedaEntregaInicial,
+        toCurrency: moneda,
+        cotizacionUsd,
+        valorUi,
+      }),
+    [cotizacionUsd, entregaInicial, moneda, monedaEntregaInicial, valorUi],
+  );
+
+  const montoFinanciado = useMemo(() => {
+    const total = Number(montoTotal || 0);
+    const porcentaje = Number(porcentajeFinanciacion);
+    const entrega =
+      entregaInicialConvertida === null ? 0 : Number(entregaInicialConvertida || 0);
+
+    if (!total || Number.isNaN(total)) return 0;
+    if (
+      porcentajeFinanciacion !== "" &&
+      !Number.isNaN(porcentaje) &&
+      porcentaje >= 0 &&
+      porcentaje <= 100
+    ) {
+      return Number((total * (porcentaje / 100)).toFixed(2));
+    }
+
+    return Number(Math.max(0, total - entrega).toFixed(2));
+  }, [entregaInicialConvertida, montoTotal, porcentajeFinanciacion]);
+
+  const entregaPorPorcentaje = useMemo(() => {
+    const total = Number(montoTotal || 0);
+    if (!total || Number.isNaN(total) || porcentajeFinanciacion === "") return null;
+    return Number(Math.max(0, total - montoFinanciado).toFixed(2));
+  }, [montoFinanciado, montoTotal, porcentajeFinanciacion]);
+
+  const cuotaCalculada = useMemo(() => {
+    return calculateInstallment({
+      montoTotal: montoFinanciado,
+      cuotasTotales: cuotasDerivadas,
+      tasaInteres,
+      montoCuota,
+    });
+  }, [cuotasDerivadas, montoCuota, montoFinanciado, tasaInteres]);
+
+  const totalEstimado = useMemo(() => {
+    if (!cuotaCalculada || !cuotasDerivadas) return 0;
+    return Number((cuotaCalculada * cuotasDerivadas).toFixed(2));
+  }, [cuotaCalculada, cuotasDerivadas]);
+
+  const pagadoInicial = useMemo(() => {
+    const cuotasPagas = Number(cuotasPagasIniciales || 0);
+    const montoPagado = Number(montoPagadoInicial || 0);
+
+    return Number(
+      (
+        (Number.isNaN(cuotasPagas) ? 0 : cuotasPagas * cuotaCalculada) +
+        (Number.isNaN(montoPagado) ? 0 : montoPagado)
+      ).toFixed(2),
+    );
+  }, [cuotaCalculada, cuotasPagasIniciales, montoPagadoInicial]);
+
+  const saldoInicialEstimado = useMemo(() => {
+    return Number(Math.max(0, totalEstimado - pagadoInicial).toFixed(2));
+  }, [pagadoInicial, totalEstimado]);
+
+  const totalEstimadoPorMoneda = useMemo(
+    () =>
+      getEstimatedTotalsByCurrency({
+        total: totalEstimado,
+        moneda,
+        cotizacionUsd,
+        valorUi,
+      }),
+    [cotizacionUsd, moneda, totalEstimado, valorUi],
+  );
+
+  const cuotaCalculadaPorMoneda = useMemo(
+    () =>
+      getEstimatedTotalsByCurrency({
+        total: cuotaCalculada || 0,
+        moneda,
+        cotizacionUsd,
+        valorUi,
+      }),
+    [cotizacionUsd, cuotaCalculada, moneda, valorUi],
+  );
+
+  const montoConvertido = useMemo(
+    () =>
+      convertCurrencyAmount({
+        amount: montoConocido,
+        fromCurrency: monedaMontoConocido,
+        toCurrency: moneda,
+        cotizacionUsd,
+        valorUi,
+      }),
+    [cotizacionUsd, moneda, monedaMontoConocido, montoConocido, valorUi],
+  );
+
+  const montoConocidoPorMoneda = useMemo(
+    () =>
+      getEstimatedTotalsByCurrency({
+        total: montoConvertido || 0,
+        moneda,
+        cotizacionUsd,
+        valorUi,
+      }),
+    [cotizacionUsd, moneda, montoConvertido, valorUi],
+  );
+
+  function useConvertedAmount() {
+    if (montoConvertido === null) return;
+    setMontoTotal(String(Number(montoConvertido.toFixed(2))));
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
+
+    if (entregaInicial && entregaInicialConvertida === null) {
+      window.alert("Carga la cotizacion necesaria para convertir la entrega inicial.");
+      return;
+    }
+
+    const porcentaje = Number(porcentajeFinanciacion);
+    if (
+      porcentajeFinanciacion !== "" &&
+      (Number.isNaN(porcentaje) || porcentaje < 0 || porcentaje > 100)
+    ) {
+      window.alert("El porcentaje a financiar debe estar entre 0 y 100.");
+      return;
+    }
+
+    if (montoFinanciado <= 0) {
+      window.alert("El monto a financiar debe ser mayor a 0.");
+      return;
+    }
+
     onSubmit({
       descripcion: descripcion.trim(),
       tipo,
       moneda,
       entidad: entidad.trim(),
-      montoTotal: Number(montoTotal),
-      cuotasTotales: Number(cuotasTotales),
+      montoTotal: Number(montoFinanciado),
+      montoOriginalAntesEntrega: montoTotal === "" ? null : Number(montoTotal),
+      porcentajeFinanciacion:
+        porcentajeFinanciacion === "" ? null : Number(porcentajeFinanciacion),
+      entregaInicialMonto:
+        entregaInicial === "" ? 0 : Number(entregaInicial),
+      entregaInicialMoneda: monedaEntregaInicial,
+      entregaInicialConvertida:
+        entregaInicialConvertida === null ? 0 : Number(entregaInicialConvertida || 0),
+      cuotasTotales: Number(cuotasDerivadas),
       montoCuota: montoCuota === "" ? null : Number(montoCuota),
+      cuotaActual: cuotasPagasIniciales === "" ? 0 : Number(cuotasPagasIniciales),
+      montoPagadoInicial:
+        montoPagadoInicial === "" ? 0 : Number(montoPagadoInicial),
+      saldoPendiente: allowInitialProgress ? saldoInicialEstimado : null,
       tasaInteres: tasaInteres === "" ? null : Number(tasaInteres),
       plazoAnios: plazoAnios === "" ? null : Number(plazoAnios),
       diaVencimiento: diaVencimiento === "" ? null : Number(diaVencimiento),
@@ -375,7 +903,83 @@ function DebtForm({ onCancel, onSubmit }) {
       </FormField>
 
       <div className="form-grid">
-        <FormField id="debtTotal" label="Monto total">
+        <FormField id="debtUsdRate" label="Cotizacion USD a UYU">
+          <input
+            id="debtUsdRate"
+            onChange={(event) => setCotizacionUsd(event.target.value)}
+            placeholder="Opcional para estimar"
+            step="0.01"
+            type="number"
+            value={cotizacionUsd}
+          />
+        </FormField>
+        <FormField id="debtUiRate" label="Valor UI en UYU">
+          <input
+            id="debtUiRate"
+            onChange={(event) => setValorUi(event.target.value)}
+            placeholder="Opcional para estimar"
+            step="0.0001"
+            type="number"
+            value={valorUi}
+          />
+        </FormField>
+      </div>
+
+      <div className="conversion-panel">
+        <strong>Convertir monto conocido</strong>
+        <div className="form-grid">
+          <FormField id="debtKnownAmount" label="Monto conocido">
+            <input
+              id="debtKnownAmount"
+              onChange={(event) => setMontoConocido(event.target.value)}
+              placeholder="Ej: 25000"
+              step="0.01"
+              type="number"
+              value={montoConocido}
+            />
+          </FormField>
+          <FormField id="debtKnownCurrency" label="Moneda conocida">
+            <select
+              id="debtKnownCurrency"
+              onChange={(event) => setMonedaMontoConocido(event.target.value)}
+              value={monedaMontoConocido}
+            >
+              <option value="UYU">UYU</option>
+              <option value="USD">USD</option>
+              <option value="UI">UI</option>
+            </select>
+          </FormField>
+        </div>
+        <div className="conversion-summary">
+          {montoConvertido === null ? (
+            <small>Ingresa monto y cotizaciones necesarias para convertir.</small>
+          ) : (
+            <>
+              <small>
+                Equivale a {formatDebtMoney(montoConvertido, moneda)} para la deuda.
+              </small>
+              {montoConocidoPorMoneda.map((item) => (
+                <small key={item.moneda}>
+                  {item.moneda}:{" "}
+                  {item.value === null
+                    ? "carga cotizacion"
+                    : formatDebtMoney(item.value, item.moneda)}
+                </small>
+              ))}
+            </>
+          )}
+        </div>
+        <Button
+          disabled={montoConvertido === null}
+          onClick={useConvertedAmount}
+          variant="secondary"
+        >
+          Usar como monto total
+        </Button>
+      </div>
+
+      <div className="form-grid">
+        <FormField id="debtTotal" label="Monto total antes de entrega">
           <input
             id="debtTotal"
             onChange={(event) => setMontoTotal(event.target.value)}
@@ -385,11 +989,75 @@ function DebtForm({ onCancel, onSubmit }) {
             value={montoTotal}
           />
         </FormField>
+        <FormField id="debtFinancingPercent" label="Porcentaje financiacion">
+          <input
+            id="debtFinancingPercent"
+            max="100"
+            min="0"
+            onChange={(event) => setPorcentajeFinanciacion(event.target.value)}
+            placeholder="Opcional, ej: 80"
+            step="0.01"
+            type="number"
+            value={porcentajeFinanciacion}
+          />
+          <small className="field-hint">
+            Si lo cargas, la cuota se calcula sobre este porcentaje del total.
+          </small>
+        </FormField>
+      </div>
+
+      <div className="conversion-panel">
+        <strong>Entrega inicial</strong>
+        <div className="form-grid">
+          <FormField id="debtInitialDownPayment" label="Monto de entrega">
+            <input
+              id="debtInitialDownPayment"
+              min="0"
+              onChange={(event) => setEntregaInicial(event.target.value)}
+              placeholder="Opcional"
+              step="0.01"
+              type="number"
+              value={entregaInicial}
+            />
+          </FormField>
+          <FormField id="debtInitialDownPaymentCurrency" label="Moneda de entrega">
+            <select
+              id="debtInitialDownPaymentCurrency"
+              onChange={(event) => setMonedaEntregaInicial(event.target.value)}
+              value={monedaEntregaInicial}
+            >
+              <option value="UYU">UYU</option>
+              <option value="USD">USD</option>
+              <option value="UI">UI</option>
+            </select>
+          </FormField>
+        </div>
+        <div className="conversion-summary">
+          <small>
+            Entrega convertida:{" "}
+            {entregaInicial && entregaInicialConvertida === null
+              ? "carga cotizacion"
+              : formatDebtMoney(entregaInicialConvertida || 0, moneda)}
+          </small>
+          {entregaPorPorcentaje !== null ? (
+            <small>
+              Entrega estimada por porcentaje:{" "}
+              {formatDebtMoney(entregaPorPorcentaje, moneda)}
+            </small>
+          ) : null}
+          <small>
+            Monto a financiar: {formatDebtMoney(montoFinanciado, moneda)}
+          </small>
+        </div>
+      </div>
+
+      <div className="form-grid">
         <FormField id="debtInstallments" label="Cuotas totales">
           <input
             id="debtInstallments"
-            onChange={(event) => setCuotasTotales(event.target.value)}
-            required
+            onChange={(event) => handleInstallmentsChange(event.target.value)}
+            placeholder={plazoAnios ? `${cuotasDerivadas} cuotas por plazo` : "Opcional si cargas plazo"}
+            required={!plazoAnios}
             type="number"
             value={cuotasTotales}
           />
@@ -401,7 +1069,7 @@ function DebtForm({ onCancel, onSubmit }) {
           <input
             id="debtInstallmentAmount"
             onChange={(event) => setMontoCuota(event.target.value)}
-            placeholder="Opcional, si la conoces"
+            placeholder="Opcional, solo si el banco ya te dio la cuota"
             step="0.01"
             type="number"
             value={montoCuota}
@@ -411,7 +1079,7 @@ function DebtForm({ onCancel, onSubmit }) {
           <input
             id="debtRate"
             onChange={(event) => setTasaInteres(event.target.value)}
-            placeholder="Opcional"
+            placeholder="Anual, opcional"
             step="0.01"
             type="number"
             value={tasaInteres}
@@ -420,9 +1088,71 @@ function DebtForm({ onCancel, onSubmit }) {
       </div>
 
       <div className="calculated-preview">
-        <span>Cuota estimada</span>
+        <span>
+          {montoCuota
+            ? "Cuota informada"
+            : tasaInteres
+              ? "Cuota calculada con tasa anual"
+              : "Cuota estimada sin intereses"}
+        </span>
         <strong>{formatDebtMoney(cuotaCalculada, moneda)}</strong>
+        {cuotasDerivadas ? (
+          <div className="estimated-totals">
+            <small>Cuota estimada por moneda:</small>
+            {cuotaCalculadaPorMoneda.map((item) => (
+              <small key={`cuota-${item.moneda}`}>
+                {item.moneda}:{" "}
+                {item.value === null
+                  ? "carga cotizacion"
+                  : formatDebtMoney(item.value, item.moneda)}
+              </small>
+            ))}
+            <small>{cuotasDerivadas} cuota(s). Total estimado a pagar:</small>
+            {totalEstimadoPorMoneda.map((item) => (
+              <small key={item.moneda}>
+                {item.moneda}:{" "}
+                {item.value === null
+                  ? "carga cotizacion"
+                  : formatDebtMoney(item.value, item.moneda)}
+              </small>
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      {allowInitialProgress ? (
+        <div className="conversion-panel">
+          <strong>Progreso inicial</strong>
+          <div className="form-grid">
+            <FormField id="debtInitialPaidInstallments" label="Cuotas ya pagadas">
+              <input
+                id="debtInitialPaidInstallments"
+                max={cuotasDerivadas || undefined}
+                min="0"
+                onChange={(event) => setCuotasPagasIniciales(event.target.value)}
+                placeholder="Opcional"
+                type="number"
+                value={cuotasPagasIniciales}
+              />
+            </FormField>
+            <FormField id="debtInitialPaidAmount" label={`Monto ya pagado en ${moneda}`}>
+              <input
+                id="debtInitialPaidAmount"
+                min="0"
+                onChange={(event) => setMontoPagadoInicial(event.target.value)}
+                placeholder="Opcional"
+                step="0.01"
+                type="number"
+                value={montoPagadoInicial}
+              />
+            </FormField>
+          </div>
+          <div className="conversion-summary">
+            <small>Pagado inicial: {formatDebtMoney(pagadoInicial, moneda)}</small>
+            <small>Saldo inicial estimado: {formatDebtMoney(saldoInicialEstimado, moneda)}</small>
+          </div>
+        </div>
+      ) : null}
 
       <div className="form-grid">
         <FormField id="debtStartDate" label="Fecha inicio">
@@ -434,11 +1164,12 @@ function DebtForm({ onCancel, onSubmit }) {
             value={fechaInicio}
           />
         </FormField>
-        <FormField id="debtTermYears" label="Plazo en anios">
+        <FormField id="debtTermYears" label="Plazo en años">
           <input
             id="debtTermYears"
-            onChange={(event) => setPlazoAnios(event.target.value)}
+            onChange={(event) => handleTermYearsChange(event.target.value)}
             placeholder="Opcional"
+            required={!cuotasTotales}
             type="number"
             value={plazoAnios}
           />
@@ -460,7 +1191,7 @@ function DebtForm({ onCancel, onSubmit }) {
         <Button onClick={onCancel} variant="secondary">
           Cancelar
         </Button>
-        <Button type="submit">Guardar deuda</Button>
+        <Button type="submit">{submitLabel}</Button>
       </div>
     </form>
   );

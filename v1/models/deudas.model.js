@@ -21,11 +21,27 @@ const deudaSchema = new mongoose.Schema({
 
     montoTotal: { type: Number, required: true },
 
+    montoOriginalAntesEntrega: { type: Number, default: null },
+
+    porcentajeFinanciacion: { type: Number, default: null },
+
+    entregaInicialMonto: { type: Number, default: 0 },
+
+    entregaInicialMoneda: {
+        type: String,
+        enum: ["UYU", "USD", "UI"],
+        default: "UYU"
+    },
+
+    entregaInicialConvertida: { type: Number, default: 0 },
+
     saldoPendiente: { type: Number, default: null },
 
     cuotasTotales: { type: Number, required: true },
 
     cuotaActual: { type: Number, default: 0 },
+
+    montoPagadoInicial: { type: Number, default: 0 },
 
     montoCuota: { type: Number, required: true },
 

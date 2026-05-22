@@ -126,6 +126,7 @@ export const crearGastoDesdeMovimientoTarjeta = async (req, res, next) => {
     const resultado = await crearGastoDesdeMovimientoTarjetaService({
       tarjetaId: req.params.id,
       movimientoId: req.params.movimientoId,
+      cuentaPago: req.body?.cuentaPago,
       usuarioId: req.user.id,
     });
 
@@ -140,6 +141,7 @@ export const crearGastosDesdeMovimientosTarjeta = async (req, res, next) => {
     const resultado = await crearGastosDesdeMovimientosTarjetaService({
       tarjetaId: req.params.id,
       movimientoIds: req.body.movimientoIds,
+      cuentaPago: req.body.cuentaPago,
       usuarioId: req.user.id,
     });
 

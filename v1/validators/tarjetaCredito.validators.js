@@ -14,6 +14,10 @@ export const tarjetaCreditoSchema = Joi.object({
     "string.pattern.base": "El banco debe ser un ObjectId valido",
   }),
 
+  cuentaTarjeta: objectIdSchema.optional().allow(null, "").messages({
+    "string.pattern.base": "La cuenta de tarjeta debe ser un ObjectId valido",
+  }),
+
   cuentaPagoDefault: objectIdSchema.optional().allow(null, "").messages({
     "string.pattern.base": "La cuenta de pago debe ser un ObjectId valido",
   }),
@@ -40,5 +44,8 @@ export const crearGastosMovimientosTarjetaSchema = Joi.object({
     "array.base": "Los movimientos deben enviarse como un array",
     "array.min": "Debe seleccionarse al menos un movimiento",
     "any.required": "Los movimientos son obligatorios",
+  }),
+  cuentaPago: objectIdSchema.optional().allow(null, "").messages({
+    "string.pattern.base": "La cuenta de pago debe ser un ObjectId valido",
   }),
 });

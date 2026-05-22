@@ -6,6 +6,7 @@ const allowedMimeTypes = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "application/pdf",
 ];
 
 export const upload = multer({

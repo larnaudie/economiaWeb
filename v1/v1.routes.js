@@ -10,6 +10,7 @@ import deudasRoutes from "./routes/deudas.routes.js";
 import tarjetasCreditoRoutes from "./routes/tarjetasCredito.routes.js";
 import categoriasGrupoRoutes from "./routes/categoriaGrupo.routes.js"
 import uploadRoutes from "./routes/upload.routes.js";
+import cotizacionesRoutes from "./routes/cotizaciones.routes.js";
 
 const router = express.Router({ mergeParams: true });
 
@@ -28,5 +29,6 @@ router.use("/categorias", categoriaRouter);
 router.use("/deudas", deudasRoutes);
 router.use("/tarjetas-credito", tarjetasCreditoRoutes);
 router.use("/categorias-grupo", categoriasGrupoRoutes);
+router.use("/cotizaciones", cotizacionesRoutes);
 
 export default router; 

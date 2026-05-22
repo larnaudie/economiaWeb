@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "./Button";
 import { FormField } from "./FormField";
 
@@ -45,6 +45,8 @@ export function ExpenseForm({
   const [form, setForm] = useState(() => getInitialState(expense));
   const [facturaFile, setFacturaFile] = useState(null);
   const [showAccountingFields, setShowAccountingFields] = useState(mode !== "quick");
+  const cameraInputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const isQuickMode = mode === "quick";
 
   const economiaReal = useMemo(() => {
@@ -111,10 +113,31 @@ export function ExpenseForm({
         <input
           accept="image/*"
           capture="environment"
-          id="expenseFactura"
+          hidden
+          id="expenseFacturaCamera"
           onChange={(event) => setFacturaFile(event.target.files?.[0] || null)}
+          ref={cameraInputRef}
           type="file"
         />
+        <input
+          accept="image/*,application/pdf"
+          hidden
+          id="expenseFacturaFile"
+          onChange={(event) => setFacturaFile(event.target.files?.[0] || null)}
+          ref={fileInputRef}
+          type="file"
+        />
+        <div className="button-row">
+          <Button onClick={() => cameraInputRef.current?.click()} variant="secondary">
+            Sacar foto
+          </Button>
+          <Button onClick={() => fileInputRef.current?.click()} variant="secondary">
+            Elegir archivo
+          </Button>
+        </div>
+        {facturaFile ? (
+          <small className="field-hint">Archivo seleccionado: {facturaFile.name}</small>
+        ) : null}
         {expense?.facturaUrl ? (
           <a
             className="text-link"
@@ -126,7 +149,7 @@ export function ExpenseForm({
           </a>
         ) : null}
         <small className="field-hint">
-          Opcional. Desde celular podes sacar foto o elegir una imagen.
+          Opcional. Podes sacar una foto o adjuntar una imagen/PDF.
         </small>
       </FormField>
 

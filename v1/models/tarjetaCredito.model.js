@@ -21,6 +21,12 @@ const tarjetaCreditoSchema = new mongoose.Schema(
       default: null,
     },
 
+    cuentaTarjeta: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cuenta",
+      default: null,
+    },
+
     cuentaPagoDefault: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Cuenta",

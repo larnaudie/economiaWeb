@@ -1,6 +1,7 @@
 import Gasto from "../models/gasto.model.js";
 import Cuenta from "../models/cuenta.model.js";
 import Categoria from "../models/categoria.model.js";
+import MovimientoTarjeta from "../models/movimientoTarjeta.model.js";
 import { buildGastoBaseMatch } from "../utils/gastosFilters.js";
 import {
   buildBulkCreateGastos,
@@ -33,16 +34,29 @@ function normalizarCampoOpcional(value) {
   return value === "" ? null : value;
 }
 
-function validarGastoCreado(gasto) {
+function gastoRequiereCategoria(gasto) {
+  return gasto.incluirEnGastoBancario !== false || gasto.incluirEnGastoReal !== false;
+}
+
+function obtenerCamposRequeridosParaGastoCreado(gasto) {
   const requiredFields = [
     "fecha",
     "descripcion",
     "flujoBancario",
     "economiaReal",
     "porcentajeEconomiaReal",
-    "categoria",
     "cuenta",
   ];
+
+  if (gastoRequiereCategoria(gasto)) {
+    requiredFields.push("categoria");
+  }
+
+  return requiredFields;
+}
+
+function validarGastoCreado(gasto) {
+  const requiredFields = obtenerCamposRequeridosParaGastoCreado(gasto);
 
   const missingField = requiredFields.find((field) => {
     const value = gasto[field];
@@ -57,15 +71,7 @@ function validarGastoCreado(gasto) {
 }
 
 function inferirEstadoGasto(gasto) {
-  const requiredFields = [
-    "fecha",
-    "descripcion",
-    "flujoBancario",
-    "economiaReal",
-    "porcentajeEconomiaReal",
-    "categoria",
-    "cuenta",
-  ];
+  const requiredFields = obtenerCamposRequeridosParaGastoCreado(gasto);
 
   const completo = requiredFields.every((field) => {
     const value = gasto[field];
@@ -270,7 +276,7 @@ export const actualizarFacturaGastoService = async ({
   return gasto;
 };
 
-export const eliminarGastoService = async (id, usuarioId) => {
+export const eliminarGastoService = async (id, usuarioId, options = {}) => {
   const gastoEliminado = await Gasto.findOneAndDelete({
     _id: id,
     usuario: usuarioId,
@@ -278,6 +284,29 @@ export const eliminarGastoService = async (id, usuarioId) => {
 
   if (!gastoEliminado) {
     throw new Error("Gasto no encontrado");
+  }
+
+  if (gastoEliminado.movimientoTarjeta) {
+    if (options.eliminarMovimientoTarjeta) {
+      await MovimientoTarjeta.deleteOne({
+        _id: gastoEliminado.movimientoTarjeta,
+        usuario: usuarioId,
+      });
+      await Gasto.deleteMany({
+        _id: { $ne: gastoEliminado._id },
+        usuario: usuarioId,
+        movimientoTarjeta: gastoEliminado.movimientoTarjeta,
+      });
+    } else {
+      await MovimientoTarjeta.updateOne(
+        {
+          _id: gastoEliminado.movimientoTarjeta,
+          usuario: usuarioId,
+          gastoGenerado: gastoEliminado._id,
+        },
+        { $set: { gastoGenerado: null } },
+      );
+    }
   }
 
   return gastoEliminado;

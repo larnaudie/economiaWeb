@@ -3,7 +3,9 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
 import { ExpenseForm } from "../components/ExpenseForm";
+import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PageLayout } from "../layout/PageLayout";
 import {
@@ -25,6 +27,12 @@ export function PendingExpenses({ onLogout }) {
   const [categorias, setCategorias] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [editingExpense, setEditingExpense] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkValues, setBulkValues] = useState({
+    categoria: "",
+    cuenta: "",
+    porcentajeEconomiaReal: "",
+  });
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
   const user = getUser();
@@ -43,6 +51,7 @@ export function PendingExpenses({ onLogout }) {
       setGastos(normalizeItems(gastosResp));
       setCategorias(normalizeItems(categoriasResp));
       setCuentas(normalizeItems(cuentasResp));
+      setSelectedIds(new Set());
     } catch (error) {
       setStatus({
         type: "error",
@@ -114,7 +123,161 @@ export function PendingExpenses({ onLogout }) {
     }
   }
 
+  function toggleSelected(id) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllSelected(checked) {
+    setSelectedIds(checked ? new Set(gastos.map((gasto) => gasto._id)) : new Set());
+  }
+
+  function updateBulkField(field, value) {
+    setBulkValues((current) => ({ ...current, [field]: value }));
+  }
+
+  async function applyBulkChanges() {
+    const selectedExpenses = gastos.filter((gasto) => selectedIds.has(gasto._id));
+
+    if (!selectedExpenses.length) {
+      setStatus({
+        type: "error",
+        title: "Sin seleccion",
+        message: "Selecciona al menos un gasto pendiente.",
+      });
+      return;
+    }
+
+    const hasCategoria = bulkValues.categoria !== "";
+    const hasCuenta = bulkValues.cuenta !== "";
+    const hasPorcentaje = bulkValues.porcentajeEconomiaReal !== "";
+
+    if (!hasCategoria && !hasCuenta && !hasPorcentaje) {
+      setStatus({
+        type: "error",
+        title: "Sin cambios",
+        message: "Elige categoria, cuenta o porcentaje para aplicar.",
+      });
+      return;
+    }
+
+    const porcentaje = hasPorcentaje
+      ? Number(bulkValues.porcentajeEconomiaReal)
+      : null;
+
+    if (
+      hasPorcentaje &&
+      (Number.isNaN(porcentaje) || porcentaje < 0 || porcentaje > 100)
+    ) {
+      setStatus({
+        type: "error",
+        title: "Porcentaje invalido",
+        message: "El porcentaje debe estar entre 0 y 100.",
+      });
+      return;
+    }
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const gasto of selectedExpenses) {
+      try {
+        const body = {};
+
+        if (hasCategoria) body.categoria = bulkValues.categoria;
+        if (hasCuenta) body.cuenta = bulkValues.cuenta;
+        if (hasPorcentaje) {
+          body.porcentajeEconomiaReal = porcentaje;
+
+          if (gasto.flujoBancario !== null && gasto.flujoBancario !== undefined) {
+            const nextFlow = Number(gasto.flujoBancario || 0);
+            body.economiaReal = Number((nextFlow * (porcentaje / 100)).toFixed(2));
+          }
+        }
+
+        await apiRequest(`/gastos/${gasto._id}`, {
+          method: "PATCH",
+          body,
+        });
+        updated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setStatus({
+      type: failed ? "warning" : "success",
+      title: "Cambios aplicados",
+      message: `Actualizados: ${updated}. Errores: ${failed}.`,
+    });
+    setBulkValues({ categoria: "", cuenta: "", porcentajeEconomiaReal: "" });
+    await loadData();
+  }
+
+  async function deleteSelected() {
+    const selectedExpenses = gastos.filter((gasto) => selectedIds.has(gasto._id));
+
+    if (!selectedExpenses.length) {
+      setStatus({
+        type: "error",
+        title: "Sin seleccion",
+        message: "Selecciona al menos un gasto pendiente.",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Eliminar ${selectedExpenses.length} gasto(s) pendiente(s)?`,
+    );
+    if (!confirmed) return;
+
+    let deleted = 0;
+    let failed = 0;
+
+    for (const gasto of selectedExpenses) {
+      try {
+        await apiRequest(`/gastos/${gasto._id}`, { method: "DELETE" });
+        deleted++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setStatus({
+      type: failed ? "warning" : "success",
+      title: "Eliminacion finalizada",
+      message: `Eliminados: ${deleted}. Errores: ${failed}.`,
+    });
+    await loadData();
+  }
+
   const columns = [
+    {
+      key: "select",
+      header: (
+        <input
+          aria-label="Seleccionar todos los pendientes"
+          checked={gastos.length > 0 && selectedIds.size === gastos.length}
+          onChange={(event) => toggleAllSelected(event.target.checked)}
+          type="checkbox"
+        />
+      ),
+      render: (gasto) => (
+        <input
+          aria-label={`Seleccionar ${gasto.descripcion || "pendiente"}`}
+          checked={selectedIds.has(gasto._id)}
+          onChange={() => toggleSelected(gasto._id)}
+          type="checkbox"
+        />
+      ),
+    },
     {
       key: "fecha",
       header: "Fecha",
@@ -150,9 +313,7 @@ export function PendingExpenses({ onLogout }) {
           <Button onClick={() => setEditingExpense(gasto)} variant="secondary">
             Completar
           </Button>
-          <Button onClick={() => handleDelete(gasto)} variant="danger">
-            Eliminar
-          </Button>
+          <DeleteIconButton onClick={() => handleDelete(gasto)} />
         </div>
       ),
     },
@@ -171,6 +332,67 @@ export function PendingExpenses({ onLogout }) {
       {status.message ? (
         <Alert message={status.message} title={status.title} tone={status.type} />
       ) : null}
+
+      <Card className="expenses-table-card" title="Edicion multiple">
+        <div className="bulk-actions">
+          <FormField id="pendingBulkCategoria" label="Categoria">
+            <select
+              id="pendingBulkCategoria"
+              onChange={(event) => updateBulkField("categoria", event.target.value)}
+              value={bulkValues.categoria}
+            >
+              <option value="">No cambiar</option>
+              {categorias.map((categoria) => (
+                <option key={categoria._id} value={categoria._id}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField id="pendingBulkCuenta" label="Cuenta">
+            <select
+              id="pendingBulkCuenta"
+              onChange={(event) => updateBulkField("cuenta", event.target.value)}
+              value={bulkValues.cuenta}
+            >
+              <option value="">No cambiar</option>
+              {cuentas.map((cuenta) => (
+                <option key={cuenta._id} value={cuenta._id}>
+                  {cuenta.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField id="pendingBulkPorcentaje" label="Porcentaje real">
+            <input
+              id="pendingBulkPorcentaje"
+              max="100"
+              min="0"
+              onChange={(event) =>
+                updateBulkField("porcentajeEconomiaReal", event.target.value)
+              }
+              placeholder="No cambiar"
+              step="0.01"
+              type="number"
+              value={bulkValues.porcentajeEconomiaReal}
+            />
+          </FormField>
+
+          <div className="button-row expense-filter-actions">
+            <Button onClick={applyBulkChanges} variant="secondary">
+              Aplicar a seleccionados
+            </Button>
+            <Button onClick={deleteSelected} variant="danger">
+              Eliminar seleccionados
+            </Button>
+          </div>
+        </div>
+        <p className="selection-note">
+          Seleccionados en esta pagina: {selectedIds.size}
+        </p>
+      </Card>
 
       <Card title="Pendientes por completar">
         {loading ? (

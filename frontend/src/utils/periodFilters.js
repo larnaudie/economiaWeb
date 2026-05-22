@@ -17,7 +17,7 @@ export function currentMonthPeriod() {
   const now = new Date();
   return {
     mode: "month",
-    month: String(now.getMonth() + 1),
+    month: "",
     year: String(now.getFullYear()),
     dateFrom: "",
     dateTo: "",
@@ -26,6 +26,13 @@ export function currentMonthPeriod() {
 
 export function buildDateRange(filters) {
   if (filters.mode === "month") {
+    if (!filters.month) {
+      return {
+        fechaDesde: `${filters.year}-01-01`,
+        fechaHasta: `${filters.year}-12-31`,
+      };
+    }
+
     const month = Number(filters.month);
     const year = Number(filters.year);
     const lastDay = new Date(year, month, 0).getDate();

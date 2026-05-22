@@ -3,6 +3,8 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
+import { EditIconButton } from "../components/EditIconButton";
 import { ExpenseForm } from "../components/ExpenseForm";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
@@ -44,6 +46,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [bulkValues, setBulkValues] = useState({
     categoria: "",
+    cuenta: "",
     porcentajeEconomiaReal: "",
     incluirEnGastoBancario: "",
     incluirEnGastoReal: "",
@@ -51,6 +54,11 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
   const user = getUser();
+  const selectedCuentaData = useMemo(
+    () => cuentas.find((cuenta) => cuenta._id === selectedCuenta) || null,
+    [cuentas, selectedCuenta],
+  );
+  const isCreditCardAccount = selectedCuentaData?.tipo === "tarjeta_credito";
 
   const loadResources = useCallback(async () => {
     const [cuentasResp, categoriasResp] = await Promise.all([
@@ -125,19 +133,21 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
 
   const totals = useMemo(() => {
     return gastos
-      .filter((gasto) => gasto.estado !== "pendiente")
       .reduce(
         (acc, gasto) => {
           const flujo = Number(gasto.flujoBancario || 0);
           const real = Number(gasto.economiaReal || 0);
-          acc.saldo += flujo;
+          if (isCreditCardAccount || gasto.estado !== "pendiente") {
+            acc.saldo += flujo;
+          }
+          if (gasto.estado === "pendiente") return acc;
           if (gasto.incluirEnGastoBancario !== false && flujo < 0) acc.bancario += flujo;
           if (gasto.incluirEnGastoReal !== false && real < 0) acc.real += real;
           return acc;
         },
         { bancario: 0, real: 0, saldo: 0 },
       );
-  }, [gastos]);
+  }, [gastos, isCreditCardAccount]);
 
   const categoryTotals = useMemo(() => {
     const map = new Map();
@@ -228,18 +238,43 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   }
 
   async function deleteExpense(gasto) {
-    const confirmed = window.confirm(`Eliminar ${gasto.descripcion}?`);
+    let deleteLinkedCardMovement = false;
+    const isCardExpense = gasto.origen === "tarjeta_credito" || gasto.movimientoTarjeta;
+    const confirmed = isCardExpense
+      ? window.confirm(
+          `Estas borrando ${gasto.descripcion} que esta asociado a una tarjeta. Aceptar: eliminar gasto en cuenta y tarjeta. Cancelar: elegir si borrarlo solo en cuenta.`,
+        )
+      : window.confirm(`Eliminar ${gasto.descripcion}?`);
+
+    if (isCardExpense && confirmed) {
+      deleteLinkedCardMovement = true;
+    }
+
+    if (isCardExpense && !confirmed) {
+      const onlyAccount = window.confirm(
+        "Queres eliminar el gasto solo en cuenta y conservar el movimiento en Tarjetas?",
+      );
+      if (!onlyAccount) return;
+      await deleteMany([gasto], { deleteLinkedCardMovement: false });
+      return;
+    }
+
     if (!confirmed) return;
-    await deleteMany([gasto]);
+    await deleteMany([gasto], { deleteLinkedCardMovement });
   }
 
-  async function deleteMany(items) {
+  async function deleteMany(items, options = {}) {
     let deleted = 0;
     let failed = 0;
 
     for (const gasto of items) {
       try {
-        await apiRequest(`/gastos/${gasto._id}`, { method: "DELETE" });
+        await apiRequest(`/gastos/${gasto._id}`, {
+          method: "DELETE",
+          body: {
+            eliminarMovimientoTarjeta: options.deleteLinkedCardMovement === true,
+          },
+        });
         deleted++;
       } catch {
         failed++;
@@ -300,7 +335,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
             porcentajeEconomiaReal: percentage,
             economiaReal: real,
             categoria: bulkValues.categoria || gasto.categoria?._id || gasto.categoria,
-            cuenta: selectedCuenta,
+            cuenta: bulkValues.cuenta || selectedCuenta,
             incluirEnGastoBancario:
               bulkValues.incluirEnGastoBancario === ""
                 ? gasto.incluirEnGastoBancario !== false
@@ -323,6 +358,76 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
       message: `Actualizados: ${updated}. Errores: ${failed}.`,
     });
     await loadExpenses(selectedCuenta, appliedFilters);
+  }
+
+  async function moveExpenseToAccount(gasto, cuentaId) {
+    if (!gasto?._id || !cuentaId || cuentaId === selectedCuenta) return;
+
+    try {
+      await apiRequest(`/gastos/${gasto._id}`, {
+        method: "PATCH",
+        body: {
+          fecha: gasto.fecha,
+          descripcion: gasto.descripcion,
+          flujoBancario: gasto.flujoBancario,
+          economiaReal: gasto.economiaReal,
+          porcentajeEconomiaReal: gasto.porcentajeEconomiaReal,
+          categoria: gasto.categoria?._id || gasto.categoria,
+          cuenta: cuentaId,
+          incluirEnGastoBancario: gasto.incluirEnGastoBancario !== false,
+          incluirEnGastoReal: gasto.incluirEnGastoReal !== false,
+        },
+      });
+
+      setStatus({
+        type: "success",
+        title: "Gasto movido",
+        message: "El gasto se movio a la cuenta seleccionada.",
+      });
+      await loadExpenses(selectedCuenta, appliedFilters);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo mover",
+        message: error.message,
+      });
+    }
+  }
+
+  async function updateExpenseInclusion(gasto, field, checked) {
+    if (!gasto?._id) return;
+
+    try {
+      await apiRequest(`/gastos/${gasto._id}`, {
+        method: "PATCH",
+        body: {
+          fecha: gasto.fecha,
+          descripcion: gasto.descripcion,
+          flujoBancario: gasto.flujoBancario,
+          economiaReal: gasto.economiaReal,
+          porcentajeEconomiaReal: gasto.porcentajeEconomiaReal,
+          categoria: gasto.categoria?._id || gasto.categoria,
+          cuenta: gasto.cuenta?._id || gasto.cuenta || selectedCuenta,
+          incluirEnGastoBancario:
+            field === "bancario" ? checked : gasto.incluirEnGastoBancario !== false,
+          incluirEnGastoReal:
+            field === "real" ? checked : gasto.incluirEnGastoReal !== false,
+        },
+      });
+
+      setStatus({
+        type: "success",
+        title: "Gasto actualizado",
+        message: "La inclusion del gasto se actualizo correctamente.",
+      });
+      await loadExpenses(selectedCuenta, appliedFilters);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo actualizar",
+        message: error.message,
+      });
+    }
   }
 
   function reorderExpenses(sourceId, targetId) {
@@ -398,6 +503,54 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     { key: "real", header: "Real", render: (gasto) => formatCurrency(gasto.economiaReal) },
     { key: "categoria", header: "Categoria", render: (gasto) => gasto.categoria?.nombre || "N/A" },
     {
+      key: "incluir",
+      header: "Incluir",
+      render: (gasto) => (
+        <div className="table-include-controls">
+          <label>
+            <input
+              checked={gasto.incluirEnGastoBancario !== false}
+              onChange={(event) =>
+                updateExpenseInclusion(gasto, "bancario", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span>Bancario</span>
+          </label>
+          <label>
+            <input
+              checked={gasto.incluirEnGastoReal !== false}
+              onChange={(event) =>
+                updateExpenseInclusion(gasto, "real", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span>Real</span>
+          </label>
+        </div>
+      ),
+    },
+    {
+      key: "mover",
+      header: "Mover",
+      render: (gasto) => (
+        <select
+          className="table-select"
+          onChange={(event) => moveExpenseToAccount(gasto, event.target.value)}
+          value=""
+        >
+          <option value="">Mover a...</option>
+          {cuentas
+            .filter((cuenta) => cuenta._id !== selectedCuenta)
+            .map((cuenta) => (
+              <option key={cuenta._id} value={cuenta._id}>
+                {cuenta.nombre}
+              </option>
+            ))}
+        </select>
+      ),
+    },
+    {
       key: "factura",
       header: "Factura",
       render: (gasto) =>
@@ -419,12 +572,8 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
       header: "Acciones",
       render: (gasto) => (
         <div className="table-actions">
-          <Button onClick={() => setEditingExpense(gasto)} variant="secondary">
-            Editar
-          </Button>
-          <Button onClick={() => deleteExpense(gasto)} variant="danger">
-            Eliminar
-          </Button>
+          <EditIconButton onClick={() => setEditingExpense(gasto)} />
+          <DeleteIconButton onClick={() => deleteExpense(gasto)} />
         </div>
       ),
     },
@@ -471,7 +620,10 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
       <section className="metric-grid metric-grid-wide">
         <MetricCard label="Gasto bancario" value={formatCurrency(Math.abs(totals.bancario))} />
         <MetricCard label="Gasto real" value={formatCurrency(Math.abs(totals.real))} />
-        <MetricCard label="Saldo bancario" value={formatCurrency(totals.saldo)} />
+        <MetricCard
+          label={isCreditCardAccount ? "Saldo tarjeta" : "Saldo bancario"}
+          value={formatCurrency(totals.saldo)}
+        />
         <MetricCard label="Gastos visibles" value={gastos.length} />
       </section>
 
@@ -563,6 +715,24 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
               type="number"
               value={bulkValues.porcentajeEconomiaReal}
             />
+          </FormField>
+          <FormField id="accountBulkCuenta" label="Mover a cuenta">
+            <select
+              id="accountBulkCuenta"
+              onChange={(event) =>
+                setBulkValues((current) => ({ ...current, cuenta: event.target.value }))
+              }
+              value={bulkValues.cuenta}
+            >
+              <option value="">No mover</option>
+              {cuentas
+                .filter((cuenta) => cuenta._id !== selectedCuenta)
+                .map((cuenta) => (
+                  <option key={cuenta._id} value={cuenta._id}>
+                    {cuenta.nombre}
+                  </option>
+                ))}
+            </select>
           </FormField>
           <FormField id="accountBulkBancario" label="Incluir bancario">
             <select

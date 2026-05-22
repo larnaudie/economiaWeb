@@ -3,6 +3,8 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
+import { EditIconButton } from "../components/EditIconButton";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PageLayout } from "../layout/PageLayout";
@@ -78,18 +80,66 @@ function formatCurrencyPair(total) {
   return `${formatCurrency(total.uyu)} / US$ ${total.usd.toFixed(2)}`;
 }
 
+function getPaymentState(balance) {
+  if (!balance) return null;
+
+  const paid =
+    Math.abs(Number(balance.uyu || 0)) < 0.01 &&
+    Math.abs(Number(balance.usd || 0)) < 0.01;
+
+  if (paid) return "pagado";
+  return "pendiente";
+}
+
+function getPaymentStateMeta(state) {
+  if (state === "pagado") {
+    return { className: "status-creado", label: "Resumen pago" };
+  }
+
+  if (state === "saldo_a_favor") {
+    return { className: "status-creado", label: "Saldo a favor" };
+  }
+
+  if (state === "parcial") {
+    return { className: "status-pendiente", label: "Pago parcial" };
+  }
+
+  return { className: "status-pendiente", label: "Pendiente de pago" };
+}
+
+function getMovementGenerationState(movimiento) {
+  if (movimiento.gastoGenerado) {
+    return movimiento.tipoMovimiento === "compra"
+      ? { className: "status-creado", label: "Gasto generado" }
+      : { className: "status-creado", label: "Movimiento generado" };
+  }
+
+  return movimiento.tipoMovimiento === "compra"
+    ? { className: "status-pendiente", label: "Pendiente de generar" }
+    : { className: "status-pendiente", label: "Pendiente en cuenta" };
+}
+
+const accountTypeLabels = {
+  caja_ahorro: "Caja de ahorro",
+  cuenta_corriente: "Cuenta corriente",
+  tarjeta_credito: "Tarjeta de credito",
+};
+
 export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   const [tarjetas, setTarjetas] = useState([]);
   const [bancos, setBancos] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [movimientos, setMovimientos] = useState([]);
+  const [resumenes, setResumenes] = useState([]);
   const [movementFilters, setMovementFilters] = useState({
+    resumenId: "",
     tipoMovimiento: "",
     moneda: "",
     search: "",
     generated: "",
   });
   const [selectedMovementIds, setSelectedMovementIds] = useState(() => new Set());
+  const [selectedPaymentAccount, setSelectedPaymentAccount] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [importingCard, setImportingCard] = useState(null);
@@ -131,20 +181,37 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   const selectedTarjeta = useMemo(() => {
     return tarjetas.find((tarjeta) => tarjeta._id === selectedTarjetaId) || null;
   }, [selectedTarjetaId, tarjetas]);
+  const selectedCardAccountId =
+    selectedTarjeta?.cuentaTarjeta?._id || selectedTarjeta?.cuentaTarjeta || "";
+  const paymentAccounts = useMemo(
+    () => cuentas.filter((cuenta) => cuenta.tipo !== "tarjeta_credito"),
+    [cuentas],
+  );
+
+  useEffect(() => {
+    const defaultAccount =
+      selectedTarjeta?.cuentaPagoDefault?._id ||
+      selectedTarjeta?.cuentaPagoDefault ||
+      "";
+    setSelectedPaymentAccount(defaultAccount);
+  }, [selectedTarjeta]);
 
   const loadMovements = useCallback(async () => {
     if (!selectedTarjetaId) {
       setMovimientos([]);
+      setResumenes([]);
       return;
     }
 
     setLoadingMovements(true);
 
     try {
-      const response = await apiRequest(
-        `/tarjetas-credito/${selectedTarjetaId}/movimientos`,
-      );
-      setMovimientos(normalizeItems(response));
+      const [movimientosResp, resumenesResp] = await Promise.all([
+        apiRequest(`/tarjetas-credito/${selectedTarjetaId}/movimientos`),
+        apiRequest(`/tarjetas-credito/${selectedTarjetaId}/resumenes`),
+      ]);
+      setMovimientos(normalizeItems(movimientosResp));
+      setResumenes(normalizeItems(resumenesResp));
       setSelectedMovementIds(new Set());
     } catch (error) {
       setStatus({
@@ -177,6 +244,10 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   const filteredMovements = useMemo(() => {
     return movimientos.filter((movimiento) => {
       const search = movementFilters.search.trim().toLowerCase();
+      const movimientoResumenId =
+        typeof movimiento.resumen === "object" ? movimiento.resumen?._id : movimiento.resumen;
+      const matchesSummary =
+        !movementFilters.resumenId || movimientoResumenId === movementFilters.resumenId;
       const matchesType =
         !movementFilters.tipoMovimiento ||
         movimiento.tipoMovimiento === movementFilters.tipoMovimiento;
@@ -189,9 +260,30 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         (movementFilters.generated === "generado" && movimiento.gastoGenerado) ||
         (movementFilters.generated === "pendiente" && !movimiento.gastoGenerado);
 
-      return matchesType && matchesCurrency && matchesSearch && matchesGenerated;
+      return (
+        matchesSummary &&
+        matchesType &&
+        matchesCurrency &&
+        matchesSearch &&
+        matchesGenerated
+      );
     });
   }, [movementFilters, movimientos]);
+
+  const selectedSummary = useMemo(() => {
+    if (!movementFilters.resumenId) return null;
+    return resumenes.find((resumen) => resumen._id === movementFilters.resumenId) || null;
+  }, [resumenes, movementFilters.resumenId]);
+
+  const importedSummaries = useMemo(() => {
+    return [...resumenes].sort((a, b) => {
+      const dateA = new Date(a.fechaCierre || a.createdAt || 0).getTime();
+      const dateB = new Date(b.fechaCierre || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [resumenes]);
+
+  const summaryToDisplay = selectedSummary || selectedTarjeta?.ultimoResumen || null;
 
   const movementSummary = useMemo(() => {
     return filteredMovements.reduce(
@@ -243,10 +335,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   }, [movementSummary]);
 
   const selectableMovements = useMemo(() => {
-    return filteredMovements.filter(
-      (movimiento) =>
-        movimiento.tipoMovimiento === "compra" && !movimiento.gastoGenerado,
-    );
+    return filteredMovements;
   }, [filteredMovements]);
 
   const allSelectableMovementsSelected =
@@ -279,6 +368,12 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
       });
       return next;
     });
+  }
+
+  function getSelectedMovements() {
+    return filteredMovements.filter((movimiento) =>
+      selectedMovementIds.has(movimiento._id),
+    );
   }
 
   async function handleCreate(payload) {
@@ -345,6 +440,9 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         message: `Movimientos nuevos: ${result.movimientosCreados}. Duplicados: ${result.movimientosDuplicados}.`,
       });
       await loadData();
+      if (selectedTarjetaId === importingCard._id) {
+        await loadMovements();
+      }
     } catch (error) {
       setStatus({
         type: "error",
@@ -381,14 +479,22 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
     try {
       await apiRequest(
         `/tarjetas-credito/${selectedTarjetaId}/movimientos/${movimiento._id}/crear-gasto`,
-        { method: "POST" },
+        {
+          method: "POST",
+          body: { cuentaPago: selectedPaymentAccount || null },
+        },
       );
 
       setStatus({
         type: "success",
-        title: "Gasto pendiente creado",
+        title:
+          movimiento.tipoMovimiento === "compra"
+            ? "Gasto pendiente creado"
+            : "Movimiento generado",
         message:
-          "El movimiento ahora aparece en Gastos Pendientes para completar categoria y cuenta.",
+          movimiento.tipoMovimiento === "compra"
+            ? "La compra ahora aparece en Gastos Pendientes para completar categoria."
+            : "El movimiento impacto la cuenta tarjeta sin duplicar gasto real.",
       });
       await loadMovements();
     } catch (error) {
@@ -401,13 +507,16 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   }
 
   async function handleCreateSelectedExpenses() {
-    const movimientoIds = [...selectedMovementIds];
+    const movimientoIds = getSelectedMovements()
+      .filter((movimiento) => !movimiento.gastoGenerado)
+      .map((movimiento) => movimiento._id);
 
     if (!selectedTarjetaId || !movimientoIds.length) {
       setStatus({
         type: "error",
         title: "Sin seleccion",
-        message: "Selecciona al menos una compra pendiente de generar.",
+        message:
+          "Selecciona al menos un movimiento que todavia no este generado en cuenta.",
       });
       return;
     }
@@ -417,14 +526,17 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         `/tarjetas-credito/${selectedTarjetaId}/movimientos/crear-gastos`,
         {
           method: "POST",
-          body: { movimientoIds },
+          body: {
+            movimientoIds,
+            cuentaPago: selectedPaymentAccount || null,
+          },
         },
       );
       const result = getApiData(response);
 
       setStatus({
         type: result.errores ? "warning" : "success",
-        title: "Creacion masiva finalizada",
+        title: "Movimientos generados",
         message: `Creados: ${result.creados}. Omitidos: ${result.omitidos}. Errores: ${result.errores}.`,
       });
       setSelectedMovementIds(new Set());
@@ -436,6 +548,57 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         message: error.message,
       });
     }
+  }
+
+  async function handleDeleteSelectedMovements() {
+    const selectedMovements = getSelectedMovements();
+
+    if (!selectedTarjetaId || !selectedMovements.length) {
+      setStatus({
+        type: "error",
+        title: "Sin seleccion",
+        message: "Selecciona al menos un movimiento para eliminar.",
+      });
+      return;
+    }
+
+    const generatedCount = selectedMovements.filter(
+      (movimiento) => movimiento.gastoGenerado,
+    ).length;
+    const confirmed = window.confirm(
+      generatedCount
+        ? `Eliminar ${selectedMovements.length} movimiento(s) seleccionado(s) y tambien ${generatedCount} gasto(s) generado(s)?`
+        : `Eliminar ${selectedMovements.length} movimiento(s) seleccionado(s)?`,
+    );
+
+    if (!confirmed) return;
+
+    let deleted = 0;
+    let failed = 0;
+
+    for (const movimiento of selectedMovements) {
+      try {
+        await apiRequest(
+          `/tarjetas-credito/${selectedTarjetaId}/movimientos/${movimiento._id}`,
+          {
+            method: "DELETE",
+            body: { eliminarGastoGenerado: Boolean(movimiento.gastoGenerado) },
+          },
+        );
+        deleted++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setStatus({
+      type: failed ? "warning" : "success",
+      title: "Eliminacion masiva finalizada",
+      message: `Movimientos eliminados: ${deleted}. Errores: ${failed}.`,
+    });
+    setSelectedMovementIds(new Set());
+    await loadMovements();
+    await loadData();
   }
 
   async function handleDeleteMovement(movimiento) {
@@ -478,17 +641,18 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   }
 
   async function handleDeleteImportedSummary() {
-    if (!selectedTarjeta?._id || !selectedTarjeta.ultimoResumen?._id) return;
+    const targetSummary = selectedSummary || selectedTarjeta?.ultimoResumen;
+    if (!selectedTarjeta?._id || !targetSummary?._id) return;
 
     const confirmed = window.confirm(
-      "Eliminar este resumen importado, sus movimientos y los gastos generados desde esos movimientos?",
+      `Eliminar el resumen ${targetSummary.periodo || ""}, sus movimientos y los gastos generados desde esos movimientos?`,
     );
 
     if (!confirmed) return;
 
     try {
       const response = await apiRequest(
-        `/tarjetas-credito/${selectedTarjeta._id}/resumenes/${selectedTarjeta.ultimoResumen._id}`,
+        `/tarjetas-credito/${selectedTarjeta._id}/resumenes/${targetSummary._id}`,
         {
           method: "DELETE",
           body: { eliminarGastosGenerados: true },
@@ -502,6 +666,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         message: `Movimientos eliminados: ${result.movimientosEliminados}. Gastos eliminados: ${result.gastosEliminados}.`,
       });
       setSelectedMovementIds(new Set());
+      setMovementFilters((current) => ({ ...current, resumenId: "" }));
       await loadMovements();
       await loadData();
     } catch (error) {
@@ -528,6 +693,11 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
       key: "banco",
       header: "Banco",
       render: (tarjeta) => tarjeta.banco?.nombre || "N/A",
+    },
+    {
+      key: "cuentaTarjeta",
+      header: "Cuenta tarjeta",
+      render: (tarjeta) => tarjeta.cuentaTarjeta?.nombre || "Sin cuenta",
     },
     {
       key: "limiteUYU",
@@ -565,12 +735,14 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
           <Button onClick={() => setImportingCard(tarjeta)} variant="secondary">
             Importar resumen
           </Button>
-          <Button onClick={() => setEditingCard(tarjeta)} variant="secondary">
-            Editar
-          </Button>
-          <Button onClick={() => handleDelete(tarjeta)} variant="danger">
-            Eliminar
-          </Button>
+          <EditIconButton
+            label="Editar tarjeta"
+            onClick={() => setEditingCard(tarjeta)}
+          />
+          <DeleteIconButton
+            label="Eliminar tarjeta"
+            onClick={() => handleDelete(tarjeta)}
+          />
         </div>
       ),
     },
@@ -581,7 +753,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
       key: "select",
       header: (
         <input
-          aria-label="Seleccionar compras visibles sin gasto generado"
+          aria-label="Seleccionar movimientos visibles"
           checked={allSelectableMovementsSelected}
           disabled={!selectableMovements.length}
           onClick={(event) => event.stopPropagation()}
@@ -590,14 +762,10 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
         />
       ),
       render: (movimiento) => {
-        const selectable =
-          movimiento.tipoMovimiento === "compra" && !movimiento.gastoGenerado;
-
         return (
           <input
             aria-label={`Seleccionar ${movimiento.detalle || "movimiento"}`}
             checked={selectedMovementIds.has(movimiento._id)}
-            disabled={!selectable}
             onClick={(event) => event.stopPropagation()}
             onChange={() => toggleMovementSelected(movimiento._id)}
             type="checkbox"
@@ -648,15 +816,15 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
     {
       key: "gasto",
       header: "Gasto generado",
-      render: (movimiento) => (
-        <span
-          className={`status-pill ${
-            movimiento.gastoGenerado ? "status-creado" : "status-pendiente"
-          }`}
-        >
-          {movimiento.gastoGenerado ? "Generado" : "Pendiente de generar"}
-        </span>
-      ),
+      render: (movimiento) => {
+        const state = getMovementGenerationState(movimiento);
+
+        return (
+          <span className={`status-pill ${state.className}`}>
+            {state.label}
+          </span>
+        );
+      },
     },
     {
       key: "acciones",
@@ -671,17 +839,37 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
               Crear gasto
             </Button>
           ) : null}
-          {movimiento.gastoGenerado ? (
+          {movimiento.tipoMovimiento !== "compra" && !movimiento.gastoGenerado ? (
+            <Button
+              onClick={() => handleCreateExpenseFromMovement(movimiento)}
+              variant="secondary"
+            >
+              Crear movimiento
+            </Button>
+          ) : null}
+          {movimiento.gastoGenerado && movimiento.tipoMovimiento === "compra" ? (
             <Button
               onClick={() => window.location.assign("#/gastos-pendientes")}
               variant="secondary"
             >
-              Ver pendiente
+              Completar gasto
             </Button>
           ) : null}
-          <Button onClick={() => handleDeleteMovement(movimiento)} variant="danger">
-            Eliminar
-          </Button>
+          {movimiento.gastoGenerado && movimiento.tipoMovimiento !== "compra" ? (
+            <Button
+              disabled={!selectedCardAccountId}
+              onClick={() =>
+                window.location.assign(`#/gastos-cuenta?cuenta=${selectedCardAccountId}`)
+              }
+              variant="secondary"
+            >
+              Ver cuenta
+            </Button>
+          ) : null}
+          <DeleteIconButton
+            label="Eliminar movimiento"
+            onClick={() => handleDeleteMovement(movimiento)}
+          />
         </div>
       ),
     },
@@ -719,18 +907,18 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
               </div>
               <div className="table-actions">
                 <Button
+                  disabled={!summaryToDisplay}
+                  onClick={handleDeleteImportedSummary}
+                  variant="danger"
+                >
+                  Borrar resumen
+                </Button>
+                <Button
                   onClick={() => setImportingCard(selectedTarjeta)}
                   variant="secondary"
                   disabled={!selectedTarjeta}
                 >
                   Importar resumen
-                </Button>
-                <Button
-                  disabled={!selectedTarjeta?.ultimoResumen}
-                  onClick={handleDeleteImportedSummary}
-                  variant="danger"
-                >
-                  Borrar resumen
                 </Button>
                 <Button
                   onClick={() => window.location.assign("#/tarjetas-credito")}
@@ -745,6 +933,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
               <CreditCardSummary
                 balance={cardBalance}
                 movementSummary={movementSummary}
+                resumen={summaryToDisplay}
                 tarjeta={selectedTarjeta}
               />
             ) : null}
@@ -791,6 +980,29 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
                   {Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField id="movementSummaryFilter" label="Resumen">
+                <select
+                  id="movementSummaryFilter"
+                  onChange={(event) =>
+                    setMovementFilters((current) => ({
+                      ...current,
+                      resumenId: event.target.value,
+                    }))
+                  }
+                  value={movementFilters.resumenId}
+                >
+                  <option value="">Todos los resumenes</option>
+                  {importedSummaries.map((resumen) => (
+                    <option key={resumen._id} value={resumen._id}>
+                      {resumen.periodo}
+                      {resumen.fechaCierre
+                        ? ` - cierre ${formatDate(resumen.fechaCierre)}`
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -848,6 +1060,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
                 <Button
                   onClick={() =>
                     setMovementFilters({
+                      resumenId: "",
                       tipoMovimiento: "",
                       moneda: "",
                       search: "",
@@ -867,17 +1080,43 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
               <div>
                 <h2>Movimientos importados</h2>
                 <p>
-                  Seleccionados: {selectedMovementIds.size}. Solo las compras sin
-                  gasto generado se pueden crear masivamente.
+                  {selectedSummary
+                    ? `Resumen ${selectedSummary.periodo}. `
+                    : "Todos los resumenes. "}
+                  Seleccionados: {selectedMovementIds.size}. Los movimientos generados impactan la cuenta tarjeta sin duplicar gasto real.
                 </p>
               </div>
               <div className="table-actions">
+                <FormField id="creditCardPaymentSource" label="Cuenta origen del pago">
+                  <select
+                    id="creditCardPaymentSource"
+                    onChange={(event) => setSelectedPaymentAccount(event.target.value)}
+                    value={selectedPaymentAccount}
+                  >
+                    <option value="">Usar default o no conciliar banco</option>
+                    {paymentAccounts.map((cuenta) => (
+                      <option key={cuenta._id} value={cuenta._id}>
+                        {cuenta.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <small className="field-hint">
+                    Solo aplica a movimientos tipo Pago. La cuenta Tarjeta de Credito se toma de la tarjeta.
+                  </small>
+                </FormField>
                 <Button
                   disabled={!selectedMovementIds.size}
                   onClick={handleCreateSelectedExpenses}
                   variant="secondary"
                 >
-                  Crear gastos seleccionados
+                  Crear movimientos seleccionados
+                </Button>
+                <Button
+                  disabled={!selectedMovementIds.size}
+                  onClick={handleDeleteSelectedMovements}
+                  variant="danger"
+                >
+                  Eliminar seleccionados
                 </Button>
                 <Button
                   disabled={!selectedMovementIds.size}
@@ -935,15 +1174,35 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
           </Card>
 
           <section className="dashboard-grid dashboard-grid-spaced">
-            {tarjetas.map((tarjeta) => (
-              <Card
-                className="credit-card-summary-card"
-                key={tarjeta._id}
-                title={`${tarjeta.nombre} - Ultimo resumen`}
-              >
-                <CreditCardSummary tarjeta={tarjeta} />
-              </Card>
-            ))}
+            {tarjetas.flatMap((tarjeta) => {
+              const summaries = tarjeta.resumenes?.length
+                ? tarjeta.resumenes
+                : tarjeta.ultimoResumen
+                  ? [tarjeta.ultimoResumen]
+                  : [];
+
+              if (!summaries.length) {
+                return (
+                  <Card
+                    className="credit-card-summary-card"
+                    key={tarjeta._id}
+                    title={`${tarjeta.nombre} - Sin resumenes`}
+                  >
+                    <CreditCardSummary tarjeta={tarjeta} />
+                  </Card>
+                );
+              }
+
+              return summaries.map((resumen) => (
+                <Card
+                  className="credit-card-summary-card"
+                  key={`${tarjeta._id}-${resumen._id}`}
+                  title={`${tarjeta.nombre} - ${resumen.periodo || "Resumen"}`}
+                >
+                  <CreditCardSummary resumen={resumen} tarjeta={tarjeta} />
+                </Card>
+              ));
+            })}
           </section>
         </>
       )}
@@ -990,8 +1249,8 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   );
 }
 
-function CreditCardSummary({ balance, movementSummary, tarjeta }) {
-  const resumen = tarjeta.ultimoResumen;
+function CreditCardSummary({ balance, movementSummary, resumen: selectedResumen, tarjeta }) {
+  const resumen = selectedResumen || tarjeta.ultimoResumen;
 
   if (!resumen) {
     return (
@@ -1004,18 +1263,49 @@ function CreditCardSummary({ balance, movementSummary, tarjeta }) {
   const pagoUYU = Number(resumen.pagoContadoUYU || 0);
   const pagoUSD = Number(resumen.pagoContadoUSD || 0);
   const hasMovementBalance = Boolean(balance && movementSummary);
+  const resumenBalance = resumen.movimientosBalance || null;
+  const displayedBalance = balance || resumenBalance?.saldoPendiente || null;
+  const paymentState = resumenBalance?.estadoPago || getPaymentState(displayedBalance);
+  const paymentStateMeta = paymentState ? getPaymentStateMeta(paymentState) : null;
+  const pagosDetectados = movementSummary?.pagos || resumenBalance?.pagos || null;
+  const montoAPagar = displayedBalance
+    ? {
+        uyu: Math.max(0, Number(displayedBalance.uyu || 0)),
+        usd: Math.max(0, Number(displayedBalance.usd || 0)),
+      }
+    : null;
+  const saldoAFavor = displayedBalance
+    ? {
+        uyu: Math.max(0, -Number(displayedBalance.uyu || 0)),
+        usd: Math.max(0, -Number(displayedBalance.usd || 0)),
+      }
+    : null;
 
   return (
     <div className="credit-summary-stack">
       <div className="credit-payment-callout">
-        <span>Total a pagar segun resumen</span>
+        <div className="credit-payment-title-row">
+          <span>Total a pagar segun resumen</span>
+          {paymentStateMeta ? (
+            <span className={`status-pill ${paymentStateMeta.className}`}>
+              {paymentState === "saldo_a_favor" && saldoAFavor
+                ? `${paymentStateMeta.label}: ${formatCurrencyPair(saldoAFavor)}`
+                : paymentStateMeta.label}
+            </span>
+          ) : null}
+        </div>
         <strong>
           {formatCurrency(pagoUYU)} y US$ {pagoUSD.toFixed(2)}
         </strong>
-        {hasMovementBalance ? (
+        {hasMovementBalance || resumenBalance ? (
           <div className="credit-payment-breakdown">
-            <small>Pagos detectados: {formatCurrencyPair(movementSummary.pagos)}</small>
-            <small>Saldo estimado: {formatCurrencyPair(balance)}</small>
+            <small>Pagos detectados: {formatCurrencyPair(pagosDetectados)}</small>
+            <small>Saldo estimado: {formatCurrencyPair(displayedBalance)}</small>
+            {montoAPagar ? (
+              <strong className="credit-payment-due">
+                A pagar: {formatCurrencyPair(montoAPagar)}
+              </strong>
+            ) : null}
             <small>
               Vence el {formatDate(resumen.fechaVencimiento)}. Pago minimo:{" "}
               {formatCurrency(resumen.pagoMinimoUYU)} y US${" "}
@@ -1101,6 +1391,7 @@ function CreditCardForm({ bancos, cuentas, onCancel, onSubmit, tarjeta }) {
   const [form, setForm] = useState({
     nombre: tarjeta?.nombre || "",
     banco: tarjeta?.banco?._id || tarjeta?.banco || "",
+    cuentaTarjeta: tarjeta?.cuentaTarjeta?._id || tarjeta?.cuentaTarjeta || "",
     cuentaPagoDefault:
       tarjeta?.cuentaPagoDefault?._id || tarjeta?.cuentaPagoDefault || "",
     ultimosDigitos: tarjeta?.ultimosDigitos || "",
@@ -1110,6 +1401,7 @@ function CreditCardForm({ bancos, cuentas, onCancel, onSubmit, tarjeta }) {
     diaCierre: tarjeta?.diaCierre ?? "",
     diaVencimiento: tarjeta?.diaVencimiento ?? "",
   });
+  const cuentasTarjeta = cuentas.filter((cuenta) => cuenta.tipo === "tarjeta_credito");
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -1120,6 +1412,7 @@ function CreditCardForm({ bancos, cuentas, onCancel, onSubmit, tarjeta }) {
     onSubmit({
       nombre: form.nombre.trim(),
       banco: form.banco || null,
+      cuentaTarjeta: form.cuentaTarjeta || null,
       cuentaPagoDefault: form.cuentaPagoDefault || null,
       ultimosDigitos: form.ultimosDigitos.trim(),
       monedaPrincipal: form.monedaPrincipal,
@@ -1159,6 +1452,26 @@ function CreditCardForm({ bancos, cuentas, onCancel, onSubmit, tarjeta }) {
           </select>
         </FormField>
 
+        <FormField id="creditCardAccount" label="Cuenta tarjeta">
+          <select
+            id="creditCardAccount"
+            onChange={(event) => updateField("cuentaTarjeta", event.target.value)}
+            value={form.cuentaTarjeta}
+          >
+            <option value="">Sin cuenta tarjeta</option>
+            {cuentasTarjeta.map((cuenta) => (
+              <option key={cuenta._id} value={cuenta._id}>
+                {cuenta.nombre}
+              </option>
+            ))}
+          </select>
+          <small className="field-hint">
+            Los gastos generados desde compras de tarjeta se cargan en esta cuenta.
+          </small>
+        </FormField>
+      </div>
+
+      <div className="form-grid">
         <FormField id="creditCardPaymentAccount" label="Cuenta pago default">
           <select
             id="creditCardPaymentAccount"
@@ -1170,11 +1483,15 @@ function CreditCardForm({ bancos, cuentas, onCancel, onSubmit, tarjeta }) {
             <option value="">Sin cuenta default</option>
             {cuentas.map((cuenta) => (
               <option key={cuenta._id} value={cuenta._id}>
-                {cuenta.nombre}
+                {cuenta.nombre} - {accountTypeLabels[cuenta.tipo] || "Cuenta"}
               </option>
             ))}
           </select>
         </FormField>
+
+        <div className="field-hint">
+          Si todavia no existe, creala en Creaciones como tipo Tarjeta de credito.
+        </div>
       </div>
 
       <div className="form-grid">
@@ -1268,9 +1585,9 @@ function ImportCardStatementForm({ onCancel, onSubmit, tarjeta }) {
   return (
     <form className="stack-form" onSubmit={handleSubmit}>
       <Alert
-        message="Por ahora se importa el resumen y los movimientos, sin generar gastos automaticamente."
+        message="Importa solo resumenes de tarjeta con secciones Cuenta, Pagos y movimientos con columnas Fecha, Tarjeta, Detalle, Importe $ e Importe U$S. Si el archivo no cumple ese formato, la importacion se rechaza sin guardar datos."
         title={tarjeta?.nombre || "Tarjeta"}
-        tone="info"
+        tone="warning"
       />
 
       <FormField id="creditCardStatementExcel" label="Excel del banco">

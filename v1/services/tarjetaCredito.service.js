@@ -12,12 +12,27 @@ function normalizarObjectIdOpcional(value) {
   return value === "" ? null : value;
 }
 
-async function validarRelaciones({ usuarioId, banco, cuentaPagoDefault }) {
+async function validarRelaciones({ usuarioId, banco, cuentaPagoDefault, cuentaTarjeta }) {
   if (banco) {
     const bancoEncontrado = await Banco.findOne({ _id: banco, usuario: usuarioId });
 
     if (!bancoEncontrado) {
       throw new Error("Banco no encontrado");
+    }
+  }
+
+  if (cuentaTarjeta) {
+    const cuentaEncontrada = await Cuenta.findOne({
+      _id: cuentaTarjeta,
+      usuario: usuarioId,
+    });
+
+    if (!cuentaEncontrada) {
+      throw new Error("Cuenta de tarjeta no encontrada");
+    }
+
+    if (cuentaEncontrada.tipo !== "tarjeta_credito") {
+      throw new Error("La cuenta de tarjeta debe ser de tipo Tarjeta de credito");
     }
   }
 
@@ -37,11 +52,146 @@ function normalizarTarjetaPayload(data) {
   return {
     ...data,
     banco: normalizarObjectIdOpcional(data.banco),
+    cuentaTarjeta: normalizarObjectIdOpcional(data.cuentaTarjeta),
     cuentaPagoDefault: normalizarObjectIdOpcional(data.cuentaPagoDefault),
     limiteUYU: data.limiteUYU === "" ? null : data.limiteUYU,
     limiteUSD: data.limiteUSD === "" ? null : data.limiteUSD,
     diaCierre: data.diaCierre === "" ? null : data.diaCierre,
     diaVencimiento: data.diaVencimiento === "" ? null : data.diaVencimiento,
+  };
+}
+
+function emptyCurrencyTotals() {
+  return { uyu: 0, usd: 0 };
+}
+
+function addCurrencyAmount(target, moneda, amount) {
+  if (moneda === "USD") {
+    target.usd += amount;
+  } else {
+    target.uyu += amount;
+  }
+}
+
+function buildMovementBalance(movimientos) {
+  const totals = {
+    compras: emptyCurrencyTotals(),
+    pagos: emptyCurrencyTotals(),
+    creditos: emptyCurrencyTotals(),
+    ajustes: emptyCurrencyTotals(),
+    saldoAnterior: emptyCurrencyTotals(),
+  };
+
+  movimientos.forEach((movimiento) => {
+    const amount = Number(movimiento.montoOriginalExcel || 0);
+
+    if (movimiento.tipoMovimiento === "compra") {
+      addCurrencyAmount(totals.compras, movimiento.moneda, Math.abs(amount));
+    } else if (movimiento.tipoMovimiento === "pago") {
+      addCurrencyAmount(totals.pagos, movimiento.moneda, Math.abs(amount));
+    } else if (movimiento.tipoMovimiento === "credito") {
+      addCurrencyAmount(totals.creditos, movimiento.moneda, Math.abs(amount));
+    } else if (movimiento.tipoMovimiento === "saldo_anterior") {
+      addCurrencyAmount(totals.saldoAnterior, movimiento.moneda, amount);
+    } else {
+      addCurrencyAmount(totals.ajustes, movimiento.moneda, amount);
+    }
+  });
+
+  const saldoPendiente = {
+    uyu:
+      totals.saldoAnterior.uyu +
+      totals.compras.uyu -
+      totals.pagos.uyu -
+      totals.creditos.uyu +
+      totals.ajustes.uyu,
+    usd:
+      totals.saldoAnterior.usd +
+      totals.compras.usd -
+      totals.pagos.usd -
+      totals.creditos.usd +
+      totals.ajustes.usd,
+  };
+
+  const pagosDetectados = totals.pagos.uyu > 0 || totals.pagos.usd > 0;
+  const estaPago = Math.abs(saldoPendiente.uyu) < 0.01 && Math.abs(saldoPendiente.usd) < 0.01;
+  const saldoAFavor = saldoPendiente.uyu < -0.01 || saldoPendiente.usd < -0.01;
+
+  return {
+    ...totals,
+    saldoPendiente,
+    estadoPago: estaPago
+      ? "pagado"
+      : saldoAFavor
+        ? "saldo_a_favor"
+        : pagosDetectados
+          ? "parcial"
+          : "pendiente",
+  };
+}
+
+function getTarjetaCuentaId(tarjeta) {
+  return tarjeta?.cuentaTarjeta?._id || tarjeta?.cuentaTarjeta || null;
+}
+
+function getTarjetaCuentaPagoId(tarjeta) {
+  return tarjeta?.cuentaPagoDefault?._id || tarjeta?.cuentaPagoDefault || null;
+}
+
+function getMovimientoContableConfig(movimiento) {
+  const amount = Math.abs(Number(movimiento.montoReal || movimiento.montoOriginalExcel || 0));
+
+  if (movimiento.tipoMovimiento === "compra") {
+    return {
+      descripcion: movimiento.detalle,
+      flujoBancario: -amount,
+      economiaReal: -amount,
+      porcentajeEconomiaReal: 100,
+      incluirEnGastoBancario: true,
+      incluirEnGastoReal: true,
+    };
+  }
+
+  if (movimiento.tipoMovimiento === "pago") {
+    return {
+      descripcion: `Pago tarjeta: ${movimiento.detalle}`,
+      flujoBancario: amount,
+      economiaReal: 0,
+      porcentajeEconomiaReal: 0,
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: false,
+    };
+  }
+
+  if (movimiento.tipoMovimiento === "credito") {
+    return {
+      descripcion: `Credito tarjeta: ${movimiento.detalle}`,
+      flujoBancario: amount,
+      economiaReal: 0,
+      porcentajeEconomiaReal: 0,
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: false,
+    };
+  }
+
+  if (movimiento.tipoMovimiento === "saldo_anterior") {
+    return {
+      descripcion: `Saldo anterior tarjeta: ${movimiento.detalle}`,
+      flujoBancario: -Math.abs(Number(movimiento.montoReal || movimiento.montoOriginalExcel || 0)),
+      economiaReal: 0,
+      porcentajeEconomiaReal: 0,
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: false,
+    };
+  }
+
+  return {
+    descripcion: `Ajuste tarjeta: ${movimiento.detalle}`,
+    flujoBancario: Number(movimiento.montoReal || movimiento.montoOriginalExcel || 0),
+    economiaReal: 0,
+    porcentajeEconomiaReal: 0,
+    incluirEnGastoBancario: false,
+    incluirEnGastoReal: false,
   };
 }
 
@@ -51,6 +201,7 @@ export const crearTarjetaCreditoService = async ({ usuarioId, data }) => {
   await validarRelaciones({
     usuarioId,
     banco: payload.banco,
+    cuentaTarjeta: payload.cuentaTarjeta,
     cuentaPagoDefault: payload.cuentaPagoDefault,
   });
 
@@ -73,22 +224,48 @@ export const crearTarjetaCreditoService = async ({ usuarioId, data }) => {
 export const obtenerTarjetasCreditoService = async (usuarioId) => {
   const tarjetas = await TarjetaCredito.find({ usuario: usuarioId })
     .populate("banco", "nombre")
+    .populate("cuentaTarjeta", "nombre tipo")
     .populate("cuentaPagoDefault", "nombre")
     .sort({ createdAt: -1 })
     .lean();
 
   const tarjetasConResumen = await Promise.all(
     tarjetas.map(async (tarjeta) => {
-      const ultimoResumen = await ResumenTarjeta.findOne({
+      const resumenes = await ResumenTarjeta.find({
         usuario: usuarioId,
         tarjeta: tarjeta._id,
       })
         .sort({ fechaCierre: -1, createdAt: -1 })
         .lean();
+      const ultimoResumen = resumenes[0] || null;
+      const resumenIds = resumenes.map((resumen) => resumen._id);
+      const movimientos = resumenIds.length
+        ? await MovimientoTarjeta.find({
+            usuario: usuarioId,
+            tarjeta: tarjeta._id,
+            resumen: { $in: resumenIds },
+          })
+            .select("resumen tipoMovimiento moneda montoOriginalExcel")
+            .lean()
+        : [];
+      const movimientosPorResumen = movimientos.reduce((map, movimiento) => {
+        const resumenId = String(movimiento.resumen || "");
+        const current = map.get(resumenId) || [];
+        current.push(movimiento);
+        map.set(resumenId, current);
+        return map;
+      }, new Map());
+      const resumenesConBalance = resumenes.map((resumen) => ({
+        ...resumen,
+        movimientosBalance: buildMovementBalance(
+          movimientosPorResumen.get(String(resumen._id)) || [],
+        ),
+      }));
 
       return {
         ...tarjeta,
-        ultimoResumen,
+        resumenes: resumenesConBalance,
+        ultimoResumen: resumenesConBalance[0] || ultimoResumen,
       };
     }),
   );
@@ -99,6 +276,7 @@ export const obtenerTarjetasCreditoService = async (usuarioId) => {
 export const obtenerTarjetaCreditoPorIdService = async ({ id, usuarioId }) => {
   const tarjeta = await TarjetaCredito.findOne({ _id: id, usuario: usuarioId })
     .populate("banco", "nombre")
+    .populate("cuentaTarjeta", "nombre tipo")
     .populate("cuentaPagoDefault", "nombre");
 
   if (!tarjeta) {
@@ -114,6 +292,7 @@ export const actualizarTarjetaCreditoService = async ({ id, usuarioId, data }) =
   await validarRelaciones({
     usuarioId,
     banco: payload.banco,
+    cuentaTarjeta: payload.cuentaTarjeta,
     cuentaPagoDefault: payload.cuentaPagoDefault,
   });
 
@@ -168,24 +347,33 @@ export const obtenerMovimientosTarjetaService = async ({
     .sort({ fecha: -1, _id: -1 });
 };
 
-async function crearGastoDesdeMovimiento({ tarjetaId, movimiento, usuarioId }) {
-  const monto = Number(movimiento.montoReal || 0);
+async function crearGastoDesdeMovimiento({ tarjeta, tarjetaId, movimiento, usuarioId }) {
+  const cuentaTarjeta = getTarjetaCuentaId(tarjeta);
+
+  if (!cuentaTarjeta) {
+    const error = new Error("Configura una cuenta tarjeta antes de generar gastos.");
+    error.status = 400;
+    throw error;
+  }
+
+  const config = getMovimientoContableConfig(movimiento);
+  const hashBase = `tarjeta-gasto|${movimiento._id}`;
   const gasto = await crearGastoService({
     usuarioId,
     data: {
       fecha: movimiento.fecha,
-      descripcion: movimiento.detalle,
-      flujoBancario: monto,
-      economiaReal: monto,
-      porcentajeEconomiaReal: 100,
+      descripcion: config.descripcion,
+      flujoBancario: config.flujoBancario,
+      economiaReal: config.economiaReal,
+      porcentajeEconomiaReal: config.porcentajeEconomiaReal,
       categoria: null,
-      cuenta: null,
-      incluirEnGastoBancario: false,
-      incluirEnGastoReal: true,
+      cuenta: cuentaTarjeta,
+      incluirEnGastoBancario: config.incluirEnGastoBancario,
+      incluirEnGastoReal: config.incluirEnGastoReal,
       origen: "tarjeta_credito",
       tarjetaCredito: tarjetaId,
       movimientoTarjeta: movimiento._id,
-      hashImportacion: `tarjeta-gasto|${movimiento._id}`,
+      hashImportacion: hashBase,
     },
   });
 
@@ -195,7 +383,43 @@ async function crearGastoDesdeMovimiento({ tarjetaId, movimiento, usuarioId }) {
   return gasto;
 }
 
+async function crearDebitoPagoDesdeCuenta({
+  cuentaPago,
+  movimiento,
+  tarjeta,
+  tarjetaId,
+  usuarioId,
+}) {
+  if (!cuentaPago || movimiento.tipoMovimiento !== "pago") {
+    return null;
+  }
+
+  const amount = Math.abs(Number(movimiento.montoBancario || movimiento.montoReal || movimiento.montoOriginalExcel || 0));
+
+  if (!amount) return null;
+
+  return crearGastoService({
+    usuarioId,
+    data: {
+      fecha: movimiento.fecha,
+      descripcion: `Pago a ${tarjeta.nombre}: ${movimiento.detalle}`,
+      flujoBancario: -amount,
+      economiaReal: 0,
+      porcentajeEconomiaReal: 0,
+      categoria: null,
+      cuenta: cuentaPago,
+      incluirEnGastoBancario: false,
+      incluirEnGastoReal: false,
+      origen: "tarjeta_credito",
+      tarjetaCredito: tarjetaId,
+      movimientoTarjeta: movimiento._id,
+      hashImportacion: `tarjeta-pago-cuenta|${movimiento._id}`,
+    },
+  });
+}
+
 export const crearGastoDesdeMovimientoTarjetaService = async ({
+  cuentaPago,
   tarjetaId,
   movimientoId,
   usuarioId,
@@ -206,7 +430,8 @@ export const crearGastoDesdeMovimientoTarjetaService = async ({
     throw error;
   }
 
-  await obtenerTarjetaCreditoPorIdService({ id: tarjetaId, usuarioId });
+  const tarjeta = await obtenerTarjetaCreditoPorIdService({ id: tarjetaId, usuarioId });
+  const cuentaPagoFinal = normalizarObjectIdOpcional(cuentaPago) || getTarjetaCuentaPagoId(tarjeta);
 
   const movimiento = await MovimientoTarjeta.findOne({
     _id: movimientoId,
@@ -218,12 +443,6 @@ export const crearGastoDesdeMovimientoTarjetaService = async ({
     throw new Error("Movimiento de tarjeta no encontrado");
   }
 
-  if (movimiento.tipoMovimiento !== "compra") {
-    const error = new Error("Solo las compras de tarjeta pueden generar gastos.");
-    error.status = 400;
-    throw error;
-  }
-
   if (movimiento.gastoGenerado) {
     const error = new Error("Este movimiento ya tiene un gasto generado.");
     error.status = 409;
@@ -231,8 +450,16 @@ export const crearGastoDesdeMovimientoTarjetaService = async ({
   }
 
   const gasto = await crearGastoDesdeMovimiento({
+    tarjeta,
     tarjetaId,
     movimiento,
+    usuarioId,
+  });
+  await crearDebitoPagoDesdeCuenta({
+    cuentaPago: cuentaPagoFinal,
+    movimiento,
+    tarjeta,
+    tarjetaId,
     usuarioId,
   });
 
@@ -243,11 +470,26 @@ export const crearGastoDesdeMovimientoTarjetaService = async ({
 };
 
 export const crearGastosDesdeMovimientosTarjetaService = async ({
+  cuentaPago,
   tarjetaId,
   movimientoIds,
   usuarioId,
 }) => {
-  await obtenerTarjetaCreditoPorIdService({ id: tarjetaId, usuarioId });
+  const tarjeta = await obtenerTarjetaCreditoPorIdService({ id: tarjetaId, usuarioId });
+  const cuentaPagoFinal = normalizarObjectIdOpcional(cuentaPago) || getTarjetaCuentaPagoId(tarjeta);
+
+  if (cuentaPagoFinal) {
+    const cuentaEncontrada = await Cuenta.findOne({
+      _id: cuentaPagoFinal,
+      usuario: usuarioId,
+    });
+
+    if (!cuentaEncontrada) {
+      const error = new Error("Cuenta de pago no encontrada");
+      error.status = 400;
+      throw error;
+    }
+  }
 
   const uniqueIds = [...new Set(movimientoIds.map((id) => String(id)))];
   const movimientos = await MovimientoTarjeta.find({
@@ -262,15 +504,23 @@ export const crearGastosDesdeMovimientosTarjetaService = async ({
   const gastos = [];
 
   for (const movimiento of movimientos) {
-    if (movimiento.tipoMovimiento !== "compra" || movimiento.gastoGenerado) {
+    if (movimiento.gastoGenerado) {
       omitidos++;
       continue;
     }
 
     try {
       const gasto = await crearGastoDesdeMovimiento({
+        tarjeta,
         tarjetaId,
         movimiento,
+        usuarioId,
+      });
+      await crearDebitoPagoDesdeCuenta({
+        cuentaPago: cuentaPagoFinal,
+        movimiento,
+        tarjeta,
+        tarjetaId,
         usuarioId,
       });
       gastos.push(gasto);
@@ -315,16 +565,34 @@ export const eliminarMovimientoTarjetaService = async ({
   }
 
   if (movimiento.gastoGenerado && !eliminarGastoGenerado) {
-    const error = new Error(
-      "Este movimiento tiene un gasto generado. Elimina tambien el gasto para borrar el movimiento.",
-    );
-    error.status = 409;
-    throw error;
+    const gastoAsociado = await Gasto.exists({
+      _id: movimiento.gastoGenerado,
+      usuario: usuarioId,
+      movimientoTarjeta: movimiento._id,
+    });
+
+    if (gastoAsociado) {
+      const error = new Error(
+        "Este movimiento tiene un gasto generado. Elimina tambien el gasto para borrar el movimiento.",
+      );
+      error.status = 409;
+      throw error;
+    }
+
+    movimiento.gastoGenerado = null;
   }
 
   if (movimiento.gastoGenerado && eliminarGastoGenerado) {
     await Gasto.deleteOne({
       _id: movimiento.gastoGenerado,
+      usuario: usuarioId,
+      movimientoTarjeta: movimiento._id,
+    });
+  }
+
+  if (eliminarGastoGenerado) {
+    await Gasto.deleteMany({
+      _id: { $ne: movimiento.gastoGenerado },
       usuario: usuarioId,
       movimientoTarjeta: movimiento._id,
     });
@@ -379,7 +647,7 @@ export const eliminarResumenTarjetaService = async ({
   if (movimientosConGasto.length && eliminarGastosGenerados) {
     await Gasto.deleteMany({
       usuario: usuarioId,
-      movimientoTarjeta: { $in: movimientosConGasto.map((movimiento) => movimiento._id) },
+      movimientoTarjeta: { $in: movimientos.map((movimiento) => movimiento._id) },
     });
   }
 

@@ -39,6 +39,24 @@ function findRowIndex(rows, predicate) {
   return rows.findIndex((row) => row.some((cell) => predicate(cleanText(cell))));
 }
 
+function throwFormatError(message) {
+  const error = new Error(message);
+  error.status = 400;
+  throw error;
+}
+
+function requireRow(index, label) {
+  if (index < 0) {
+    throwFormatError(`El Excel no tiene el formato esperado: falta la seccion ${label}.`);
+  }
+}
+
+function requireColumn(index, label) {
+  if (index < 0) {
+    throwFormatError(`El Excel no tiene el formato esperado: falta la columna ${label}.`);
+  }
+}
+
 function classifyMovement({ detalle, amount, isSaldoAnterior }) {
   if (isSaldoAnterior) return "saldo_anterior";
   if (amount > 0) return "compra";
@@ -141,11 +159,11 @@ export function parseCreditCardExcel(buffer) {
   const minimumPaymentRowIndex = findRowIndex(rows, (cell) => cell === "Pago Mínimo" || cell === "Pago Minimo");
   const movementsHeaderIndex = findRowIndex(rows, (cell) => cell === "Fecha");
 
-  if (accountRowIndex < 0 || movementsHeaderIndex < 0) {
-    const error = new Error("El Excel no tiene el formato esperado de tarjeta.");
-    error.status = 400;
-    throw error;
-  }
+  requireRow(accountRowIndex, "Cuenta");
+  requireRow(paymentHeaderIndex, "Pagos");
+  requireRow(paymentRowIndex, "Pago Contado");
+  requireRow(minimumPaymentRowIndex, "Pago Minimo");
+  requireRow(movementsHeaderIndex, "Movimientos");
 
   const accountHeader = rows[accountRowIndex] || [];
   const accountValues = rows[accountRowIndex + 1] || [];
@@ -154,17 +172,27 @@ export function parseCreditCardExcel(buffer) {
   const closingIndex = findColumnIndex(accountHeader, (cell) => /fecha de cierre/i.test(cell));
   const dueIndex = findColumnIndex(accountHeader, (cell) => /vencimiento/i.test(cell));
   const periodIndex = findColumnIndex(accountHeader, (cell) => /per.odo consultado/i.test(cell));
+  requireColumn(closingIndex, "Fecha de cierre");
+  requireColumn(dueIndex, "Vencimiento");
+  requireColumn(periodIndex, "Periodo consultado");
 
   const paymentHeader = rows[paymentHeaderIndex] || [];
   const pesosIndex = findColumnIndex(paymentHeader, (cell) => cell === "Pesos");
+  requireColumn(pesosIndex, "Pesos");
   const dolaresIndex = findColumnIndex(paymentHeader, (cell) => cell === "Dólares" || cell === "Dolares");
 
   const movementHeader = rows[movementsHeaderIndex] || [];
+  requireColumn(dolaresIndex, "Dolares");
   const fechaIndex = findColumnIndex(movementHeader, (cell) => cell === "Fecha");
   const tarjetaIndex = findColumnIndex(movementHeader, (cell) => cell === "Tarjeta");
   const detalleIndex = findColumnIndex(movementHeader, (cell) => cell === "Detalle");
   const amountUYUIndex = findColumnIndex(movementHeader, (cell) => cell === "Importe $");
   const amountUSDIndex = findColumnIndex(movementHeader, (cell) => /importe u.?s/i.test(cell));
+  requireColumn(fechaIndex, "Fecha");
+  requireColumn(tarjetaIndex, "Tarjeta");
+  requireColumn(detalleIndex, "Detalle");
+  requireColumn(amountUYUIndex, "Importe $");
+  requireColumn(amountUSDIndex, "Importe U$S");
   const markerIndex = amountUYUIndex - 2;
 
   const periodo = cleanText(accountValues[periodIndex]);
@@ -237,6 +265,10 @@ export function parseCreditCardExcel(buffer) {
         }),
       );
     }
+  }
+
+  if (!movements.length) {
+    throwFormatError("El Excel no tiene movimientos de tarjeta para importar.");
   }
 
   const resumen = {

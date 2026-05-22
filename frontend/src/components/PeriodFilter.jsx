@@ -11,7 +11,7 @@ export function PeriodFilter({ filters, idPrefix, onChange }) {
           value={filters.mode}
         >
           <option value="month">Mes</option>
-          <option value="year">Ano</option>
+          <option value="year">Año</option>
           <option value="range">Rango</option>
         </select>
       </FormField>
@@ -23,6 +23,7 @@ export function PeriodFilter({ filters, idPrefix, onChange }) {
             onChange={(event) => onChange("month", event.target.value)}
             value={filters.month}
           >
+            <option value="">Todos</option>
             {monthNames.map((month, index) => (
               <option key={month} value={index + 1}>
                 {month}
@@ -33,7 +34,7 @@ export function PeriodFilter({ filters, idPrefix, onChange }) {
       ) : null}
 
       {filters.mode !== "range" ? (
-        <FormField id={`${idPrefix}Year`} label="Ano">
+        <FormField id={`${idPrefix}Year`} label="Año">
           <input
             id={`${idPrefix}Year`}
             onChange={(event) => onChange("year", event.target.value)}

@@ -3,6 +3,8 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
+import { EditIconButton } from "../components/EditIconButton";
 import { ExpenseForm } from "../components/ExpenseForm";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
@@ -220,11 +222,32 @@ export function Expenses({ onLogout }) {
   }
 
   async function handleDelete(gasto) {
-    const confirmed = window.confirm(`Eliminar ${gasto.descripcion}?`);
-    if (!confirmed) return;
+    const isCardExpense = gasto.origen === "tarjeta_credito" || gasto.movimientoTarjeta;
+    let deleteLinkedCardMovement = false;
+
+    if (isCardExpense) {
+      const deleteBoth = window.confirm(
+        `Estas borrando ${gasto.descripcion} que esta asociado a una tarjeta. Aceptar: eliminar gasto en cuenta y tarjeta. Cancelar: elegir si borrarlo solo en cuenta.`,
+      );
+
+      if (deleteBoth) {
+        deleteLinkedCardMovement = true;
+      } else {
+        const onlyAccount = window.confirm(
+          "Queres eliminar el gasto solo en cuenta y conservar el movimiento en Tarjetas?",
+        );
+        if (!onlyAccount) return;
+      }
+    } else {
+      const confirmed = window.confirm(`Eliminar ${gasto.descripcion}?`);
+      if (!confirmed) return;
+    }
 
     try {
-      await apiRequest(`/gastos/${gasto._id}`, { method: "DELETE" });
+      await apiRequest(`/gastos/${gasto._id}`, {
+        method: "DELETE",
+        body: { eliminarMovimientoTarjeta: deleteLinkedCardMovement },
+      });
       setStatus({
         type: "success",
         title: "Gasto eliminado",
@@ -348,6 +371,42 @@ export function Expenses({ onLogout }) {
     await loadExpenses(appliedFilters, page);
   }
 
+  async function updateExpenseInclusion(gasto, field, checked) {
+    if (!gasto?._id) return;
+
+    try {
+      await apiRequest(`/gastos/${gasto._id}`, {
+        method: "PATCH",
+        body: {
+          fecha: gasto.fecha,
+          descripcion: gasto.descripcion,
+          flujoBancario: gasto.flujoBancario,
+          economiaReal: gasto.economiaReal,
+          porcentajeEconomiaReal: gasto.porcentajeEconomiaReal,
+          categoria: gasto.categoria?._id || gasto.categoria,
+          cuenta: gasto.cuenta?._id || gasto.cuenta,
+          incluirEnGastoBancario:
+            field === "bancario" ? checked : gasto.incluirEnGastoBancario !== false,
+          incluirEnGastoReal:
+            field === "real" ? checked : gasto.incluirEnGastoReal !== false,
+        },
+      });
+
+      setStatus({
+        type: "success",
+        title: "Gasto actualizado",
+        message: "La inclusion del gasto se actualizo correctamente.",
+      });
+      await loadExpenses(appliedFilters, page);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo actualizar",
+        message: error.message,
+      });
+    }
+  }
+
   async function deleteSelected() {
     const selectedExpenses = gastos.filter((gasto) => selectedIds.has(gasto._id));
 
@@ -451,6 +510,34 @@ export function Expenses({ onLogout }) {
       render: (gasto) => formatCurrency(gasto.economiaReal),
     },
     {
+      key: "incluir",
+      header: "Incluir",
+      render: (gasto) => (
+        <div className="table-include-controls">
+          <label>
+            <input
+              checked={gasto.incluirEnGastoBancario !== false}
+              onChange={(event) =>
+                updateExpenseInclusion(gasto, "bancario", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span>Bancario</span>
+          </label>
+          <label>
+            <input
+              checked={gasto.incluirEnGastoReal !== false}
+              onChange={(event) =>
+                updateExpenseInclusion(gasto, "real", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span>Real</span>
+          </label>
+        </div>
+      ),
+    },
+    {
       key: "factura",
       header: "Factura",
       render: (gasto) =>
@@ -472,12 +559,11 @@ export function Expenses({ onLogout }) {
       header: "Acciones",
       render: (gasto) => (
         <div className="table-actions">
-          <Button onClick={() => setEditingExpense(gasto)} variant="secondary">
-            {gasto.estado === "pendiente" ? "Completar" : "Editar"}
-          </Button>
-          <Button onClick={() => handleDelete(gasto)} variant="danger">
-            Eliminar
-          </Button>
+          <EditIconButton
+            label={gasto.estado === "pendiente" ? "Completar" : "Editar"}
+            onClick={() => setEditingExpense(gasto)}
+          />
+          <DeleteIconButton onClick={() => handleDelete(gasto)} />
         </div>
       ),
     },

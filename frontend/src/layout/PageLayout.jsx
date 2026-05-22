@@ -2,6 +2,7 @@ import {
   Banknote,
   CircleUserRound,
   CircleAlert,
+  RefreshCw,
   FileSpreadsheet,
   FolderPlus,
   Gauge,
@@ -10,6 +11,8 @@ import {
   CreditCard,
   WalletCards,
 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { apiRequest, getApiData } from "../services/api";
 
 const navGroups = [
   {
@@ -61,6 +64,23 @@ function getCurrentHash() {
 
 export function PageLayout({ title, subtitle, children, user, onLogout }) {
   const currentHash = getCurrentHash();
+  const [rates, setRates] = useState(null);
+  const [ratesError, setRatesError] = useState("");
+
+  const loadRates = useCallback(async () => {
+    try {
+      const response = await apiRequest("/cotizaciones");
+      setRates(getApiData(response));
+      setRatesError("");
+    } catch {
+      setRatesError("Cotizaciones no disponibles");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(loadRates, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [loadRates]);
 
   return (
     <div className="app-shell">
@@ -99,6 +119,28 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
             </div>
           ))}
         </nav>
+
+        <div className="rates-banner">
+          <div>
+            <span>Cotizaciones</span>
+            {rates ? (
+              <>
+                <strong>USD $ {Number(rates.usdUyu || 0).toFixed(2)}</strong>
+                <strong>UI $ {Number(rates.uiUyu || 0).toFixed(4)}</strong>
+                <small>{rates.fuente}</small>
+              </>
+            ) : (
+              <small>{ratesError || "Cargando..."}</small>
+            )}
+          </div>
+          <button
+            aria-label="Actualizar cotizaciones"
+            onClick={loadRates}
+            type="button"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
 
         {user ? (
           <div className="sidebar-user">

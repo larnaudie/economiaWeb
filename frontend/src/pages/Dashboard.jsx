@@ -563,6 +563,7 @@ export function Dashboard({ authVersion, onLogout }) {
         categorias={categorias}
         cuentas={cuentas}
         onClose={() => setActiveModal("")}
+        onUploaded={loadResources}
         onSubmit={handleCreate}
         open={activeModal === "gasto"}
       />
@@ -797,7 +798,7 @@ function CategoriaModal({ open, onClose, onSubmit, categoriasGrupo }) {
   );
 }
 
-function GastoModal({ open, onClose, onSubmit, categorias, cuentas }) {
+function GastoModal({ open, onClose, onSubmit, onUploaded, categorias, cuentas }) {
   async function handleSubmit(payload) {
     const { facturaFile, ...gastoPayload } = payload;
     const created = await onSubmit(
@@ -808,6 +809,7 @@ function GastoModal({ open, onClose, onSubmit, categorias, cuentas }) {
 
     if (facturaFile && created?._id) {
       await uploadApiFile(`/gastos/${created._id}/factura`, "factura", facturaFile);
+      await onUploaded?.();
     }
   }
 

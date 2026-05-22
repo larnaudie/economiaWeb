@@ -3,6 +3,8 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
+import { DeleteIconButton } from "../components/DeleteIconButton";
+import { EditIconButton } from "../components/EditIconButton";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { QuickActions } from "../components/QuickActions";
@@ -306,12 +308,8 @@ function buildColumns({ entity, onEdit, onDelete }) {
     header: "Acciones",
     render: (item) => (
       <div className="table-actions">
-        <Button onClick={() => onEdit(item)} variant="secondary">
-          Editar
-        </Button>
-        <Button onClick={() => onDelete(item)} variant="danger">
-          Eliminar
-        </Button>
+        <EditIconButton onClick={() => onEdit(item)} />
+        <DeleteIconButton onClick={() => onDelete(item)} />
       </div>
     ),
   });

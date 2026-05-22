@@ -98,7 +98,9 @@ export const crearGasto = async (req, res, next) => {
 export const eliminarGasto = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const gastoEliminado = await eliminarGastoService(id, req.user.id);
+        const gastoEliminado = await eliminarGastoService(id, req.user.id, {
+            eliminarMovimientoTarjeta: req.body?.eliminarMovimientoTarjeta === true,
+        });
         successResponse(res, `Gasto ${gastoEliminado.id} eliminado exitosamente`, gastoEliminado);
     } catch (error) {
         next(error);
@@ -181,7 +183,7 @@ export const subirFacturaGasto = async (req, res, next) => {
             cloudinary,
             req.file.buffer,
             {
-                resource_type: "image",
+                resource_type: "auto",
                 folder: "economia-web/facturas",
             }
         );

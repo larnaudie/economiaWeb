@@ -1,9 +1,37 @@
 import Deuda from "../models/deudas.model.js";
 import { crearGastoService } from "./gasto.service.js";
 
-function calcularMontoCuota(montoTotal, cuotasTotales, montoCuota) {
+function calcularCuotasTotales(cuotasTotales, plazoAnios) {
+  if (cuotasTotales !== undefined && cuotasTotales !== null && cuotasTotales !== "") {
+    return Number(cuotasTotales);
+  }
+
+  if (plazoAnios !== undefined && plazoAnios !== null && plazoAnios !== "") {
+    return Number(plazoAnios) * 12;
+  }
+
+  return null;
+}
+
+function calcularMontoCuota(montoTotal, cuotasTotales, montoCuota, tasaInteres) {
   if (montoCuota !== undefined && montoCuota !== null && montoCuota !== "") {
     return Number(Number(montoCuota).toFixed(2));
+  }
+
+  const total = Number(montoTotal);
+  const cuotas = Number(cuotasTotales);
+  const tasaAnual = Number(tasaInteres);
+
+  if (!total || !cuotas) {
+    const error = new Error("Ingresa cuotas totales o plazo en años para calcular la cuota.");
+    error.status = 400;
+    throw error;
+  }
+
+  if (tasaInteres !== undefined && tasaInteres !== null && tasaInteres !== "" && tasaAnual > 0) {
+    const tasaMensual = tasaAnual / 100 / 12;
+    const cuota = (total * tasaMensual) / (1 - (1 + tasaMensual) ** -cuotas);
+    return Number(cuota.toFixed(2));
   }
 
   return Number((Number(montoTotal) / Number(cuotasTotales)).toFixed(2));
@@ -26,11 +54,20 @@ function calcularMontoDebitado({ montoDebitadoUYU, montoMonedaOrigen, cotizacion
 }
 
 export const crearDeudaService = async ({ usuarioId, data }) => {
+  const cuotasTotales = calcularCuotasTotales(data.cuotasTotales, data.plazoAnios);
   const montoCuota = calcularMontoCuota(
     data.montoTotal,
-    data.cuotasTotales,
+    cuotasTotales,
     data.montoCuota,
+    data.tasaInteres,
   );
+  const cuotaActual = Number(data.cuotaActual || 0);
+  const montoPagadoInicial = Number(data.montoPagadoInicial || 0);
+  const totalEstimado = Number((montoCuota * cuotasTotales).toFixed(2));
+  const pagadoInicial = Number((cuotaActual * montoCuota + montoPagadoInicial).toFixed(2));
+  const saldoPendiente =
+    data.saldoPendiente ??
+    Number(Math.max(0, totalEstimado - pagadoInicial).toFixed(2));
 
   const deuda = await Deuda.create({
     usuario: usuarioId,
@@ -39,8 +76,15 @@ export const crearDeudaService = async ({ usuarioId, data }) => {
     moneda: data.moneda || "UYU",
     entidad: data.entidad || "",
     montoTotal: data.montoTotal,
-    saldoPendiente: data.saldoPendiente ?? data.montoTotal,
-    cuotasTotales: data.cuotasTotales,
+    montoOriginalAntesEntrega: data.montoOriginalAntesEntrega ?? null,
+    porcentajeFinanciacion: data.porcentajeFinanciacion ?? null,
+    entregaInicialMonto: data.entregaInicialMonto ?? 0,
+    entregaInicialMoneda: data.entregaInicialMoneda || "UYU",
+    entregaInicialConvertida: data.entregaInicialConvertida ?? 0,
+    saldoPendiente,
+    cuotasTotales,
+    cuotaActual,
+    montoPagadoInicial,
     montoCuota,
     tasaInteres: data.tasaInteres ?? null,
     plazoAnios: data.plazoAnios ?? null,
@@ -77,17 +121,24 @@ export const actualizarDeudaService = async ({ id, usuarioId, data }) => {
   if (
     data.montoTotal !== undefined ||
     data.cuotasTotales !== undefined ||
-    data.montoCuota !== undefined
+    data.montoCuota !== undefined ||
+    data.tasaInteres !== undefined ||
+    data.plazoAnios !== undefined
   ) {
     const current = await Deuda.findOne({ _id: id, usuario: usuarioId });
     if (!current) {
       throw new Error("Deuda no encontrada");
     }
 
+    payload.cuotasTotales = calcularCuotasTotales(
+      data.cuotasTotales ?? current.cuotasTotales,
+      data.plazoAnios ?? current.plazoAnios,
+    );
     payload.montoCuota = calcularMontoCuota(
       data.montoTotal ?? current.montoTotal,
-      data.cuotasTotales ?? current.cuotasTotales,
+      payload.cuotasTotales,
       data.montoCuota ?? current.montoCuota,
+      data.tasaInteres ?? current.tasaInteres,
     );
   }
 

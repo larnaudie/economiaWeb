@@ -22,14 +22,21 @@ export const deudaSchema = Joi.object({
     "any.required": "El monto total es obligatorio",
   }),
 
-  cuotasTotales: Joi.number().integer().positive().required().messages({
+  montoOriginalAntesEntrega: Joi.number().positive().optional().allow(null),
+  porcentajeFinanciacion: Joi.number().min(0).max(100).optional().allow(null),
+  entregaInicialMonto: Joi.number().min(0).optional().allow(null),
+  entregaInicialMoneda: Joi.string().valid("UYU", "USD", "UI").optional(),
+  entregaInicialConvertida: Joi.number().min(0).optional().allow(null),
+
+  cuotasTotales: Joi.number().integer().positive().optional().allow(null).messages({
     "number.base": "Las cuotas totales deben ser un numero",
     "number.integer": "Las cuotas totales deben ser un numero entero",
     "number.positive": "Las cuotas totales deben ser mayor a 0",
-    "any.required": "Las cuotas totales son obligatorias",
   }),
 
   saldoPendiente: Joi.number().min(0).optional().allow(null),
+  cuotaActual: Joi.number().integer().min(0).optional().allow(null),
+  montoPagadoInicial: Joi.number().min(0).optional().allow(null),
 
   montoCuota: Joi.number().positive().optional().allow(null).messages({
     "number.base": "El monto de la cuota debe ser un numero",
@@ -46,4 +53,20 @@ export const deudaSchema = Joi.object({
     "date.base": "La fecha de inicio debe ser valida",
     "any.required": "La fecha de inicio es obligatoria",
   }),
+}).custom((value, helpers) => {
+  if (!value.cuotasTotales && !value.plazoAnios) {
+    return helpers.error("any.custom", {
+      message: "Ingresa cuotas totales o plazo en años",
+    });
+  }
+
+  if (value.cuotaActual && value.cuotasTotales && value.cuotaActual > value.cuotasTotales) {
+    return helpers.error("any.custom", {
+      message: "Las cuotas ya pagadas no pueden superar las cuotas totales",
+    });
+  }
+
+  return value;
+}).messages({
+  "any.custom": "{{#message}}",
 });
