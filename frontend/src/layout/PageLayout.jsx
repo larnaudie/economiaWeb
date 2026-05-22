@@ -11,7 +11,7 @@ import {
   CreditCard,
   WalletCards,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apiRequest, getApiData } from "../services/api";
 
 const navGroups = [
@@ -57,15 +57,56 @@ const navGroups = [
   },
 ];
 
+function buildMobileNavGroups(user) {
+  return [
+    {
+      title: "Perfil",
+      items: [
+        {
+          href: "#/perfil",
+          icon: (
+            <img
+              alt=""
+              className="mobile-nav-avatar"
+              src={
+                user?.fotoPerfilUrl ||
+                "/imagenes/imagenes-web/perfil/default-avatar.png"
+              }
+            />
+          ),
+          label: "Perfil",
+        },
+      ],
+    },
+    ...navGroups.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.href !== "#/perfil"),
+    })),
+  ];
+}
+
 function getCurrentHash() {
   if (typeof window === "undefined") return "#/";
   return window.location.hash || "#/";
 }
 
+function saveMobileNavScroll(nav) {
+  if (!nav || typeof window === "undefined") return;
+  window.sessionStorage.setItem("mobileNavScroll", String(nav.scrollLeft));
+}
+
+function restoreMobileNavScroll(nav) {
+  if (!nav || typeof window === "undefined") return;
+  const savedPosition = Number(window.sessionStorage.getItem("mobileNavScroll") || 0);
+  nav.scrollLeft = savedPosition;
+}
+
 export function PageLayout({ title, subtitle, children, user, onLogout }) {
   const currentHash = getCurrentHash();
+  const mobileNavRef = useRef(null);
   const [rates, setRates] = useState(null);
   const [ratesError, setRatesError] = useState("");
+  const mobileNavGroups = buildMobileNavGroups(user);
 
   const loadRates = useCallback(async () => {
     try {
@@ -82,6 +123,30 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
     return () => window.clearTimeout(timeoutId);
   }, [loadRates]);
 
+  useLayoutEffect(() => {
+    const nav = mobileNavRef.current;
+    if (!nav) return undefined;
+
+    restoreMobileNavScroll(nav);
+    const frameId = window.requestAnimationFrame(() => restoreMobileNavScroll(nav));
+    const timeoutIds = [40, 120, 260].map((delay) =>
+      window.setTimeout(() => restoreMobileNavScroll(nav), delay),
+    );
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
+  }, [currentHash]);
+
+  function rememberMobileNavPosition() {
+    saveMobileNavScroll(mobileNavRef.current);
+  }
+
+  function handleMobileNavScroll(event) {
+    saveMobileNavScroll(event.currentTarget);
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -93,7 +158,7 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
           </span>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Navegacion principal">
+        <nav className="sidebar-nav sidebar-nav-desktop" aria-label="Navegacion principal">
           {navGroups.map((group) => (
             <div className="sidebar-nav-group" key={group.title}>
               <span className="sidebar-nav-title">{group.title}</span>
@@ -108,6 +173,40 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
                     className={isActive ? "active" : ""}
                     href={item.href}
                     key={item.href}
+                  >
+                    <span className="nav-icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                    <span>{item.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        <nav
+          className="sidebar-nav sidebar-nav-mobile"
+          ref={mobileNavRef}
+          aria-label="Navegacion principal mobile"
+          onScroll={handleMobileNavScroll}
+        >
+          {mobileNavGroups.map((group) => (
+            <div className="sidebar-nav-group" key={group.title}>
+              <span className="sidebar-nav-title">{group.title}</span>
+              {group.items.map((item) => {
+                const isActive =
+                  currentHash === item.href ||
+                  (item.href !== "#/" && currentHash.startsWith(item.href));
+
+                return (
+                  <a
+                    aria-current={isActive ? "page" : undefined}
+                    className={isActive ? "active" : ""}
+                    href={item.href}
+                    key={item.href}
+                    onClick={rememberMobileNavPosition}
+                    onPointerDown={rememberMobileNavPosition}
                   >
                     <span className="nav-icon" aria-hidden="true">
                       {item.icon}

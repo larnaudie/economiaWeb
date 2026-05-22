@@ -1,6 +1,10 @@
 export function DataTable({ columns, emptyMessage, getRowProps, items, rowKey }) {
   return (
-    <div className="table-wrapper">
+    <div className="table-scroll-shell">
+      <span className="scroll-cue scroll-cue-left" aria-hidden="true" />
+      <span className="scroll-cue scroll-cue-right" aria-hidden="true" />
+      <span className="scroll-cue-pill" aria-hidden="true">Deslizar</span>
+      <div className="table-wrapper">
       <table className="data-table">
         <thead>
           <tr>
@@ -27,6 +31,7 @@ export function DataTable({ columns, emptyMessage, getRowProps, items, rowKey })
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
