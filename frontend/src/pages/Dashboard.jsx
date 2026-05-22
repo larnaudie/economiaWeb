@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -597,25 +597,91 @@ function PreviewList({ items, renderItem, emptyMessage }) {
 }
 
 function AccountCarousel({ cuentas }) {
+  const carouselRef = useRef(null);
+  const [scrollState, setScrollState] = useState({
+    canScrollLeft: false,
+    canScrollRight: false,
+  });
+
+  function updateScrollState() {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+    setScrollState({
+      canScrollLeft: carousel.scrollLeft > 4,
+      canScrollRight: carousel.scrollLeft < maxScrollLeft - 4,
+    });
+  }
+
+  function scrollAccounts(direction) {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    carousel.scrollBy({
+      behavior: "smooth",
+      left: direction * Math.max(180, carousel.clientWidth * 0.72),
+    });
+  }
+
+  useEffect(() => {
+    updateScrollState();
+
+    const carousel = carouselRef.current;
+    if (!carousel) return undefined;
+
+    carousel.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+
+    const timeoutId = window.setTimeout(updateScrollState, 80);
+    return () => {
+      carousel.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+      window.clearTimeout(timeoutId);
+    };
+  }, [cuentas.length]);
+
   return (
     <section className="accounts-carousel-section">
       <div className="section-title-row">
         <h2>Cuentas</h2>
       </div>
       {cuentas.length ? (
-        <div className="accounts-carousel" aria-label="Cuentas">
-          {cuentas.map((cuenta) => (
-            <a
-              className="account-card"
-              href={`#/gastos-cuenta?cuenta=${cuenta._id}`}
-              key={cuenta._id}
+        <div className="accounts-carousel-shell">
+          {scrollState.canScrollLeft ? (
+            <button
+              aria-label="Ver cuentas anteriores"
+              className="carousel-nav carousel-nav-left"
+              onClick={() => scrollAccounts(-1)}
+              type="button"
             >
-              <strong>{cuenta.nombre}</strong>
-              <span>{cuenta.banco?.nombre || "Banco no cargado"}</span>
-              <small>{accountTypeLabels[cuenta.tipo] || accountTypeLabels.caja_ahorro}</small>
-              <small>Ver gastos</small>
-            </a>
-          ))}
+              {"<"}
+            </button>
+          ) : null}
+          <div className="accounts-carousel" ref={carouselRef} aria-label="Cuentas">
+            {cuentas.map((cuenta) => (
+              <a
+                className="account-card"
+                href={`#/gastos-cuenta?cuenta=${cuenta._id}`}
+                key={cuenta._id}
+              >
+                <strong>{cuenta.nombre}</strong>
+                <span>{cuenta.banco?.nombre || "Banco no cargado"}</span>
+                <small>{accountTypeLabels[cuenta.tipo] || accountTypeLabels.caja_ahorro}</small>
+                <small>Ver gastos</small>
+              </a>
+            ))}
+          </div>
+          {scrollState.canScrollRight ? (
+            <button
+              aria-label="Ver mas cuentas"
+              className="carousel-nav carousel-nav-right"
+              onClick={() => scrollAccounts(1)}
+              type="button"
+            >
+              {">"}
+            </button>
+          ) : null}
         </div>
       ) : (
         <p className="empty-state">Todavia no hay cuentas cargadas.</p>

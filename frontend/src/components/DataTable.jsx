@@ -9,7 +9,9 @@ export function DataTable({ columns, emptyMessage, getRowProps, items, rowKey })
         <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column.key}>{column.header}</th>
+              <th className={`column-${column.key}`} key={column.key}>
+                {column.header}
+              </th>
             ))}
           </tr>
         </thead>
@@ -18,7 +20,13 @@ export function DataTable({ columns, emptyMessage, getRowProps, items, rowKey })
             items.map((item, index) => (
               <tr key={rowKey(item)} {...(getRowProps?.(item, index) || {})}>
                 {columns.map((column) => (
-                  <td key={column.key}>{column.render(item)}</td>
+                  <td
+                    className={`column-${column.key}`}
+                    data-label={typeof column.header === "string" ? column.header : ""}
+                    key={column.key}
+                  >
+                    {column.render(item)}
+                  </td>
                 ))}
               </tr>
             ))
