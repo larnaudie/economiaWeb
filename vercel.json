@@ -3,11 +3,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "frontend/dist/**",
-        "public/**",
-        "uploads/**"
-      ]
+      "includeFiles": "{frontend/dist/**,public/**,uploads/**}"
     }
   },
   "rewrites": [
