@@ -10,6 +10,7 @@ import { ImportExpenses } from "./pages/ImportExpenses";
 import { AccountExpenses } from "./pages/AccountExpenses";
 import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
+import { ToastHost } from "./components/ToastHost";
 import { getToken } from "./services/api";
 import "./styles/app.css";
 
@@ -77,26 +78,36 @@ function App() {
     navigate("#/");
   }
 
-  if (routeBase === "#/login") {
+  function renderWithToasts(content) {
     return (
+      <>
+        {content}
+        <ToastHost />
+      </>
+    );
+  }
+
+  if (routeBase === "#/login") {
+    return renderWithToasts(
       <Login
         onAuthenticated={handleAuthChange}
         onGoToRegister={() => navigate("#/registro")}
-      />
+      />,
     );
   }
 
   if (routeBase === "#/registro") {
-    return (
+    return renderWithToasts(
       <Register
         onAuthenticated={handleAuthChange}
         onGoToLogin={() => navigate("#/login")}
-      />
+      />,
     );
   }
 
   if (
     routeBase === "#/gastos" ||
+    routeBase === "#/dashboard" ||
     routeBase === "#/gastos-pendientes" ||
     routeBase === "#/creaciones" ||
     routeBase === "#/deudas" ||
@@ -107,76 +118,88 @@ function App() {
     routeBase === "#/perfil"
   ) {
     if (!getToken()) {
-      return (
+      return renderWithToasts(
         <Login
           onAuthenticated={handleAuthChange}
           onGoToRegister={() => navigate("#/registro")}
-        />
+        />,
       );
     }
 
     if (routeBase === "#/gastos") {
-      return <Expenses onLogout={() => navigate("#/login")} />;
+      return renderWithToasts(<Expenses onLogout={() => navigate("#/login")} />);
+    }
+
+    if (routeBase === "#/dashboard") {
+      return renderWithToasts(
+        <Dashboard
+          authVersion={authVersion}
+          mode="analytics"
+          onLogout={() => navigate("#/login")}
+        />,
+      );
     }
 
     if (routeBase === "#/gastos-pendientes") {
-      return <PendingExpenses onLogout={() => navigate("#/login")} />;
+      return renderWithToasts(<PendingExpenses onLogout={() => navigate("#/login")} />);
     }
 
     if (routeBase === "#/creaciones") {
-      return <Creations onLogout={() => navigate("#/login")} />;
+      return renderWithToasts(<Creations onLogout={() => navigate("#/login")} />);
     }
 
     if (routeBase === "#/deudas") {
-      return <Debts onLogout={() => navigate("#/login")} />;
+      return renderWithToasts(<Debts onLogout={() => navigate("#/login")} />);
     }
 
     if (routeBase === "#/tarjetas-credito") {
-      return (
+      return renderWithToasts(
         <CreditCards
           onLogout={() => navigate("#/login")}
+          selectedResumenId={routeParams.get("resumen") || ""}
           selectedTarjetaId={routeParams.get("tarjeta") || ""}
-        />
+        />,
       );
     }
 
     if (routeBase === "#/gastos-cuenta") {
-      return (
+      return renderWithToasts(
         <AccountExpenses
           initialCuentaId={routeParams.get("cuenta") || ""}
           onLogout={() => navigate("#/login")}
-        />
+        />,
       );
     }
 
     if (routeBase === "#/perfil") {
-      return <Profile onLogout={() => navigate("#/login")} />;
+      return renderWithToasts(<Profile onLogout={() => navigate("#/login")} />);
     }
 
-    return (
+    return renderWithToasts(
       <ImportExpenses
         mode={routeBase === "#/importar-excel-personal" ? "personal" : "bank"}
         onLogout={() => navigate("#/login")}
-      />
+      />,
     );
   }
 
   if (!getToken()) {
-    return (
+    return renderWithToasts(
       <Login
         onAuthenticated={handleAuthChange}
         onGoToRegister={() => navigate("#/registro")}
-      />
+      />,
     );
   }
 
-  return (
+  return renderWithToasts(
     <Dashboard
       authVersion={authVersion}
+      mode="home"
       onLogout={() => {
         navigate("#/login");
       }}
-    />
+    />,
   );
 }
 

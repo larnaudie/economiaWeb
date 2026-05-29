@@ -35,6 +35,25 @@ function normalizeItems(response) {
   return Array.isArray(data) ? data : [];
 }
 
+function normalizePaginatedExpenses(response, fallbackPageSize) {
+  const data = getApiData(response);
+
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      totalPages: data.length === fallbackPageSize ? 2 : 1,
+    };
+  }
+
+  const items = Array.isArray(data?.items) ? data.items : [];
+  return {
+    items,
+    total: Number(data?.total || items.length),
+    totalPages: Math.max(1, Number(data?.totalPaginas || 1)),
+  };
+}
+
 export function Expenses({ onLogout }) {
   const [filters, setFilters] = useState(currentMonthFilters);
   const [appliedFilters, setAppliedFilters] = useState(currentMonthFilters);
@@ -45,6 +64,10 @@ export function Expenses({ onLogout }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [jumpPage, setJumpPage] = useState("");
   const [hasNextPage, setHasNextPage] = useState(false);
   const [bulkValues, setBulkValues] = useState({
     categoria: "",
@@ -66,7 +89,7 @@ export function Expenses({ onLogout }) {
     setCuentas(normalizeItems(cuentasResp));
   }, []);
 
-  const loadExpenses = useCallback(async (nextFilters, nextPage) => {
+  const loadExpenses = useCallback(async (nextFilters, nextPage, nextPageSize = 20) => {
     setLoading(true);
     setStatus({ type: "", title: "", message: "" });
 
@@ -74,6 +97,8 @@ export function Expenses({ onLogout }) {
       const { fechaDesde, fechaHasta } = buildDateRange(nextFilters);
       const params = new URLSearchParams();
       params.set("pagina", String(nextPage));
+      params.set("limite", String(nextPageSize));
+      params.set("meta", "1");
       params.set("fechaDesde", fechaDesde);
       params.set("fechaHasta", fechaHasta);
       if (nextFilters.categoria) params.set("categoria", nextFilters.categoria);
@@ -82,9 +107,12 @@ export function Expenses({ onLogout }) {
       if (nextFilters.estado) params.set("estado", nextFilters.estado);
 
       const response = await apiRequest(`/gastos?${params.toString()}`);
-      const items = normalizeItems(response);
+      const { items, total, totalPages: nextTotalPages } =
+        normalizePaginatedExpenses(response, nextPageSize);
       setGastos(items);
-      setHasNextPage(items.length === 20);
+      setTotalResults(total);
+      setTotalPages(nextTotalPages);
+      setHasNextPage(nextPage < nextTotalPages);
       setSelectedIds(new Set());
     } catch (error) {
       setStatus({
@@ -101,7 +129,7 @@ export function Expenses({ onLogout }) {
     const timeoutId = window.setTimeout(async () => {
       try {
         await loadResources();
-        await loadExpenses(currentMonthFilters(), 1);
+        await loadExpenses(currentMonthFilters(), 1, pageSize);
       } catch (error) {
         setStatus({
           type: "error",
@@ -146,7 +174,7 @@ export function Expenses({ onLogout }) {
     event.preventDefault();
     setAppliedFilters(filters);
     setPage(1);
-    await loadExpenses(filters, 1);
+    await loadExpenses(filters, 1, pageSize);
   }
 
   async function resetFilters() {
@@ -154,7 +182,7 @@ export function Expenses({ onLogout }) {
     setFilters(next);
     setAppliedFilters(next);
     setPage(1);
-    await loadExpenses(next, 1);
+    await loadExpenses(next, 1, pageSize);
   }
 
   async function handleCreate(payload) {
@@ -177,7 +205,7 @@ export function Expenses({ onLogout }) {
         title: "Gasto creado",
         message: "El gasto se guardo correctamente.",
       });
-      await loadExpenses(appliedFilters, page);
+      await loadExpenses(appliedFilters, page, pageSize);
     } catch (error) {
       setStatus({
         type: "error",
@@ -211,7 +239,7 @@ export function Expenses({ onLogout }) {
         title: "Gasto actualizado",
         message: "Los cambios se guardaron correctamente.",
       });
-      await loadExpenses(appliedFilters, page);
+      await loadExpenses(appliedFilters, page, pageSize);
     } catch (error) {
       setStatus({
         type: "error",
@@ -253,7 +281,7 @@ export function Expenses({ onLogout }) {
         title: "Gasto eliminado",
         message: "El gasto se elimino correctamente.",
       });
-      await loadExpenses(appliedFilters, page);
+      await loadExpenses(appliedFilters, page, pageSize);
     } catch (error) {
       setStatus({
         type: "error",
@@ -368,7 +396,7 @@ export function Expenses({ onLogout }) {
       message: `Actualizados: ${updated}. Errores: ${failed}.`,
     });
     setBulkValues({ categoria: "", cuenta: "", porcentajeEconomiaReal: "" });
-    await loadExpenses(appliedFilters, page);
+    await loadExpenses(appliedFilters, page, pageSize);
   }
 
   async function updateExpenseInclusion(gasto, field, checked) {
@@ -397,7 +425,7 @@ export function Expenses({ onLogout }) {
         title: "Gasto actualizado",
         message: "La inclusion del gasto se actualizo correctamente.",
       });
-      await loadExpenses(appliedFilters, page);
+      await loadExpenses(appliedFilters, page, pageSize);
     } catch (error) {
       setStatus({
         type: "error",
@@ -441,14 +469,36 @@ export function Expenses({ onLogout }) {
       title: "Eliminacion finalizada",
       message: `Eliminados: ${deleted}. Errores: ${failed}.`,
     });
-    await loadExpenses(appliedFilters, page);
+    await loadExpenses(appliedFilters, page, pageSize);
   }
 
   async function goToPage(nextPage) {
-    if (nextPage < 1) return;
-    setPage(nextPage);
-    await loadExpenses(appliedFilters, nextPage);
+    const normalizedPage = Math.min(Math.max(1, nextPage), totalPages);
+    setPage(normalizedPage);
+    setJumpPage("");
+    await loadExpenses(appliedFilters, normalizedPage, pageSize);
   }
+
+  async function changePageSize(nextPageSize) {
+    setPageSize(nextPageSize);
+    setPage(1);
+    setJumpPage("");
+    await loadExpenses(appliedFilters, 1, nextPageSize);
+  }
+
+  async function jumpToPage(event) {
+    event.preventDefault();
+    const nextPage = Number(jumpPage);
+    if (!nextPage) return;
+    await goToPage(nextPage);
+  }
+
+  const visiblePages = useMemo(() => {
+    const pages = new Set([1, totalPages, page - 1, page, page + 1]);
+    return Array.from(pages)
+      .filter((item) => item >= 1 && item <= totalPages)
+      .sort((a, b) => a - b);
+  }, [page, totalPages]);
 
   const columns = [
     {
@@ -735,7 +785,7 @@ export function Expenses({ onLogout }) {
         </p>
       </Card>
 
-      <Card className="expenses-table-card" title="Listado de gastos">
+      <Card className="expenses-table-card continuous-table" title="Listado de gastos">
         <DataTable
           columns={columns}
           emptyMessage="No hay gastos para el filtro seleccionado."
@@ -745,22 +795,84 @@ export function Expenses({ onLogout }) {
           items={gastos}
           rowKey={(gasto) => gasto._id}
         />
-        <div className="pagination-row">
-          <Button
-            disabled={loading || page === 1}
-            onClick={() => goToPage(page - 1)}
-            variant="secondary"
-          >
-            Anterior
-          </Button>
-          <span>Pagina {page}</span>
-          <Button
-            disabled={loading || !hasNextPage}
-            onClick={() => goToPage(page + 1)}
-            variant="secondary"
-          >
-            Siguiente
-          </Button>
+        <div className="pagination-row pagination-row-detailed">
+          <span className="pagination-summary">Total {totalResults} resultados</span>
+          <span className="pagination-summary">
+            Pag. {page}/{totalPages}
+          </span>
+
+          <label className="pagination-size">
+            <select
+              aria-label="Resultados por pagina"
+              disabled={loading}
+              onChange={(event) => changePageSize(Number(event.target.value))}
+              value={pageSize}
+            >
+              {[10, 20, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size} / pag.
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <nav className="pagination-controls" aria-label="Paginacion de gastos">
+            <Button
+              disabled={loading || page === 1}
+              onClick={() => goToPage(1)}
+              variant="secondary"
+            >
+              |&lt;
+            </Button>
+            <Button
+              disabled={loading || page === 1}
+              onClick={() => goToPage(page - 1)}
+              variant="secondary"
+            >
+              &lt;
+            </Button>
+            {visiblePages.map((pageNumber, index) => (
+              <span className="pagination-page-cluster" key={pageNumber}>
+                {index > 0 && pageNumber - visiblePages[index - 1] > 1 ? (
+                  <span className="pagination-ellipsis">...</span>
+                ) : null}
+                <Button
+                  disabled={loading}
+                  onClick={() => goToPage(pageNumber)}
+                  variant={pageNumber === page ? "primary" : "secondary"}
+                >
+                  {pageNumber}
+                </Button>
+              </span>
+            ))}
+            <Button
+              disabled={loading || !hasNextPage}
+              onClick={() => goToPage(page + 1)}
+              variant="secondary"
+            >
+              &gt;
+            </Button>
+            <Button
+              disabled={loading || page === totalPages}
+              onClick={() => goToPage(totalPages)}
+              variant="secondary"
+            >
+              &gt;|
+            </Button>
+          </nav>
+
+          <form className="pagination-jump" onSubmit={jumpToPage}>
+            <span>Ir a</span>
+            <input
+              aria-label="Ir a pagina"
+              disabled={loading}
+              min="1"
+              max={totalPages}
+              onChange={(event) => setJumpPage(event.target.value)}
+              type="number"
+              value={jumpPage}
+            />
+          </form>
         </div>
       </Card>
 

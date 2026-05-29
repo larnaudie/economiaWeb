@@ -31,7 +31,9 @@ export const obtenerGastos = async (req, res, next) => {
             flujoMin,
             flujoMax,
             realMin,
-            realMax
+            realMax,
+            limite,
+            meta
         } = req.query;
 
         const gastosObtenidos = await obtenerGastosService(
@@ -47,7 +49,9 @@ export const obtenerGastos = async (req, res, next) => {
             flujoMin,
             flujoMax,
             realMin,
-            realMax
+            realMax,
+            limite,
+            meta === "1" || meta === "true"
         );
 
         successResponse(res, "Gastos obtenidos", gastosObtenidos);

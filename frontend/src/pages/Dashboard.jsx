@@ -38,7 +38,7 @@ function normalizeItems(response) {
   return Array.isArray(data) ? data : [];
 }
 
-export function Dashboard({ authVersion, onLogout }) {
+export function Dashboard({ authVersion, mode = "home", onLogout }) {
   const [activeModal, setActiveModal] = useState("");
   const [status, setStatus] = useState(initialStatus);
   const [loadingResources, setLoadingResources] = useState(false);
@@ -56,6 +56,7 @@ export function Dashboard({ authVersion, onLogout }) {
 
   const hasToken = Boolean(getToken());
   const user = getUser();
+  const isAnalytics = mode === "analytics";
 
   async function loadResources() {
     if (!getToken()) return;
@@ -316,8 +317,12 @@ export function Dashboard({ authVersion, onLogout }) {
 
   return (
     <PageLayout
-      title="Dashboard"
-      subtitle="Tu resumen diario y los accesos principales para cargar movimientos sin perder tiempo."
+      title={isAnalytics ? "Dashboard" : "Home"}
+      subtitle={
+        isAnalytics
+          ? "Analisis financiero, graficos y comparativas por periodo."
+          : "Tu pantalla diaria para cargar movimientos y revisar pendientes."
+      }
       user={user}
       onLogout={() => {
         logout();
@@ -332,7 +337,7 @@ export function Dashboard({ authVersion, onLogout }) {
         />
       ) : null}
 
-      {pendingCount > 0 ? (
+      {!isAnalytics && pendingCount > 0 ? (
         <section className="pending-warning-banner">
           <div>
             <strong>Tienes {pendingCount} gastos pendientes por crear</strong>
@@ -365,29 +370,34 @@ export function Dashboard({ authVersion, onLogout }) {
         />
       ) : null}
 
-      <QuickActions actions={quickActions} />
+      {!isAnalytics ? (
+        <>
+          <QuickActions actions={quickActions} />
 
-      <AccountCarousel cuentas={cuentas} />
+          <AccountCarousel cuentas={cuentas} />
 
-      <section className="dashboard-grid">
-        <Card title="Resumen de recursos">
-          <div className="metric-grid">
-            {resourceSummary.map((item) => (
-              <div className="metric" key={item.label}>
-                <strong>{item.value}</strong>
-                <span>{item.label}</span>
+          <section className="dashboard-grid">
+            <Card title="Resumen de recursos">
+              <div className="metric-grid">
+                {resourceSummary.map((item) => (
+                  <div className="metric" key={item.label}>
+                    <strong>{item.value}</strong>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="button-row">
-            <Button onClick={loadResources} variant="secondary">
-              {loadingResources ? "Actualizando..." : "Actualizar datos"}
-            </Button>
-          </div>
-        </Card>
-      </section>
+              <div className="button-row">
+                <Button onClick={loadResources} variant="secondary">
+                  {loadingResources ? "Actualizando..." : "Actualizar datos"}
+                </Button>
+              </div>
+            </Card>
+          </section>
+        </>
+      ) : null}
 
-      <section className="card dashboard-control-panel">
+      {isAnalytics ? (
+        <section className="card dashboard-control-panel">
         <div>
           <h2>Vista financiera</h2>
           <p>Filtra los gastos por banco o cuenta sin salir del Dashboard.</p>
@@ -442,9 +452,11 @@ export function Dashboard({ authVersion, onLogout }) {
             </select>
           </FormField>
         </div>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="metric-grid metric-grid-wide">
+      {isAnalytics ? (
+        <section className="metric-grid metric-grid-wide">
         <MetricCard label="Vista" value={dashboardScope} />
         <MetricCard label="Gastos creados" value={financialSummary.cantidad} />
         <MetricCard
@@ -459,9 +471,11 @@ export function Dashboard({ authVersion, onLogout }) {
           label="Saldo de deudas activas"
           value={formatCurrency(deudaSummary.saldoRestante)}
         />
-      </section>
+        </section>
+      ) : null}
 
-      <section className="dashboard-grid dashboard-grid-spaced">
+      {isAnalytics ? (
+        <section className="dashboard-grid dashboard-grid-spaced">
         <Card title="Gasto real por categoria">
           <MiniBarChart items={categoriasResumen} labelKey="nombre" valueKey="total" />
         </Card>
@@ -473,9 +487,11 @@ export function Dashboard({ authVersion, onLogout }) {
             valueKey="total"
           />
         </Card>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="dashboard-grid dashboard-grid-spaced">
+      {isAnalytics ? (
+        <section className="dashboard-grid dashboard-grid-spaced">
         <Card title="Gasto bancario vs gasto real">
           <ComparisonBars
             items={[
@@ -492,9 +508,11 @@ export function Dashboard({ authVersion, onLogout }) {
             real={monthlyEvolution.real}
           />
         </Card>
-      </section>
+        </section>
+      ) : null}
 
-      <section className="dashboard-grid dashboard-grid-spaced">
+      {!isAnalytics ? (
+        <section className="dashboard-grid dashboard-grid-spaced">
         <Card title="Deudas activas">
           <div className="debt-summary">
             <strong>{deudaSummary.activas}</strong>
@@ -535,7 +553,8 @@ export function Dashboard({ authVersion, onLogout }) {
             )}
           />
         </Card>
-      </section>
+        </section>
+      ) : null}
 
       <BancoModal
         onClose={() => setActiveModal("")}

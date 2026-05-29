@@ -7,6 +7,13 @@ function dateInputValue(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+function idValue(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && typeof value._id === "string") return value._id;
+  return "";
+}
+
 const initialState = {
   fecha: new Date().toISOString().slice(0, 10),
   descripcion: "",
@@ -26,8 +33,8 @@ function getInitialState(expense) {
     descripcion: expense.descripcion || "",
     flujoBancario: expense.flujoBancario ?? "",
     porcentajeEconomiaReal: expense.porcentajeEconomiaReal ?? "100",
-    categoria: expense.categoria?._id || expense.categoria || "",
-    cuenta: expense.cuenta?._id || expense.cuenta || "",
+    categoria: idValue(expense.categoria),
+    cuenta: idValue(expense.cuenta),
     incluirEnGastoBancario: expense.incluirEnGastoBancario !== false,
     incluirEnGastoReal: expense.incluirEnGastoReal !== false,
   };

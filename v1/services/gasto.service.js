@@ -120,6 +120,8 @@ export const obtenerGastosService = async (
   flujoMax,
   realMin,
   realMax,
+  limite,
+  incluirMeta = false,
 ) => {
   const match = buildGastoBaseMatch({
     usuarioId,
@@ -136,8 +138,7 @@ export const obtenerGastosService = async (
     realMax,
   });
 
-  const pipeline = [{ $match: match }];
-  pipeline.push(
+  const lookups = [
     {
       $lookup: {
         from: "categorias",
@@ -176,12 +177,31 @@ export const obtenerGastosService = async (
     },
     { $unwind: { path: "$cuenta", preserveNullAndEmptyArrays: true } },
     { $sort: { ordenCuenta: 1, fecha: -1, _id: -1 } },
-  );
+  ];
+
+  const pipeline = [{ $match: match }, ...lookups];
 
   if (pagina) {
-    const skip = (parseInt(pagina) - 1) * 20;
+    const pageNumber = Math.max(1, parseInt(pagina, 10) || 1);
+    const pageSize = Math.min(100, Math.max(5, parseInt(limite, 10) || 20));
+    const skip = (pageNumber - 1) * pageSize;
     pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: 20 });
+    pipeline.push({ $limit: pageSize });
+
+    if (incluirMeta) {
+      const [items, total] = await Promise.all([
+        Gasto.aggregate(pipeline),
+        Gasto.countDocuments(match),
+      ]);
+
+      return {
+        items,
+        total,
+        pagina: pageNumber,
+        limite: pageSize,
+        totalPaginas: Math.max(1, Math.ceil(total / pageSize)),
+      };
+    }
   }
 
   return await Gasto.aggregate(pipeline);
@@ -379,6 +399,8 @@ export const obtenerGastosPorUsuarioService = async (
   flujoMax,
   realMin,
   realMax,
+  limite,
+  incluirMeta,
 ) => {
   return obtenerGastosService(
     usuarioId,
@@ -394,6 +416,8 @@ export const obtenerGastosPorUsuarioService = async (
     flujoMax,
     realMin,
     realMax,
+    limite,
+    incluirMeta,
   );
 };
 

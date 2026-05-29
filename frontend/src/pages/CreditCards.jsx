@@ -16,6 +16,7 @@ import {
   uploadApiFile,
 } from "../services/api";
 import { formatCurrency, formatDate } from "../utils/formatters";
+import { showToast } from "../utils/toast";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -125,7 +126,7 @@ const accountTypeLabels = {
   tarjeta_credito: "Tarjeta de credito",
 };
 
-export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
+export function CreditCards({ onLogout, selectedResumenId = "", selectedTarjetaId = "" }) {
   const [tarjetas, setTarjetas] = useState([]);
   const [bancos, setBancos] = useState([]);
   const [cuentas, setCuentas] = useState([]);
@@ -143,6 +144,7 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [importingCard, setImportingCard] = useState(null);
+  const [creditFlowTab, setCreditFlowTab] = useState("resumen");
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [loadingMovements, setLoadingMovements] = useState(false);
@@ -195,6 +197,30 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
       "";
     setSelectedPaymentAccount(defaultAccount);
   }, [selectedTarjeta]);
+
+  useEffect(() => {
+    setMovementFilters((current) => ({
+      ...current,
+      resumenId: selectedResumenId || "",
+    }));
+  }, [selectedResumenId, selectedTarjetaId]);
+
+  useEffect(() => {
+    if (selectedResumenId) {
+      setCreditFlowTab("movimientos");
+    } else if (!selectedTarjetaId) {
+      setCreditFlowTab("resumen");
+    }
+  }, [selectedResumenId, selectedTarjetaId]);
+
+  useEffect(() => {
+    if (!status.message) return;
+    showToast({
+      message: status.message,
+      title: status.title,
+      type: status.type || "info",
+    });
+  }, [status]);
 
   const loadMovements = useCallback(async () => {
     if (!selectedTarjetaId) {
@@ -929,7 +955,42 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
               </div>
             </div>
 
-            {selectedTarjeta ? (
+            <div className="credit-flow-tabs" role="tablist" aria-label="Flujo de tarjeta">
+              {[
+                ["resumen", "Resumen"],
+                ["movimientos", "Movimientos"],
+                ["conciliacion", "Conciliacion"],
+                ["cuenta", "Cuenta asociada"],
+              ].map(([value, label]) => (
+                <button
+                  aria-selected={creditFlowTab === value}
+                  className={`tab-button ${creditFlowTab === value ? "active" : ""}`}
+                  key={value}
+                  onClick={() => setCreditFlowTab(value)}
+                  role="tab"
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <p className="credit-flow-helper">
+              {creditFlowTab === "resumen"
+                ? "Mira cuanto se debe pagar, que pagos ya aparecen y el estado del resumen."
+                : null}
+              {creditFlowTab === "movimientos"
+                ? "Revisa compras, pagos y saldos importados. Selecciona movimientos para trabajarlos en conciliacion."
+                : null}
+              {creditFlowTab === "conciliacion"
+                ? "Genera movimientos en la cuenta tarjeta o elimina importaciones seleccionadas."
+                : null}
+              {creditFlowTab === "cuenta"
+                ? "Accede a la cuenta bancaria tipo Tarjeta de Credito para ver el impacto contable."
+                : null}
+            </p>
+
+            {selectedTarjeta && creditFlowTab === "resumen" ? (
               <CreditCardSummary
                 balance={cardBalance}
                 movementSummary={movementSummary}
@@ -939,154 +1000,192 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
             ) : null}
           </Card>
 
-          <section className="metric-grid metric-grid-wide">
-            <MetricCard label="Movimientos" value={movementSummary.total} />
-            <MetricCard
-              label="Saldo anterior"
-              value={formatCurrencyPair(movementSummary.saldoAnterior)}
-            />
-            <MetricCard
-              label="Compras"
-              value={formatCurrencyPair(movementSummary.compras)}
-            />
-            <MetricCard
-              label="Pagos detectados"
-              value={formatCurrencyPair(movementSummary.pagos)}
-            />
-            <MetricCard
-              label="Creditos y devoluciones"
-              value={formatCurrencyPair(movementSummary.creditos)}
-            />
-            <MetricCard
-              label="Saldo estimado"
-              value={formatCurrencyPair(cardBalance)}
-            />
-          </section>
+          {creditFlowTab === "resumen" || creditFlowTab === "movimientos" ? (
+            <section className="metric-grid metric-grid-wide">
+              <MetricCard label="Movimientos" value={movementSummary.total} />
+              <MetricCard
+                label="Saldo anterior"
+                value={formatCurrencyPair(movementSummary.saldoAnterior)}
+              />
+              <MetricCard
+                label="Compras"
+                value={formatCurrencyPair(movementSummary.compras)}
+              />
+              <MetricCard
+                label="Pagos detectados"
+                value={formatCurrencyPair(movementSummary.pagos)}
+              />
+              <MetricCard
+                label="Creditos y devoluciones"
+                value={formatCurrencyPair(movementSummary.creditos)}
+              />
+              <MetricCard
+                label="Saldo estimado"
+                value={formatCurrencyPair(cardBalance)}
+              />
+            </section>
+          ) : null}
 
-          <Card title="Filtros">
-            <div className="expense-filters">
-              <FormField id="movementTypeFilter" label="Tipo">
-                <select
-                  id="movementTypeFilter"
-                  onChange={(event) =>
-                    setMovementFilters((current) => ({
-                      ...current,
-                      tipoMovimiento: event.target.value,
-                    }))
-                  }
-                  value={movementFilters.tipoMovimiento}
-                >
-                  <option value="">Todos</option>
-                  {Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+          {creditFlowTab === "movimientos" ? (
+            <>
+              <Card title="Filtros">
+                <div className="expense-filters">
+                  <FormField id="movementTypeFilter" label="Tipo">
+                    <select
+                      id="movementTypeFilter"
+                      onChange={(event) =>
+                        setMovementFilters((current) => ({
+                          ...current,
+                          tipoMovimiento: event.target.value,
+                        }))
+                      }
+                      value={movementFilters.tipoMovimiento}
+                    >
+                      <option value="">Todos</option>
+                      {Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
 
-              <FormField id="movementSummaryFilter" label="Resumen">
-                <select
-                  id="movementSummaryFilter"
-                  onChange={(event) =>
-                    setMovementFilters((current) => ({
-                      ...current,
-                      resumenId: event.target.value,
-                    }))
-                  }
-                  value={movementFilters.resumenId}
-                >
-                  <option value="">Todos los resumenes</option>
-                  {importedSummaries.map((resumen) => (
-                    <option key={resumen._id} value={resumen._id}>
-                      {resumen.periodo}
-                      {resumen.fechaCierre
-                        ? ` - cierre ${formatDate(resumen.fechaCierre)}`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+                  <FormField id="movementSummaryFilter" label="Resumen">
+                    <select
+                      id="movementSummaryFilter"
+                      onChange={(event) =>
+                        setMovementFilters((current) => ({
+                          ...current,
+                          resumenId: event.target.value,
+                        }))
+                      }
+                      value={movementFilters.resumenId}
+                    >
+                      <option value="">Todos los resumenes</option>
+                      {importedSummaries.map((resumen) => (
+                        <option key={resumen._id} value={resumen._id}>
+                          {resumen.periodo}
+                          {resumen.fechaCierre
+                            ? ` - cierre ${formatDate(resumen.fechaCierre)}`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
 
-              <FormField id="movementCurrencyFilter" label="Moneda">
-                <select
-                  id="movementCurrencyFilter"
-                  onChange={(event) =>
-                    setMovementFilters((current) => ({
-                      ...current,
-                      moneda: event.target.value,
-                    }))
-                  }
-                  value={movementFilters.moneda}
-                >
-                  <option value="">Todas</option>
-                  <option value="UYU">UYU</option>
-                  <option value="USD">USD</option>
-                </select>
-              </FormField>
+                  <FormField id="movementCurrencyFilter" label="Moneda">
+                    <select
+                      id="movementCurrencyFilter"
+                      onChange={(event) =>
+                        setMovementFilters((current) => ({
+                          ...current,
+                          moneda: event.target.value,
+                        }))
+                      }
+                      value={movementFilters.moneda}
+                    >
+                      <option value="">Todas</option>
+                      <option value="UYU">UYU</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </FormField>
 
-              <FormField id="movementGeneratedFilter" label="Gasto">
-                <select
-                  id="movementGeneratedFilter"
-                  onChange={(event) =>
-                    setMovementFilters((current) => ({
-                      ...current,
-                      generated: event.target.value,
-                    }))
-                  }
-                  value={movementFilters.generated}
-                >
-                  <option value="">Todos</option>
-                  <option value="pendiente">Pendientes de generar</option>
-                  <option value="generado">Generados</option>
-                </select>
-              </FormField>
+                  <FormField id="movementGeneratedFilter" label="Gasto">
+                    <select
+                      id="movementGeneratedFilter"
+                      onChange={(event) =>
+                        setMovementFilters((current) => ({
+                          ...current,
+                          generated: event.target.value,
+                        }))
+                      }
+                      value={movementFilters.generated}
+                    >
+                      <option value="">Todos</option>
+                      <option value="pendiente">Pendientes de generar</option>
+                      <option value="generado">Generados</option>
+                    </select>
+                  </FormField>
 
-              <FormField id="movementSearchFilter" label="Detalle">
-                <input
-                  id="movementSearchFilter"
-                  onChange={(event) =>
-                    setMovementFilters((current) => ({
-                      ...current,
-                      search: event.target.value,
-                    }))
-                  }
-                  placeholder="Buscar comercio o detalle"
-                  value={movementFilters.search}
+                  <FormField id="movementSearchFilter" label="Detalle">
+                    <input
+                      id="movementSearchFilter"
+                      onChange={(event) =>
+                        setMovementFilters((current) => ({
+                          ...current,
+                          search: event.target.value,
+                        }))
+                      }
+                      placeholder="Buscar comercio o detalle"
+                      value={movementFilters.search}
+                    />
+                  </FormField>
+
+                  <div className="button-row expense-filter-actions">
+                    <Button
+                      onClick={() =>
+                        setMovementFilters({
+                          resumenId: "",
+                          tipoMovimiento: "",
+                          moneda: "",
+                          search: "",
+                          generated: "",
+                        })
+                      }
+                      variant="secondary"
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="expenses-table-card" title="Listado de movimientos">
+                <div className="section-toolbar">
+                  <div>
+                    <h2>Movimientos importados</h2>
+                    <p>
+                      {selectedSummary
+                        ? `Resumen ${selectedSummary.periodo}. `
+                        : "Todos los resumenes. "}
+                      Seleccionados: {selectedMovementIds.size}. Usa Conciliacion para generar movimientos en cuenta.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setCreditFlowTab("conciliacion")}
+                    variant="secondary"
+                  >
+                    Ir a conciliacion
+                  </Button>
+                </div>
+
+                <DataTable
+                  columns={movementColumns}
+                  emptyMessage="No hay movimientos para los filtros seleccionados."
+                  getRowProps={(movimiento) => ({
+                    className: movimiento.gastoGenerado ? "" : "pending-row",
+                  })}
+                  items={filteredMovements}
+                  rowKey={(movimiento) => movimiento._id}
                 />
-              </FormField>
+              </Card>
+            </>
+          ) : null}
 
-              <div className="button-row expense-filter-actions">
-                <Button
-                  onClick={() =>
-                    setMovementFilters({
-                      resumenId: "",
-                      tipoMovimiento: "",
-                      moneda: "",
-                      search: "",
-                      generated: "",
-                    })
-                  }
-                  variant="secondary"
-                >
-                  Limpiar
+          {creditFlowTab === "conciliacion" ? (
+            <Card title="Conciliacion">
+              <div className="section-toolbar">
+                <div>
+                  <h2>Generar movimientos en cuenta</h2>
+                  <p>
+                    Seleccionados: {selectedMovementIds.size}. Los pagos pueden conciliar con una cuenta bancaria; las compras impactan la cuenta tarjeta.
+                  </p>
+                </div>
+                <Button onClick={() => setCreditFlowTab("movimientos")} variant="secondary">
+                  Elegir movimientos
                 </Button>
               </div>
-            </div>
-          </Card>
-
-          <Card className="expenses-table-card" title="Listado de movimientos">
-            <div className="section-toolbar">
-              <div>
-                <h2>Movimientos importados</h2>
-                <p>
-                  {selectedSummary
-                    ? `Resumen ${selectedSummary.periodo}. `
-                    : "Todos los resumenes. "}
-                  Seleccionados: {selectedMovementIds.size}. Los movimientos generados impactan la cuenta tarjeta sin duplicar gasto real.
-                </p>
-              </div>
-              <div className="table-actions">
+              <div className="expense-filters">
                 <FormField id="creditCardPaymentSource" label="Cuenta origen del pago">
                   <select
                     id="creditCardPaymentSource"
@@ -1126,18 +1225,33 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
                   Limpiar seleccion
                 </Button>
               </div>
-            </div>
+            </Card>
+          ) : null}
 
-            <DataTable
-              columns={movementColumns}
-              emptyMessage="No hay movimientos para los filtros seleccionados."
-              getRowProps={(movimiento) => ({
-                className: movimiento.gastoGenerado ? "" : "pending-row",
-              })}
-              items={filteredMovements}
-              rowKey={(movimiento) => movimiento._id}
-            />
-          </Card>
+          {creditFlowTab === "cuenta" ? (
+            <Card title="Cuenta asociada">
+              {selectedCardAccountId ? (
+                <>
+                  <p>
+                    Esta tarjeta impacta en la cuenta bancaria tipo Tarjeta de Credito asociada. Ahi podes ver compras, pagos, saldo y categorias como cualquier cuenta.
+                  </p>
+                  <div className="button-row">
+                    <Button
+                      onClick={() =>
+                        window.location.assign(`#/gastos-cuenta?cuenta=${selectedCardAccountId}`)
+                      }
+                    >
+                      Ver cuenta tarjeta
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-state">
+                  Esta tarjeta todavia no tiene cuenta tarjeta asociada. Edita la tarjeta y vincula una cuenta tipo Tarjeta de credito.
+                </p>
+              )}
+            </Card>
+          ) : null}
         </>
       ) : (
         <>
@@ -1197,6 +1311,11 @@ export function CreditCards({ onLogout, selectedTarjetaId = "" }) {
                 <Card
                   className="credit-card-summary-card"
                   key={`${tarjeta._id}-${resumen._id}`}
+                  onClick={() =>
+                    window.location.assign(
+                      `#/tarjetas-credito?tarjeta=${tarjeta._id}&resumen=${resumen._id}`,
+                    )
+                  }
                   title={`${tarjeta.nombre} - ${resumen.periodo || "Resumen"}`}
                 >
                   <CreditCardSummary resumen={resumen} tarjeta={tarjeta} />

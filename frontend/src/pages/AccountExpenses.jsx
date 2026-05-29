@@ -33,6 +33,21 @@ function currentAccountFilters() {
   };
 }
 
+function idValue(value) {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && typeof value._id === "string") return value._id;
+  return null;
+}
+
+function normalizeExpensePayload(payload, fallbackCuenta) {
+  return {
+    ...payload,
+    categoria: idValue(payload.categoria),
+    cuenta: idValue(payload.cuenta) || fallbackCuenta || null,
+  };
+}
+
 export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   const [cuentas, setCuentas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -218,7 +233,10 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     try {
       await apiRequest(`/gastos/${editingExpense._id}`, {
         method: "PATCH",
-        body: { ...gastoPayload, cuenta: selectedCuenta },
+        body: normalizeExpensePayload(
+          { ...gastoPayload, cuenta: selectedCuenta },
+          selectedCuenta,
+        ),
       });
 
       if (facturaFile) {
@@ -328,7 +346,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
 
         await apiRequest(`/gastos/${gasto._id}`, {
           method: "PATCH",
-          body: {
+          body: normalizeExpensePayload({
             fecha: gasto.fecha,
             descripcion: gasto.descripcion,
             flujoBancario: flow,
@@ -344,7 +362,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
               bulkValues.incluirEnGastoReal === ""
                 ? gasto.incluirEnGastoReal !== false
                 : bulkValues.incluirEnGastoReal === "true",
-          },
+          }, selectedCuenta),
         });
         updated++;
       } catch {
@@ -366,7 +384,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     try {
       await apiRequest(`/gastos/${gasto._id}`, {
         method: "PATCH",
-        body: {
+        body: normalizeExpensePayload({
           fecha: gasto.fecha,
           descripcion: gasto.descripcion,
           flujoBancario: gasto.flujoBancario,
@@ -376,7 +394,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
           cuenta: cuentaId,
           incluirEnGastoBancario: gasto.incluirEnGastoBancario !== false,
           incluirEnGastoReal: gasto.incluirEnGastoReal !== false,
-        },
+        }, cuentaId),
       });
 
       setStatus({
@@ -400,7 +418,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     try {
       await apiRequest(`/gastos/${gasto._id}`, {
         method: "PATCH",
-        body: {
+        body: normalizeExpensePayload({
           fecha: gasto.fecha,
           descripcion: gasto.descripcion,
           flujoBancario: gasto.flujoBancario,
@@ -412,7 +430,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
             field === "bancario" ? checked : gasto.incluirEnGastoBancario !== false,
           incluirEnGastoReal:
             field === "real" ? checked : gasto.incluirEnGastoReal !== false,
-        },
+        }, selectedCuenta),
       });
 
       setStatus({
@@ -781,7 +799,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
         <p className="selection-note">Seleccionados: {selectedIds.size}</p>
       </Card>
 
-      <Card className="expenses-table-card" title="Gastos">
+      <Card className="expenses-table-card continuous-table-card" title="Gastos">
         <div className="continuous-table">
           <DataTable
             columns={columns}

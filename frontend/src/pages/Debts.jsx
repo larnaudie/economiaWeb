@@ -122,6 +122,50 @@ function calculateInstallment({ montoTotal, cuotasTotales, tasaInteres, montoCuo
   return Number(cuota.toFixed(2));
 }
 
+function calculateAnnualRateFromInstallment({ montoTotal, cuotasTotales, montoCuota }) {
+  const total = Number(montoTotal);
+  const cuotas = Number(cuotasTotales);
+  const cuota = Number(montoCuota);
+
+  if (
+    !total ||
+    !cuotas ||
+    !cuota ||
+    Number.isNaN(total) ||
+    Number.isNaN(cuotas) ||
+    Number.isNaN(cuota)
+  ) {
+    return null;
+  }
+
+  const cuotaSinInteres = total / cuotas;
+  if (cuota <= cuotaSinInteres) return 0;
+
+  function cuotaConTasaMensual(tasaMensual) {
+    return (total * tasaMensual) / (1 - (1 + tasaMensual) ** -cuotas);
+  }
+
+  let min = 0;
+  let max = 0.01;
+
+  while (cuotaConTasaMensual(max) < cuota && max < 10) {
+    max *= 2;
+  }
+
+  if (max >= 10) return null;
+
+  for (let index = 0; index < 80; index += 1) {
+    const mid = (min + max) / 2;
+    if (cuotaConTasaMensual(mid) < cuota) {
+      min = mid;
+    } else {
+      max = mid;
+    }
+  }
+
+  return Number(((max + min) / 2 * 12 * 100).toFixed(2));
+}
+
 const debtTypeLabels = {
   deuda: "Deuda",
   prestamo: "Prestamo",
@@ -777,6 +821,16 @@ function DebtForm({
     [cotizacionUsd, cuotaCalculada, moneda, valorUi],
   );
 
+  const tasaAnualImplicita = useMemo(
+    () =>
+      calculateAnnualRateFromInstallment({
+        montoTotal: montoFinanciado,
+        cuotasTotales: cuotasDerivadas,
+        montoCuota,
+      }),
+    [cuotasDerivadas, montoCuota, montoFinanciado],
+  );
+
   const montoConvertido = useMemo(
     () =>
       convertCurrencyAmount({
@@ -1116,6 +1170,25 @@ function DebtForm({
                   : formatDebtMoney(item.value, item.moneda)}
               </small>
             ))}
+            {montoCuota && !tasaInteres ? (
+              tasaAnualImplicita === null ? (
+                <small>No se pudo estimar una tasa anual con estos datos.</small>
+              ) : (
+                <>
+                  <small>
+                    Tasa anual estimada por la cuota:{" "}
+                    <strong>{tasaAnualImplicita.toFixed(2)}%</strong>
+                  </small>
+                  <Button
+                    onClick={() => setTasaInteres(String(tasaAnualImplicita))}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Usar tasa estimada
+                  </Button>
+                </>
+              )
+            ) : null}
           </div>
         ) : null}
       </div>

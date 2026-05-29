@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   FolderPlus,
   Gauge,
+  House,
   Landmark,
   ReceiptText,
   CreditCard,
@@ -18,7 +19,8 @@ const navGroups = [
   {
     title: "Uso diario",
     items: [
-      { href: "#/", icon: <Gauge size={17} />, label: "Dashboard" },
+      { href: "#/", icon: <House size={17} />, label: "Home" },
+      { href: "#/dashboard", icon: <Gauge size={17} />, label: "Dashboard" },
       { href: "#/gastos", icon: <ReceiptText size={17} />, label: "Mis Gastos" },
       {
         href: "#/gastos-pendientes",

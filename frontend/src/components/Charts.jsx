@@ -78,16 +78,26 @@ export function MonthlyBars({ labels, bancario, real }) {
       {labels.map((label, index) => (
         <article className="monthly-bar-group" key={label}>
           <div className="monthly-bars-pair">
-            <span
-              className="monthly-bar monthly-bar-bancario"
-              title={`Bancario ${formatCurrency(Math.abs(bancario[index]))}`}
-              style={{ height: `${Math.max(6, (Math.abs(bancario[index]) / max) * 100)}%` }}
-            />
-            <span
-              className="monthly-bar monthly-bar-real"
-              title={`Real ${formatCurrency(Math.abs(real[index]))}`}
-              style={{ height: `${Math.max(6, (Math.abs(real[index]) / max) * 100)}%` }}
-            />
+            <span className="monthly-bar-stack">
+              <small className="monthly-bar-value">
+                {formatCurrency(Math.abs(bancario[index]))}
+              </small>
+              <span
+                className="monthly-bar monthly-bar-bancario"
+                title={`Bancario ${formatCurrency(Math.abs(bancario[index]))}`}
+                style={{ height: `${Math.max(6, (Math.abs(bancario[index]) / max) * 100)}%` }}
+              />
+            </span>
+            <span className="monthly-bar-stack">
+              <small className="monthly-bar-value">
+                {formatCurrency(Math.abs(real[index]))}
+              </small>
+              <span
+                className="monthly-bar monthly-bar-real"
+                title={`Real ${formatCurrency(Math.abs(real[index]))}`}
+                style={{ height: `${Math.max(6, (Math.abs(real[index]) / max) * 100)}%` }}
+              />
+            </span>
           </div>
           <small>{label}</small>
         </article>
