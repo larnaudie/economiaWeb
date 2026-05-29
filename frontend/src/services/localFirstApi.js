@@ -326,6 +326,7 @@ async function handleLocalPatch(parsed, body) {
     endpoint: parsed.collectionPath,
     itemLocalId: item.localId,
     method: "PATCH",
+    previousItem: current,
     resource: parsed.store,
   });
   return success(await populateLocalItem(parsed.store, item), "Actualizado localmente");
@@ -349,6 +350,7 @@ async function handleLocalDelete(parsed) {
       endpoint: parsed.collectionPath,
       itemLocalId: current.localId,
       method: "DELETE",
+      previousItem: current,
       resource: parsed.store,
     });
   } else {
@@ -568,6 +570,7 @@ async function handleDebtPayment(endpoint, body) {
     endpoint: "/deudas",
     itemLocalId: nextDeuda.localId,
     method: "PATCH",
+    previousItem: deuda,
     resource: "deudas",
   });
 
@@ -589,6 +592,7 @@ export async function localFirstRequest(endpoint, options = {}) {
           endpoint: "/gastos",
           itemLocalId: current.localId,
           method: "PATCH",
+          previousItem: current,
           resource: "gastos",
         });
       }

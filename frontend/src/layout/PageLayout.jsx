@@ -89,6 +89,21 @@ function restoreMobileNavScroll(nav) {
   nav.scrollLeft = savedPosition;
 }
 
+function formatRate(value, digits = 2) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(digits) : "N/D";
+}
+
+function formatRateTime(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("es-UY", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+  });
+}
+
 export function PageLayout({ title, subtitle, children, user, onLogout }) {
   const currentHash = getCurrentHash();
   const mobileNavRef = useRef(null);
@@ -212,9 +227,16 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
             <span>Cotizaciones</span>
             {rates ? (
               <>
-                <strong>USD $ {Number(rates.usdUyu || 0).toFixed(2)}</strong>
-                <strong>UI $ {Number(rates.uiUyu || 0).toFixed(4)}</strong>
-                <small>{rates.fuente}</small>
+                <strong>USD compra $ {formatRate(rates.usdCompra ?? rates.usdUyu)}</strong>
+                <strong>USD venta $ {formatRate(rates.usdVenta ?? rates.usdUyu)}</strong>
+                <strong>UI $ {formatRate(rates.uiValor ?? rates.uiUyu, 4)}</strong>
+                <small>
+                  {rates.fuente}
+                  {rates.fechaActualizacion
+                    ? ` · ${formatRateTime(rates.fechaActualizacion)}`
+                    : ""}
+                  {rates.fallback ? " · fallback" : ""}
+                </small>
               </>
             ) : (
               <small>{ratesError || "Cargando..."}</small>

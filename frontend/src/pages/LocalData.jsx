@@ -10,7 +10,9 @@ import {
   getLocalItem,
   getLocalSyncSummary,
   getSyncQueue,
+  undoSyncOperation,
 } from "../services/localDb";
+import { showToast } from "../utils/toast";
 
 const readableResources = new Set([
   "bancos",
@@ -133,6 +135,44 @@ export function LocalData({ onLogout }) {
     }
   }, []);
 
+  async function handleUndo(operation) {
+    const label = `${methodLabels[operation.method] || operation.method} ${
+      resourceLabels[operation.resource] || operation.resource || ""
+    }`.trim();
+
+    if (!window.confirm(`Deshacer ${label}?`)) return;
+
+    try {
+      const result = await undoSyncOperation(operation.localId);
+      await loadData();
+
+      showToast({
+        title: result.undone ? "Deshecho" : "No se pudo deshacer",
+        message: result.message,
+        type: result.undone ? "success" : "warning",
+      });
+
+      if (!result.undone) {
+        setStatus({
+          type: "warning",
+          title: "No se pudo deshacer",
+          message: result.message,
+        });
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo deshacer",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudo deshacer",
+        message: error.message,
+        type: "error",
+      });
+    }
+  }
+
   useEffect(() => {
     const timeoutId = window.setTimeout(loadData, 0);
 
@@ -170,6 +210,15 @@ export function LocalData({ onLogout }) {
         key: "record",
         header: "Registro",
         render: (operation) => getOperationName(operation, operation.item),
+      },
+      {
+        key: "actions",
+        header: "Acciones",
+        render: (operation) => (
+          <Button onClick={() => handleUndo(operation)} variant="secondary">
+            Deshacer
+          </Button>
+        ),
       },
     ],
     [],

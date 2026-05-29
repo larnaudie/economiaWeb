@@ -1,0 +1,1007 @@
+{
+  "info": {
+    "_postman_id": "9b7b8686-5e3b-4cde-a508-e34ac7e0eweb",
+    "name": "Economia Web API",
+    "description": "Coleccion Postman para probar los endpoints backend de Economia Web. Primero ejecutar Auth/Login para guardar {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "REEMPLAZAR_USER_ID"
+    },
+    {
+      "key": "bancoId",
+      "value": "REEMPLAZAR_BANCO_ID"
+    },
+    {
+      "key": "cuentaId",
+      "value": "REEMPLAZAR_CUENTA_ID"
+    },
+    {
+      "key": "categoriaGrupoId",
+      "value": "REEMPLAZAR_CATEGORIA_GRUPO_ID"
+    },
+    {
+      "key": "categoriaId",
+      "value": "REEMPLAZAR_CATEGORIA_ID"
+    },
+    {
+      "key": "gastoId",
+      "value": "REEMPLAZAR_GASTO_ID"
+    },
+    {
+      "key": "deudaId",
+      "value": "REEMPLAZAR_DEUDA_ID"
+    },
+    {
+      "key": "tarjetaId",
+      "value": "REEMPLAZAR_TARJETA_ID"
+    },
+    {
+      "key": "movimientoTarjetaId",
+      "value": "REEMPLAZAR_MOVIMIENTO_TARJETA_ID"
+    },
+    {
+      "key": "resumenTarjetaId",
+      "value": "REEMPLAZAR_RESUMEN_TARJETA_ID"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"pablo\",\n  \"password\": \"123456\",\n  \"confirmPassword\": \"123456\",\n  \"codigo\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);",
+                  "if (json.id) pm.collectionVariables.set('userId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"pablo\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);",
+                  "if (json.id) pm.collectionVariables.set('userId', json.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Listar usuarios (admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios"
+          }
+        },
+        {
+          "name": "Obtener usuario actual",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/me"
+          }
+        },
+        {
+          "name": "Actualizar usuario actual",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Pablo\",\n  \"email\": \"pablo@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/me"
+          }
+        },
+        {
+          "name": "Bancos del usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/me/bancos"
+          }
+        },
+        {
+          "name": "Cuentas del usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/me/cuentas"
+          }
+        },
+        {
+          "name": "Categorias del usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/me/categorias"
+          }
+        },
+        {
+          "name": "Gastos del usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/me/gastos"
+          }
+        },
+        {
+          "name": "Obtener usuario por id (admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/{{userId}}"
+          }
+        },
+        {
+          "name": "Actualizar usuario por id (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Pablo Admin\",\n  \"email\": \"admin@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/{{userId}}"
+          }
+        },
+        {
+          "name": "Eliminar todos los usuarios (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/usuarios/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bancos",
+      "item": [
+        {
+          "name": "Listar bancos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bancos"
+          }
+        },
+        {
+          "name": "Crear banco",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Santander\"\n}"
+            },
+            "url": "{{baseUrl}}/bancos"
+          }
+        },
+        {
+          "name": "Obtener banco por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bancos/{{bancoId}}"
+          }
+        },
+        {
+          "name": "Actualizar banco",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Santander Uruguay\"\n}"
+            },
+            "url": "{{baseUrl}}/bancos/{{bancoId}}"
+          }
+        },
+        {
+          "name": "Eliminar banco",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/bancos/{{bancoId}}"
+          }
+        },
+        {
+          "name": "Eliminar todos los bancos (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/bancos/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cuentas",
+      "item": [
+        {
+          "name": "Listar cuentas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/cuentas"
+          }
+        },
+        {
+          "name": "Crear cuenta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Caja de Ahorro UYU\",\n  \"banco\": \"{{bancoId}}\",\n  \"tipo\": \"caja_ahorro\"\n}"
+            },
+            "url": "{{baseUrl}}/cuentas"
+          }
+        },
+        {
+          "name": "Obtener cuenta por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/cuentas/{{cuentaId}}"
+          }
+        },
+        {
+          "name": "Actualizar cuenta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Caja de Ahorro UYU\",\n  \"banco\": \"{{bancoId}}\",\n  \"tipo\": \"cuenta_corriente\"\n}"
+            },
+            "url": "{{baseUrl}}/cuentas/{{cuentaId}}"
+          }
+        },
+        {
+          "name": "Eliminar cuenta",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/cuentas/{{cuentaId}}"
+          }
+        },
+        {
+          "name": "Eliminar todas las cuentas (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/cuentas/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias principales",
+      "item": [
+        {
+          "name": "Listar categorias principales",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/categorias-grupo"
+          }
+        },
+        {
+          "name": "Crear categoria principal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Gastos personales\"\n}"
+            },
+            "url": "{{baseUrl}}/categorias-grupo"
+          }
+        },
+        {
+          "name": "Actualizar categoria principal",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Gastos personales editado\"\n}"
+            },
+            "url": "{{baseUrl}}/categorias-grupo/{{categoriaGrupoId}}"
+          }
+        },
+        {
+          "name": "Eliminar categoria principal",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/categorias-grupo/{{categoriaGrupoId}}"
+          }
+        },
+        {
+          "name": "Eliminar todas las categorias principales (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/categorias-grupo/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "Listar categorias",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/categorias"
+          }
+        },
+        {
+          "name": "Crear categoria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Supermercado\",\n  \"categoriaGrupo\": \"{{categoriaGrupoId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/categorias"
+          }
+        },
+        {
+          "name": "Totales por categoria",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/categorias/totales"
+          }
+        },
+        {
+          "name": "Obtener categoria por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/categorias/{{categoriaId}}"
+          }
+        },
+        {
+          "name": "Actualizar categoria",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Supermercado editado\",\n  \"categoriaGrupo\": \"{{categoriaGrupoId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/categorias/{{categoriaId}}"
+          }
+        },
+        {
+          "name": "Eliminar categoria",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/categorias/{{categoriaId}}"
+          }
+        },
+        {
+          "name": "Eliminar todas las categorias (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/categorias/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gastos",
+      "item": [
+        {
+          "name": "Listar gastos",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/gastos?estado=&cuenta=&categoria=&busqueda=&fechaDesde=&fechaHasta=&meta=true&pagina=1&limite=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["gastos"],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": ""
+                },
+                {
+                  "key": "cuenta",
+                  "value": ""
+                },
+                {
+                  "key": "categoria",
+                  "value": ""
+                },
+                {
+                  "key": "busqueda",
+                  "value": ""
+                },
+                {
+                  "key": "fechaDesde",
+                  "value": ""
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": ""
+                },
+                {
+                  "key": "meta",
+                  "value": "true"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear gasto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Compra supermercado\",\n  \"fecha\": \"2026-05-29\",\n  \"flujoBancario\": -1200,\n  \"economiaReal\": -1200,\n  \"porcentajeEconomiaReal\": 100,\n  \"categoria\": \"{{categoriaId}}\",\n  \"cuenta\": \"{{cuentaId}}\",\n  \"estado\": \"creado\",\n  \"incluirEnGastoBancario\": true,\n  \"incluirEnGastoReal\": true\n}"
+            },
+            "url": "{{baseUrl}}/gastos"
+          }
+        },
+        {
+          "name": "Crear gasto pendiente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Pendiente con factura\",\n  \"fecha\": \"2026-05-29\",\n  \"estado\": \"pendiente\"\n}"
+            },
+            "url": "{{baseUrl}}/gastos"
+          }
+        },
+        {
+          "name": "Crear gastos bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gastos\": [\n    {\n      \"descripcion\": \"Gasto bulk\",\n      \"fecha\": \"2026-05-29\",\n      \"flujoBancario\": -500,\n      \"economiaReal\": -500,\n      \"porcentajeEconomiaReal\": 100,\n      \"categoria\": \"{{categoriaId}}\",\n      \"cuenta\": \"{{cuentaId}}\",\n      \"estado\": \"creado\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/gastos/bulk"
+          }
+        },
+        {
+          "name": "Actualizar gastos bulk",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gastos\": [\n    {\n      \"_id\": \"{{gastoId}}\",\n      \"descripcion\": \"Gasto editado bulk\",\n      \"fecha\": \"2026-05-29\",\n      \"flujoBancario\": -600,\n      \"economiaReal\": -600,\n      \"porcentajeEconomiaReal\": 100,\n      \"categoria\": \"{{categoriaId}}\",\n      \"cuenta\": \"{{cuentaId}}\",\n      \"estado\": \"creado\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/gastos/bulk"
+          }
+        },
+        {
+          "name": "Actualizar orden cuenta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gastos\": [\n    {\n      \"id\": \"{{gastoId}}\",\n      \"ordenCuenta\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/gastos/orden-cuenta"
+          }
+        },
+        {
+          "name": "Obtener gasto por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/gastos/{{gastoId}}"
+          }
+        },
+        {
+          "name": "Subir factura de gasto",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "factura",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/gastos/{{gastoId}}/factura"
+          }
+        },
+        {
+          "name": "Actualizar gasto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Compra supermercado editada\",\n  \"flujoBancario\": -1300,\n  \"economiaReal\": -1300,\n  \"porcentajeEconomiaReal\": 100,\n  \"categoria\": \"{{categoriaId}}\",\n  \"cuenta\": \"{{cuentaId}}\",\n  \"estado\": \"creado\"\n}"
+            },
+            "url": "{{baseUrl}}/gastos/{{gastoId}}"
+          }
+        },
+        {
+          "name": "Eliminar gasto",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/gastos/{{gastoId}}"
+          }
+        },
+        {
+          "name": "Eliminar todos los gastos (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/gastos/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deudas",
+      "item": [
+        {
+          "name": "Listar deudas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/deudas"
+          }
+        },
+        {
+          "name": "Crear deuda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Financiacion auto\",\n  \"tipo\": \"financiacion\",\n  \"moneda\": \"UI\",\n  \"entidad\": \"Banco\",\n  \"montoTotal\": 100000,\n  \"cuotasTotales\": 60,\n  \"montoCuota\": 2000,\n  \"tasaInteres\": 8,\n  \"fechaInicio\": \"2026-05-29\",\n  \"diaVencimiento\": 10,\n  \"cuentaPagoDefault\": \"{{cuentaId}}\",\n  \"categoriaDefault\": \"{{categoriaId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/deudas"
+          }
+        },
+        {
+          "name": "Obtener deuda por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/deudas/{{deudaId}}"
+          }
+        },
+        {
+          "name": "Actualizar deuda",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Financiacion auto editada\",\n  \"tipo\": \"financiacion\",\n  \"moneda\": \"UI\",\n  \"entidad\": \"Banco\",\n  \"montoTotal\": 100000,\n  \"cuotasTotales\": 60,\n  \"montoCuota\": 2000,\n  \"fechaInicio\": \"2026-05-29\"\n}"
+            },
+            "url": "{{baseUrl}}/deudas/{{deudaId}}"
+          }
+        },
+        {
+          "name": "Pagar cuota deuda",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fecha\": \"2026-05-29\",\n  \"cuenta\": \"{{cuentaId}}\",\n  \"categoria\": \"{{categoriaId}}\",\n  \"montoMonedaOrigen\": 2000,\n  \"montoDebitadoUYU\": 13060,\n  \"cotizacion\": 6.53\n}"
+            },
+            "url": "{{baseUrl}}/deudas/{{deudaId}}/pagar-cuota"
+          }
+        },
+        {
+          "name": "Eliminar deuda",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/deudas/{{deudaId}}"
+          }
+        },
+        {
+          "name": "Eliminar todas las deudas (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/deudas/eliminar-todo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tarjetas de credito",
+      "item": [
+        {
+          "name": "Listar tarjetas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tarjetas-credito"
+          }
+        },
+        {
+          "name": "Crear tarjeta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Tarjeta Credito Platinum\",\n  \"banco\": \"{{bancoId}}\",\n  \"cuentaTarjeta\": \"{{cuentaId}}\",\n  \"cuentaPagoDefault\": \"{{cuentaId}}\",\n  \"ultimosDigitos\": \"0000\",\n  \"monedaPrincipal\": \"UYU\",\n  \"limiteUYU\": 93000,\n  \"limiteUSD\": 0,\n  \"diaCierre\": 28,\n  \"diaVencimiento\": 14\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito"
+          }
+        },
+        {
+          "name": "Obtener tarjeta por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}"
+          }
+        },
+        {
+          "name": "Actualizar tarjeta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Tarjeta Credito Platinum\",\n  \"limiteUYU\": 100000,\n  \"diaCierre\": 28,\n  \"diaVencimiento\": 14\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}"
+          }
+        },
+        {
+          "name": "Importar resumen Excel",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "excel",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/importar-excel"
+          }
+        },
+        {
+          "name": "Listar movimientos tarjeta",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/movimientos"
+          }
+        },
+        {
+          "name": "Crear gasto desde movimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaPago\": \"{{cuentaId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/movimientos/{{movimientoTarjetaId}}/crear-gasto"
+          }
+        },
+        {
+          "name": "Crear gastos desde movimientos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"movimientoIds\": [\"{{movimientoTarjetaId}}\"],\n  \"cuentaPago\": \"{{cuentaId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/movimientos/crear-gastos"
+          }
+        },
+        {
+          "name": "Eliminar movimiento tarjeta",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eliminarGastoGenerado\": true\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/movimientos/{{movimientoTarjetaId}}"
+          }
+        },
+        {
+          "name": "Listar resumenes tarjeta",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/resumenes"
+          }
+        },
+        {
+          "name": "Crear resumen tarjeta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"periodo\": \"Mayo 2026\",\n  \"fechaCierre\": \"2026-05-28\",\n  \"fechaVencimiento\": \"2026-06-14\",\n  \"limiteUYU\": 93000,\n  \"limiteUSD\": 0,\n  \"creditoDisponibleUYU\": 50000,\n  \"creditoDisponibleUSD\": 0,\n  \"saldoAnteriorUYU\": 0,\n  \"saldoAnteriorUSD\": 0,\n  \"cargosMesUYU\": 2500,\n  \"cargosMesUSD\": 0,\n  \"pagoContadoUYU\": 2500,\n  \"pagoContadoUSD\": 0,\n  \"pagoMinimoUYU\": 200,\n  \"pagoMinimoUSD\": 0\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/resumenes"
+          }
+        },
+        {
+          "name": "Obtener resumen tarjeta por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/resumenes/{{resumenTarjetaId}}"
+          }
+        },
+        {
+          "name": "Eliminar resumen tarjeta",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eliminarGastosGenerados\": true\n}"
+            },
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}/resumenes/{{resumenTarjetaId}}"
+          }
+        },
+        {
+          "name": "Eliminar tarjeta",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/tarjetas-credito/{{tarjetaId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Subir foto perfil",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "foto",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/uploads/perfil"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cotizaciones",
+      "item": [
+        {
+          "name": "Obtener cotizaciones",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/cotizaciones"
+          }
+        }
+      ]
+    }
+  ]
+}

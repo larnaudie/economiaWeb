@@ -206,12 +206,14 @@ p {
 
 .rates-banner strong {
   color: #ffffff;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
+  line-height: 1.18;
 }
 
 .rates-banner small {
   color: #9fb3cf;
   font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 .rates-banner button {
@@ -1796,7 +1798,7 @@ input[type="checkbox"]:focus-visible {
       var(--preview-card-middle) 52%,
       var(--preview-card-to)
     );
-  border: 1px solid rgba(255, 255, 255, 0.46);
+  border: 1px solid var(--preview-border);
   border-radius: 12px;
   color: var(--preview-text);
   display: grid;
@@ -1811,8 +1813,27 @@ input[type="checkbox"]:focus-visible {
 }
 
 .theme-preview article p {
-  color: color-mix(in srgb, var(--preview-text) 68%, transparent);
+  color: var(--preview-muted);
   margin: 0;
+}
+
+.theme-preview-statuses {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.theme-preview-statuses span {
+  background: color-mix(in srgb, var(--preview-success) 14%, var(--preview-surface));
+  border-radius: 999px;
+  color: var(--preview-success);
+  font-weight: 900;
+  padding: 4px 9px;
+}
+
+.theme-preview-statuses span:last-child {
+  background: color-mix(in srgb, var(--preview-danger) 12%, var(--preview-surface));
+  color: var(--preview-danger);
 }
 
 .theme-preview button {
@@ -2668,15 +2689,16 @@ input[type="checkbox"]:focus-visible {
 
 .monthly-bars {
   display: flex;
-  min-height: 230px;
+  min-height: 260px;
   gap: 10px;
   align-items: end;
   overflow-x: auto;
   padding-top: 12px;
+  padding-bottom: 4px;
 }
 
 .monthly-bar-group {
-  min-width: 52px;
+  min-width: 68px;
   display: grid;
   gap: 8px;
   justify-items: center;
@@ -2698,19 +2720,9 @@ input[type="checkbox"]:focus-visible {
   align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   height: 100%;
   justify-content: flex-end;
-}
-
-.monthly-bar-value {
-  color: var(--text);
-  font-size: 0.68rem;
-  font-weight: 800;
-  line-height: 1;
-  transform: rotate(-45deg);
-  transform-origin: left bottom;
-  white-space: nowrap;
 }
 
 .monthly-bar-bancario {
@@ -2721,9 +2733,63 @@ input[type="checkbox"]:focus-visible {
   background: var(--success);
 }
 
-.monthly-bar-group small {
+.monthly-bar-label-block {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-height: 52px;
+}
+
+.monthly-bar-label-block small {
   color: var(--muted);
   font-size: 0.75rem;
+}
+
+.monthly-bar-label-block strong {
+  color: var(--success);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.chart-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.chart-legend {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-legend span {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 850;
+  gap: 4px;
+}
+
+.legend-dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
+
+.legend-dot-bancario {
+  background: var(--primary);
+}
+
+.legend-dot-real {
+  background: var(--success);
 }
 
 @media (max-width: 980px) {

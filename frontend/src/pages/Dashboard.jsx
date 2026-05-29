@@ -501,7 +501,23 @@ export function Dashboard({ authVersion, mode = "home", onLogout }) {
           />
         </Card>
 
-        <Card title="Evolucion mensual">
+        <Card
+          title={
+            <span className="chart-title-row">
+              <span>Evolucion mensual</span>
+              <span className="chart-legend">
+                <span>
+                  <i className="legend-dot legend-dot-bancario" />
+                  Bancario
+                </span>
+                <span>
+                  <i className="legend-dot legend-dot-real" />
+                  Real
+                </span>
+              </span>
+            </span>
+          }
+        >
           <MonthlyBars
             bancario={monthlyEvolution.bancario}
             labels={monthlyEvolution.labels}

@@ -124,6 +124,9 @@ async function saveLocalCardImport(endpoint, file) {
 
   let movimientosCreados = 0;
   let movimientosDuplicados = 0;
+  const importedItems = [
+    { itemLocalId: resumen.localId, resource: "resumenesTarjeta" },
+  ];
   const existing = await localFirstRequest(`/tarjetas-credito/${tarjetaId}/movimientos`);
   const existingHashes = new Set((existing.data || []).map((movimiento) => movimiento.hashImportacion));
 
@@ -134,13 +137,17 @@ async function saveLocalCardImport(endpoint, file) {
     }
 
     const movimientoLocalId = createLocalId("movimientoTarjeta");
-    await putLocalItem("movimientosTarjeta", {
+    const createdMovement = await putLocalItem("movimientosTarjeta", {
       ...movimiento,
       _id: movimientoLocalId,
       localId: movimientoLocalId,
       resumen: resumen.localId,
       syncStatus: "pending_upload",
       tarjeta: tarjetaId,
+    });
+    importedItems.push({
+      itemLocalId: createdMovement.localId,
+      resource: "movimientosTarjeta",
     });
     movimientosCreados++;
   }
@@ -152,6 +159,7 @@ async function saveLocalCardImport(endpoint, file) {
     fileName: file.name,
     fileType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     fieldName: "excel",
+    importedItems,
     method: "UPLOAD_CARD_EXCEL",
     resource: "tarjetaImportaciones",
   });
@@ -231,6 +239,7 @@ export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
         endpoint: "/gastos",
         itemLocalId: updated.localId,
         method: "PATCH",
+        previousItem: gasto,
         resource: "gastos",
       });
 

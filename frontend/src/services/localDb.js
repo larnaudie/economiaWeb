@@ -186,6 +186,86 @@ export async function removeSyncOperationsForItem(resource, itemLocalId, methods
   return matches.length;
 }
 
+export async function undoSyncOperation(operationLocalId) {
+  const operation = (await getSyncQueue()).find((item) => item.localId === operationLocalId);
+  if (!operation) {
+    return { undone: false, message: "Operacion local no encontrada." };
+  }
+
+  if (operation.method === "POST") {
+    if (operation.resource && operation.itemLocalId) {
+      const item = await getLocalItem(operation.resource, operation.itemLocalId);
+      if (operation.resource === "gastos" && item?.movimientoTarjeta) {
+        const movimiento = await getLocalItem("movimientosTarjeta", item.movimientoTarjeta);
+        if (movimiento) {
+          await putLocalItem("movimientosTarjeta", {
+            ...movimiento,
+            gastoGenerado: null,
+            syncStatus: movimiento.syncStatus || "pending_upload",
+          });
+        }
+      }
+      await deleteLocalItem(operation.resource, operation.itemLocalId);
+    }
+    await removeSyncOperation(operation.localId);
+    return { undone: true, message: "Creacion local deshecha." };
+  }
+
+  if (operation.method === "PATCH" || operation.method === "PUT") {
+    if (!operation.previousItem || !operation.resource) {
+      return {
+        undone: false,
+        message: "Esta edicion no tiene una copia anterior para restaurar.",
+      };
+    }
+
+    await putLocalItem(operation.resource, {
+      ...operation.previousItem,
+      syncStatus: operation.previousItem.syncStatus || "synced",
+    });
+    await removeSyncOperation(operation.localId);
+    return { undone: true, message: "Edicion local deshecha." };
+  }
+
+  if (operation.method === "DELETE") {
+    if (!operation.resource || !operation.itemLocalId) {
+      return { undone: false, message: "No se pudo identificar el registro eliminado." };
+    }
+
+    const current = await getLocalItem(operation.resource, operation.itemLocalId);
+    const restored = operation.previousItem || current;
+    if (!restored) {
+      return { undone: false, message: "El registro local ya no existe para restaurarlo." };
+    }
+
+    await putLocalItem(operation.resource, {
+      ...restored,
+      _deleted: false,
+      syncStatus: restored.syncStatus === "pending_upload" ? "synced" : restored.syncStatus,
+    });
+    await removeSyncOperation(operation.localId);
+    return { undone: true, message: "Eliminacion local deshecha." };
+  }
+
+  if (operation.method === "UPLOAD_CARD_EXCEL") {
+    const importedItems = Array.isArray(operation.importedItems) ? operation.importedItems : [];
+    if (!importedItems.length) {
+      return {
+        undone: false,
+        message: "Esta importacion no tiene detalle local para deshacer.",
+      };
+    }
+
+    await Promise.all(
+      importedItems.map((item) => deleteLocalItem(item.resource, item.itemLocalId)),
+    );
+    await removeSyncOperation(operation.localId);
+    return { undone: true, message: "Importacion local deshecha." };
+  }
+
+  return { undone: false, message: "Esta operacion todavia no soporta deshacer." };
+}
+
 export async function getLocalSyncSummary() {
   const db = await openLocalDatabase();
   const transaction = db.transaction(["syncQueue", "meta"], "readonly");

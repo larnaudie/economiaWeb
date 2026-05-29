@@ -3,21 +3,37 @@ const THEME_STORAGE_KEY = "economiaWebTheme";
 export const defaultTheme = {
   accent: "#0f766e",
   background: "#061b1d",
+  border: "#e2e8ee",
   cardFrom: "#f2fffb",
   cardMiddle: "#e2f7f0",
   cardTo: "#d3eee7",
+  danger: "#d43f3f",
+  muted: "#667085",
+  primaryDark: "#0b5f59",
   shell: "#062527",
+  surface: "#ffffff",
+  surfaceSoft: "#f3f7f8",
+  success: "#138a5b",
   text: "#111827",
+  warning: "#facc15",
 };
 
 const variableMap = {
   accent: ["--primary", "--accent"],
   background: ["--bg"],
+  border: ["--border"],
   cardFrom: ["--theme-card-from"],
   cardMiddle: ["--theme-card-middle"],
   cardTo: ["--theme-card-to"],
+  danger: ["--danger"],
+  muted: ["--muted"],
+  primaryDark: ["--primary-dark"],
   shell: ["--shell"],
+  surface: ["--surface", "--surface-strong"],
+  surfaceSoft: ["--surface-soft"],
+  success: ["--success"],
   text: ["--text"],
+  warning: ["--warning"],
 };
 
 export function loadSavedTheme() {

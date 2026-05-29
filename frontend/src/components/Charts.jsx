@@ -79,9 +79,6 @@ export function MonthlyBars({ labels, bancario, real }) {
         <article className="monthly-bar-group" key={label}>
           <div className="monthly-bars-pair">
             <span className="monthly-bar-stack">
-              <small className="monthly-bar-value">
-                {formatCurrency(Math.abs(bancario[index]))}
-              </small>
               <span
                 className="monthly-bar monthly-bar-bancario"
                 title={`Bancario ${formatCurrency(Math.abs(bancario[index]))}`}
@@ -89,9 +86,6 @@ export function MonthlyBars({ labels, bancario, real }) {
               />
             </span>
             <span className="monthly-bar-stack">
-              <small className="monthly-bar-value">
-                {formatCurrency(Math.abs(real[index]))}
-              </small>
               <span
                 className="monthly-bar monthly-bar-real"
                 title={`Real ${formatCurrency(Math.abs(real[index]))}`}
@@ -99,7 +93,11 @@ export function MonthlyBars({ labels, bancario, real }) {
               />
             </span>
           </div>
-          <small>{label}</small>
+          <div className="monthly-bar-label-block">
+            <small>{label}</small>
+            <strong>{formatCurrency(Math.abs(bancario[index]))}</strong>
+            <strong>{formatCurrency(Math.abs(real[index]))}</strong>
+          </div>
         </article>
       ))}
     </div>

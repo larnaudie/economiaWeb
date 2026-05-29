@@ -51,10 +51,18 @@ const themeFields = [
   { key: "background", label: "Fondo pagina" },
   { key: "shell", label: "Menu lateral" },
   { key: "accent", label: "Color principal" },
+  { key: "primaryDark", label: "Color principal oscuro" },
+  { key: "surface", label: "Superficie base" },
+  { key: "surfaceSoft", label: "Superficie suave" },
+  { key: "border", label: "Bordes" },
   { key: "cardFrom", label: "Tarjetas claro" },
   { key: "cardMiddle", label: "Tarjetas medio" },
   { key: "cardTo", label: "Tarjetas fondo" },
   { key: "text", label: "Texto principal" },
+  { key: "muted", label: "Texto secundario" },
+  { key: "success", label: "Exito / positivos" },
+  { key: "danger", label: "Error / negativos" },
+  { key: "warning", label: "Warning" },
 ];
 
 export function Settings({ onLogout }) {
@@ -172,10 +180,15 @@ function ThemePreview({ theme }) {
       style={{
         "--preview-accent": theme.accent,
         "--preview-bg": theme.background,
+        "--preview-border": theme.border,
         "--preview-card-from": theme.cardFrom,
         "--preview-card-middle": theme.cardMiddle,
         "--preview-card-to": theme.cardTo,
+        "--preview-danger": theme.danger,
+        "--preview-muted": theme.muted,
         "--preview-shell": theme.shell,
+        "--preview-surface": theme.surface,
+        "--preview-success": theme.success,
         "--preview-text": theme.text,
       }}
     >
@@ -188,6 +201,10 @@ function ThemePreview({ theme }) {
           <small>Preview</small>
           <strong>Tarjeta de ejemplo</strong>
           <p>Asi se verian las cards y los fondos principales.</p>
+          <div className="theme-preview-statuses">
+            <span>Creado</span>
+            <span>-$ 120</span>
+          </div>
           <button type="button">Accion</button>
         </article>
       </main>
