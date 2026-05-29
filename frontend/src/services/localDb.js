@@ -1,0 +1,203 @@
+const DB_NAME = "economia-web-local";
+const DB_VERSION = 1;
+
+const STORES = [
+  "bancos",
+  "cuentas",
+  "categorias",
+  "categoriasGrupo",
+  "gastos",
+  "deudas",
+  "tarjetasCredito",
+  "resumenesTarjeta",
+  "movimientosTarjeta",
+  "syncQueue",
+  "meta",
+];
+
+let dbPromise = null;
+
+function emitLocalSyncChange() {
+  window.dispatchEvent(new CustomEvent("local-sync-change"));
+}
+
+function requestToPromise(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function openLocalDatabase() {
+  if (!("indexedDB" in window)) {
+    return Promise.reject(new Error("IndexedDB no esta disponible en este navegador."));
+  }
+
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
+    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+
+      STORES.forEach((storeName) => {
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { keyPath: "localId" });
+        }
+      });
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  return dbPromise;
+}
+
+export async function ensureLocalDatabase() {
+  await openLocalDatabase();
+  await setLocalMeta("localDbReady", true);
+  return true;
+}
+
+export async function getLocalMeta(key) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("meta", "readonly");
+  const result = await requestToPromise(transaction.objectStore("meta").get(key));
+  return result?.value ?? null;
+}
+
+export async function setLocalMeta(key, value) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("meta", "readwrite");
+  await requestToPromise(
+    transaction.objectStore("meta").put({
+      localId: key,
+      updatedAt: new Date().toISOString(),
+      value,
+    }),
+  );
+}
+
+export function createLocalId(prefix = "local") {
+  if (window.crypto?.randomUUID) {
+    return `${prefix}_${window.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+export async function getLocalItem(storeName, localId) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction(storeName, "readonly");
+  return requestToPromise(transaction.objectStore(storeName).get(localId));
+}
+
+export async function getLocalItems(storeName, options = {}) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction(storeName, "readonly");
+  const items = await requestToPromise(transaction.objectStore(storeName).getAll());
+  if (options.includeDeleted) return items;
+  return items.filter((item) => !item._deleted);
+}
+
+export async function putLocalItem(storeName, item) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction(storeName, "readwrite");
+  const localId = item.localId || item._id || createLocalId(storeName);
+  const now = new Date().toISOString();
+  const nextItem = {
+    ...item,
+    _id: item._id || localId,
+    localId,
+    syncStatus: item.syncStatus || "local",
+    updatedAt: item.updatedAt || now,
+  };
+
+  await requestToPromise(transaction.objectStore(storeName).put(nextItem));
+  return nextItem;
+}
+
+export async function deleteLocalItem(storeName, localId) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction(storeName, "readwrite");
+  await requestToPromise(transaction.objectStore(storeName).delete(localId));
+}
+
+export async function enqueueSyncOperation(operation) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("syncQueue", "readwrite");
+  const store = transaction.objectStore("syncQueue");
+  const existing = await requestToPromise(store.getAll());
+  const duplicated = existing.find(
+    (item) =>
+      item.method === operation.method &&
+      item.resource === operation.resource &&
+      item.itemLocalId === operation.itemLocalId &&
+      item.endpoint === operation.endpoint,
+  );
+
+  if (duplicated) return duplicated;
+
+  const queued = {
+    ...operation,
+    createdAt: new Date().toISOString(),
+    localId: operation.localId || createLocalId("sync"),
+  };
+
+  await requestToPromise(store.put(queued));
+  emitLocalSyncChange();
+  return queued;
+}
+
+export async function getSyncQueue() {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("syncQueue", "readonly");
+  return requestToPromise(transaction.objectStore("syncQueue").getAll());
+}
+
+export async function removeSyncOperation(localId) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("syncQueue", "readwrite");
+  await requestToPromise(transaction.objectStore("syncQueue").delete(localId));
+  emitLocalSyncChange();
+}
+
+export async function removeSyncOperationsForItem(resource, itemLocalId, methods = []) {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction("syncQueue", "readwrite");
+  const store = transaction.objectStore("syncQueue");
+  const operations = await requestToPromise(store.getAll());
+  const methodSet = new Set(methods);
+  const matches = operations.filter(
+    (operation) =>
+      operation.resource === resource &&
+      operation.itemLocalId === itemLocalId &&
+      (!methodSet.size || methodSet.has(operation.method)),
+  );
+
+  await Promise.all(matches.map((operation) => requestToPromise(store.delete(operation.localId))));
+
+  if (matches.length) {
+    emitLocalSyncChange();
+  }
+
+  return matches.length;
+}
+
+export async function getLocalSyncSummary() {
+  const db = await openLocalDatabase();
+  const transaction = db.transaction(["syncQueue", "meta"], "readonly");
+  const pending = await requestToPromise(transaction.objectStore("syncQueue").getAll());
+  const lastSync = await requestToPromise(transaction.objectStore("meta").get("lastSyncAt"));
+  const localDbReady = await requestToPromise(
+    transaction.objectStore("meta").get("localDbReady"),
+  );
+
+  return {
+    lastSyncAt: lastSync?.value || null,
+    localDbReady: Boolean(localDbReady?.value),
+    pendingCount: pending.length,
+  };
+}

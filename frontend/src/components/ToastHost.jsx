@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 const toastLabels = {
   success: "Listo",
@@ -10,13 +11,25 @@ const toastLabels = {
 export function ToastHost() {
   const [toasts, setToasts] = useState([]);
 
+  function removeToast(id) {
+    setToasts((current) =>
+      current.map((toast) =>
+        toast.id === id ? { ...toast, exiting: true } : toast,
+      ),
+    );
+
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 220);
+  }
+
   useEffect(() => {
     function handleToast(event) {
       const toast = event.detail;
       setToasts((current) => [...current, toast]);
 
       window.setTimeout(() => {
-        setToasts((current) => current.filter((item) => item.id !== toast.id));
+        removeToast(toast.id);
       }, toast.duration || 4200);
     }
 
@@ -29,9 +42,22 @@ export function ToastHost() {
   return (
     <div className="toast-stack" aria-live="polite" aria-atomic="true">
       {toasts.map((toast) => (
-        <article className={`toast toast-${toast.type || "info"}`} key={toast.id}>
-          <strong>{toast.title || toastLabels[toast.type] || toastLabels.info}</strong>
-          <span>{toast.message}</span>
+        <article
+          className={`toast toast-${toast.type || "info"} ${toast.exiting ? "toast-exiting" : ""}`}
+          key={toast.id}
+        >
+          <div className="toast-content">
+            <strong>{toast.title || toastLabels[toast.type] || toastLabels.info}</strong>
+            <span>{toast.message}</span>
+          </div>
+          <button
+            aria-label="Cerrar mensaje"
+            className="toast-close"
+            onClick={() => removeToast(toast.id)}
+            type="button"
+          >
+            <X size={14} />
+          </button>
         </article>
       ))}
     </div>

@@ -1,3 +1,7 @@
+import { localFirstRequest, shouldUseLocalFirst } from "./localFirstApi";
+import { createLocalId, enqueueSyncOperation, getLocalItem, putLocalItem } from "./localDb";
+import { parseCreditCardExcelFile } from "../utils/creditCardExcelParser";
+
 const API_URL = import.meta.env.VITE_API_URL || "/v1";
 
 export function getToken() {
@@ -36,7 +40,13 @@ export function getApiData(response) {
   return response?.data ?? response;
 }
 
-export async function apiRequest(endpoint, options = {}) {
+function httpError(message, status) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+export async function remoteApiRequest(endpoint, options = {}) {
   const { method = "GET", body, token = getToken() } = options;
 
   const headers = {
@@ -67,17 +77,98 @@ export async function apiRequest(endpoint, options = {}) {
   if (response.status === 401 || response.status === 403) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    throw new Error("Sesion expirada o invalida");
+    throw httpError("Sesion expirada o invalida", response.status);
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `Error HTTP ${response.status}`);
+    throw httpError(data?.message || `Error HTTP ${response.status}`, response.status);
   }
 
   return data;
 }
 
-export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
+export async function apiRequest(endpoint, options = {}) {
+  if (shouldUseLocalFirst(endpoint, options)) {
+    return localFirstRequest(endpoint, options);
+  }
+
+  return remoteApiRequest(endpoint, options);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveLocalCardImport(endpoint, file) {
+  const match = endpoint.match(/^\/tarjetas-credito\/([^/]+)\/importar-excel$/);
+  if (!match) return null;
+
+  const tarjetaId = match[1];
+  const tarjeta = await getLocalItem("tarjetasCredito", tarjetaId);
+  if (!tarjeta) return null;
+
+  const parsed = await parseCreditCardExcelFile(file);
+  const resumenLocalId = createLocalId("resumenTarjeta");
+  const resumen = await putLocalItem("resumenesTarjeta", {
+    ...parsed.resumen,
+    _id: resumenLocalId,
+    localId: resumenLocalId,
+    syncStatus: "pending_upload",
+    tarjeta: tarjetaId,
+  });
+
+  let movimientosCreados = 0;
+  let movimientosDuplicados = 0;
+  const existing = await localFirstRequest(`/tarjetas-credito/${tarjetaId}/movimientos`);
+  const existingHashes = new Set((existing.data || []).map((movimiento) => movimiento.hashImportacion));
+
+  for (const movimiento of parsed.movimientos) {
+    if (existingHashes.has(movimiento.hashImportacion)) {
+      movimientosDuplicados++;
+      continue;
+    }
+
+    const movimientoLocalId = createLocalId("movimientoTarjeta");
+    await putLocalItem("movimientosTarjeta", {
+      ...movimiento,
+      _id: movimientoLocalId,
+      localId: movimientoLocalId,
+      resumen: resumen.localId,
+      syncStatus: "pending_upload",
+      tarjeta: tarjetaId,
+    });
+    movimientosCreados++;
+  }
+
+  const fileData = await readFileAsDataUrl(file);
+  await enqueueSyncOperation({
+    endpoint,
+    fileData,
+    fileName: file.name,
+    fileType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    fieldName: "excel",
+    method: "UPLOAD_CARD_EXCEL",
+    resource: "tarjetaImportaciones",
+  });
+
+  return {
+    success: true,
+    message: "Resumen importado localmente",
+    data: {
+      movimientosCreados,
+      movimientosDetectados: parsed.movimientos.length,
+      movimientosDuplicados,
+      resumen,
+    },
+  };
+}
+
+export async function remoteUploadApiFile(endpoint, fieldName, file, options = {}) {
   const { token = getToken() } = options;
   const headers = {};
 
@@ -107,12 +198,49 @@ export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
   if (response.status === 401 || response.status === 403) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    throw new Error("Sesion expirada o invalida");
+    throw httpError("Sesion expirada o invalida", response.status);
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `Error HTTP ${response.status}`);
+    throw httpError(data?.message || `Error HTTP ${response.status}`, response.status);
   }
 
   return data;
+}
+
+export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
+  if (options.localFirst !== false) {
+    const localCardImport = await saveLocalCardImport(endpoint, file);
+    if (localCardImport) return localCardImport;
+  }
+
+  const localFacturaMatch = endpoint.match(/^\/gastos\/([^/]+)\/factura$/);
+
+  if (localFacturaMatch?.[1]) {
+    const gasto = await getLocalItem("gastos", localFacturaMatch[1]);
+    if (gasto && !gasto.cloudId) {
+      const facturaUrl = await readFileAsDataUrl(file);
+
+      const updated = await putLocalItem("gastos", {
+        ...gasto,
+        facturaLocalName: file.name,
+        facturaUrl,
+        syncStatus: "pending_upload",
+      });
+      await enqueueSyncOperation({
+        endpoint: "/gastos",
+        itemLocalId: updated.localId,
+        method: "PATCH",
+        resource: "gastos",
+      });
+
+      return {
+        success: true,
+        message: "Factura guardada localmente",
+        data: updated,
+      };
+    }
+  }
+
+  return remoteUploadApiFile(endpoint, fieldName, file, options);
 }

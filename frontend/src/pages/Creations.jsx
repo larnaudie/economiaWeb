@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -41,9 +41,19 @@ const accountTypeLabels = {
   tarjeta_credito: "Tarjeta de credito",
 };
 
+const CREATIONS_PAGE_SIZE = 30;
+
 function normalizeItems(response) {
   const data = getApiData(response);
   return Array.isArray(data) ? data : [];
+}
+
+function normalizeSearch(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function navigateToExpenses() {
@@ -57,6 +67,8 @@ export function Creations({ onLogout }) {
   const [categoriasGrupo, setCategoriasGrupo] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [modalState, setModalState] = useState({ mode: "", item: null });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [visibleCount, setVisibleCount] = useState(CREATIONS_PAGE_SIZE);
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
   const user = getUser();
@@ -103,6 +115,16 @@ export function Creations({ onLogout }) {
 
   const activeConfig = entityConfig[activeEntity];
   const activeItems = itemsByEntity[activeEntity];
+  const filteredItems = useMemo(() => {
+    const search = normalizeSearch(searchTerm);
+    if (!search) return activeItems;
+
+    return activeItems.filter((item) =>
+      normalizeSearch(item.nombre).includes(search),
+    );
+  }, [activeItems, searchTerm]);
+  const visibleItems = filteredItems.slice(0, visibleCount);
+  const hasMoreItems = visibleItems.length < filteredItems.length;
   const quickActions = buildQuickActions(
     {
       gasto: navigateToExpenses,
@@ -131,6 +153,32 @@ export function Creations({ onLogout }) {
     onEdit: (item) => setModalState({ mode: "edit", item }),
     onDelete: handleDelete,
   });
+
+  useEffect(() => {
+    setSearchTerm("");
+    setVisibleCount(CREATIONS_PAGE_SIZE);
+  }, [activeEntity]);
+
+  useEffect(() => {
+    setVisibleCount(CREATIONS_PAGE_SIZE);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    function handleWindowScroll() {
+      if (!hasMoreItems) return;
+      const distanceToBottom =
+        document.documentElement.scrollHeight - (window.innerHeight + window.scrollY);
+
+      if (distanceToBottom < 360) {
+        setVisibleCount((current) =>
+          Math.min(current + CREATIONS_PAGE_SIZE, filteredItems.length),
+        );
+      }
+    }
+
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [filteredItems.length, hasMoreItems]);
 
   async function handleSubmit(payload) {
     const isEdit = modalState.mode === "edit";
@@ -210,7 +258,7 @@ export function Creations({ onLogout }) {
 
       <QuickActions actions={quickActions} title="Creaciones rapidas" />
 
-      <Card title="Administrar">
+      <Card className="creations-admin-card" title="Administrar">
         <div className="tabs-row" role="tablist">
           <button
             className="tab-button"
@@ -239,9 +287,18 @@ export function Creations({ onLogout }) {
             <p>
               {loading
                 ? "Actualizando datos..."
-                : `${activeItems.length} elemento(s) cargado(s).`}
+                : `${filteredItems.length} de ${activeItems.length} elemento(s).`}
             </p>
           </div>
+          <FormField id="creationSearch" label="Buscar por nombre">
+            <input
+              id="creationSearch"
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Ej: Comer"
+              type="search"
+              value={searchTerm}
+            />
+          </FormField>
           <Button onClick={() => setModalState({ mode: "create", item: null })}>
             Crear {activeConfig.singular}
           </Button>
@@ -250,9 +307,23 @@ export function Creations({ onLogout }) {
         <DataTable
           columns={columns}
           emptyMessage={`No hay ${activeConfig.title.toLowerCase()} cargados.`}
-          items={activeItems}
+          items={visibleItems}
           rowKey={(item) => item._id}
         />
+        {hasMoreItems ? (
+          <div className="load-more-row">
+            <Button
+              onClick={() =>
+                setVisibleCount((current) =>
+                  Math.min(current + CREATIONS_PAGE_SIZE, filteredItems.length),
+                )
+              }
+              variant="secondary"
+            >
+              Cargar mas
+            </Button>
+          </div>
+        ) : null}
       </Card>
 
       <Modal

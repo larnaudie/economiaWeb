@@ -10,8 +10,11 @@ import { ImportExpenses } from "./pages/ImportExpenses";
 import { AccountExpenses } from "./pages/AccountExpenses";
 import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
+import { LocalData } from "./pages/LocalData";
+import { Settings } from "./pages/Settings";
 import { ToastHost } from "./components/ToastHost";
 import { getToken } from "./services/api";
+import { applyTheme, loadSavedTheme } from "./utils/theme";
 import "./styles/app.css";
 
 const legacyPathRoutes = {
@@ -56,8 +59,13 @@ function getRouteParams(route) {
 function App() {
   const [route, setRoute] = useState(getRouteFromLocation);
   const [authVersion, setAuthVersion] = useState(0);
+  const [localDataVersion, setLocalDataVersion] = useState(0);
   const routeBase = getRouteBase(route);
   const routeParams = getRouteParams(route);
+
+  useEffect(() => {
+    applyTheme(loadSavedTheme());
+  }, []);
 
   useEffect(() => {
     function handleHashChange() {
@@ -66,6 +74,15 @@ function App() {
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    function handleLocalDataPulled() {
+      setLocalDataVersion((value) => value + 1);
+    }
+
+    window.addEventListener("local-data-pulled", handleLocalDataPulled);
+    return () => window.removeEventListener("local-data-pulled", handleLocalDataPulled);
   }, []);
 
   function navigate(nextRoute) {
@@ -81,7 +98,7 @@ function App() {
   function renderWithToasts(content) {
     return (
       <>
-        {content}
+        <div key={`${routeBase}-${localDataVersion}`}>{content}</div>
         <ToastHost />
       </>
     );
@@ -115,6 +132,8 @@ function App() {
     routeBase === "#/importar-excel" ||
     routeBase === "#/importar-excel-personal" ||
     routeBase === "#/gastos-cuenta" ||
+    routeBase === "#/datos-locales" ||
+    routeBase === "#/settings" ||
     routeBase === "#/perfil"
   ) {
     if (!getToken()) {
@@ -173,6 +192,14 @@ function App() {
 
     if (routeBase === "#/perfil") {
       return renderWithToasts(<Profile onLogout={() => navigate("#/login")} />);
+    }
+
+    if (routeBase === "#/datos-locales") {
+      return renderWithToasts(<LocalData onLogout={() => navigate("#/login")} />);
+    }
+
+    if (routeBase === "#/settings") {
+      return renderWithToasts(<Settings onLogout={() => navigate("#/login")} />);
     }
 
     return renderWithToasts(

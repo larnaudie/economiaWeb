@@ -3,17 +3,16 @@ import {
   CircleUserRound,
   CircleAlert,
   RefreshCw,
-  FileSpreadsheet,
-  FolderPlus,
   Gauge,
   House,
-  Landmark,
   ReceiptText,
   CreditCard,
+  Settings,
   WalletCards,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apiRequest, getApiData } from "../services/api";
+import { SyncStatusPanel } from "../components/SyncStatusPanel";
 
 const navGroups = [
   {
@@ -41,21 +40,8 @@ const navGroups = [
     ],
   },
   {
-    title: "Gestion",
-    items: [
-      { href: "#/creaciones", icon: <FolderPlus size={17} />, label: "Creaciones" },
-      {
-        href: "#/importar-excel",
-        icon: <FileSpreadsheet size={17} />,
-        label: "Importar Excel",
-      },
-      {
-        href: "#/importar-excel-personal",
-        icon: <Landmark size={17} />,
-        label: "Excel Personal",
-      },
-      { href: "#/perfil", icon: <CircleUserRound size={17} />, label: "Perfil" },
-    ],
+    title: "Sistema",
+    items: [{ href: "#/settings", icon: <Settings size={17} />, label: "Settings" }],
   },
 ];
 
@@ -242,6 +228,8 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
             <RefreshCw size={14} />
           </button>
         </div>
+
+        <SyncStatusPanel />
 
         {user ? (
           <div className="sidebar-user">
