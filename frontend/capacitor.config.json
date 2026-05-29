@@ -1,0 +1,8 @@
+{
+  "appId": "com.economiaweb.app",
+  "appName": "Economia Web",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

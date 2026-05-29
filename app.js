@@ -55,6 +55,10 @@ const limiter = rateLimit({
 });
 
 const allowedOrigins = [
+  "capacitor://localhost",
+  "ionic://localhost",
+  "https://localhost",
+  "http://localhost",
   "http://localhost:3000",
   "http://localhost:5500",
   "http://localhost:5173",
@@ -87,6 +91,9 @@ app.use(
 
         connectSrc: [
           "'self'",
+          "capacitor://localhost",
+          "ionic://localhost",
+          "https://localhost",
           "https://economia-web.vercel.app",
           "http://localhost:3000",
           "https://cdn.jsdelivr.net",
