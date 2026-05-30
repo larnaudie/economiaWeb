@@ -105,6 +105,10 @@ function formatRateTime(value) {
   });
 }
 
+const RATES_CACHE_TTL_MS = 15 * 60 * 1000;
+let ratesCache = null;
+let ratesPromise = null;
+
 export function PageLayout({ title, subtitle, children, user, onLogout }) {
   const currentHash = getCurrentHash();
   const mobileNavRef = useRef(null);
@@ -113,9 +117,24 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
   const mobileNavGroups = buildMobileNavGroups(user);
 
   const loadRates = useCallback(async () => {
+    const now = Date.now();
+    if (ratesCache && now - ratesCache.cachedAt < RATES_CACHE_TTL_MS) {
+      setRates(ratesCache.data);
+      setRatesError("");
+      return;
+    }
+
     try {
-      const response = await apiRequest("/cotizaciones");
-      setRates(getApiData(response));
+      if (!ratesPromise) {
+        ratesPromise = apiRequest("/cotizaciones", { localFirst: false }).finally(() => {
+          ratesPromise = null;
+        });
+      }
+
+      const response = await ratesPromise;
+      const data = getApiData(response);
+      ratesCache = { cachedAt: Date.now(), data };
+      setRates(data);
       setRatesError("");
     } catch {
       setRatesError("Cotizaciones no disponibles");

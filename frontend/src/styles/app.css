@@ -3093,6 +3093,39 @@ input[type="checkbox"]:focus-visible {
     justify-content: stretch;
   }
 
+  .chart-title-row {
+    align-items: start;
+    display: grid;
+    justify-content: start;
+  }
+
+  .chart-legend {
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .chart-legend span {
+    font-size: 0.66rem;
+  }
+
+  .monthly-bars {
+    gap: 6px;
+    min-height: 220px;
+    overflow-x: visible;
+  }
+
+  .monthly-bar-group {
+    min-width: 52px;
+  }
+
+  .monthly-bars-pair {
+    height: 150px;
+  }
+
+  .monthly-bar-label-block strong {
+    white-space: normal;
+  }
+
   .creations-admin-card .section-toolbar {
     grid-template-columns: 1fr;
   }

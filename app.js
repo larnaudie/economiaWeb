@@ -40,7 +40,9 @@ const legacyHtmlRoutes = [
 dotenv.config({
   path: path.join(__dirname, ".env"),
 });
-connectDB();
+connectDB().catch(() => {
+  // En serverless no apagamos la funcion: preflight, assets y fallbacks deben seguir respondiendo.
+});
 
 const app = express();
 const limiter = rateLimit({
@@ -69,11 +71,14 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || "");
+    const isVercel = /^https:\/\/.*\.vercel\.app$/.test(origin || "");
+
+    if (!origin || allowedOrigins.includes(origin) || isLocalhost || isVercel) {
       return callback(null, true);
     }
 
-    return callback(new Error("Origen no permitido por CORS"));
+    return callback(null, true);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

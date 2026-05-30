@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CloudUpload, Database, RefreshCw } from "lucide-react";
 import { ensureLocalDatabase, getLocalSyncSummary } from "../services/localDb";
 import { remoteApiRequest, remoteUploadApiFile } from "../services/api";
@@ -6,9 +6,11 @@ import { pullCloudDataToLocal, syncLocalChangesToCloud } from "../services/local
 import { showToast } from "../utils/toast";
 
 const PULL_BACKOFF_KEY = "localPullBackoffUntil";
-const PULL_INTERVAL_MS = 15 * 60 * 1000;
 const MIN_PULL_GAP_MS = 2 * 60 * 1000;
 const RATE_LIMIT_BACKOFF_MS = 15 * 60 * 1000;
+
+let globalLastPullAt = 0;
+let globalPullPromise = null;
 
 const initialSummary = {
   lastSyncAt: null,
@@ -29,10 +31,6 @@ function formatLastSync(value) {
 export function SyncStatusPanel() {
   const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(false);
-  const backoffUntilRef = useRef(
-    Number(window.localStorage.getItem(PULL_BACKOFF_KEY) || 0),
-  );
-  const lastPullAtRef = useRef(0);
 
   async function refreshSummary() {
     try {
@@ -40,28 +38,6 @@ export function SyncStatusPanel() {
       setSummary(nextSummary);
     } catch {
       setSummary(initialSummary);
-    }
-  }
-
-  async function pullCloudChanges() {
-    const now = Date.now();
-    if (now < backoffUntilRef.current) return;
-    if (now - lastPullAtRef.current < MIN_PULL_GAP_MS) return;
-    lastPullAtRef.current = now;
-
-    try {
-      await ensureLocalDatabase();
-      const result = await pullCloudDataToLocal(remoteApiRequest);
-      await refreshSummary();
-      if (result.changed > 0) {
-        window.dispatchEvent(new CustomEvent("local-data-pulled"));
-      }
-    } catch (error) {
-      if (error?.status === 429 || /demasiad|too many/i.test(error?.message || "")) {
-        backoffUntilRef.current = Date.now() + RATE_LIMIT_BACKOFF_MS;
-        window.localStorage.setItem(PULL_BACKOFF_KEY, String(backoffUntilRef.current));
-      }
-      // Pull is intentionally quiet: local work should continue even if cloud is unavailable.
     }
   }
 
@@ -75,20 +51,11 @@ export function SyncStatusPanel() {
       }
     }, 0);
 
-    const intervalId = window.setInterval(pullCloudChanges, PULL_INTERVAL_MS);
-
-    function handleFocus() {
-      pullCloudChanges();
-    }
-
     window.addEventListener("local-sync-change", refreshSummary);
-    window.addEventListener("focus", handleFocus);
 
     return () => {
       window.clearTimeout(timeoutId);
-      window.clearInterval(intervalId);
       window.removeEventListener("local-sync-change", refreshSummary);
-      window.removeEventListener("focus", handleFocus);
     };
   }, []);
 
@@ -164,18 +131,29 @@ export async function pullCloudChangesOnce({ force = false } = {}) {
   const now = Date.now();
   const backoffUntil = Number(window.localStorage.getItem(PULL_BACKOFF_KEY) || 0);
   if (!force && now < backoffUntil) return { changed: 0, downloaded: 0, skipped: true };
+  if (!force && now - globalLastPullAt < MIN_PULL_GAP_MS) {
+    return { changed: 0, downloaded: 0, skipped: true };
+  }
+  if (globalPullPromise) return globalPullPromise;
 
-  try {
+  globalLastPullAt = now;
+  globalPullPromise = (async () => {
     await ensureLocalDatabase();
     const result = await pullCloudDataToLocal(remoteApiRequest);
     if (result.changed > 0) {
       window.dispatchEvent(new CustomEvent("local-data-pulled"));
     }
     return result;
+  })();
+
+  try {
+    return await globalPullPromise;
   } catch (error) {
     if (error?.status === 429 || /demasiad|too many/i.test(error?.message || "")) {
       window.localStorage.setItem(PULL_BACKOFF_KEY, String(Date.now() + RATE_LIMIT_BACKOFF_MS));
     }
     throw error;
+  } finally {
+    globalPullPromise = null;
   }
 }
