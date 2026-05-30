@@ -1,9 +1,10 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.js": {
-      "includeFiles": "{frontend/dist/**,public/**,uploads/**}"
+      "includeFiles": "{public/**,uploads/**}"
     }
   },
   "rewrites": [
@@ -21,7 +22,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/index.html"
     }
   ]
 }
