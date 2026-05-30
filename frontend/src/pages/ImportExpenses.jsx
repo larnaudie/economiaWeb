@@ -111,7 +111,17 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
 
   async function processFile(file) {
     setStatus({ type: "", title: "", message: "" });
-    const resources = await loadResources();
+    let resources = { categorias, categoriasGrupo, cuentas };
+
+    try {
+      resources = await loadResources();
+    } catch {
+      showToast({
+        title: "Usando datos locales",
+        message: "No se pudieron refrescar categorias/cuentas, pero el Excel se va a previsualizar igual.",
+        type: "warning",
+      });
+    }
 
     const XLSX = await import("xlsx");
     const arrayBuffer = await file.arrayBuffer();
@@ -564,7 +574,7 @@ function parseBankSheet(sheet, XLSX) {
       sheet[`I${excelRowNumber}`]?.v ?? "",
     );
 
-    if (!fecha && !descripcion && (flujoBancario == null || flujoBancario === 0)) {
+    if (!fecha || !descripcion || flujoBancario == null || flujoBancario === 0) {
       continue;
     }
 
@@ -640,7 +650,7 @@ function parseBankSheetByHeaders(sheet, XLSX) {
         return total + Number(value || 0);
       }, 0);
 
-      if (!fecha && !descripcion && flujoBancario === 0) return null;
+      if (!fecha || !descripcion || flujoBancario === 0) return null;
 
       const flags = resolveFlags(descripcion, flujoBancario, flujoBancario);
       return {

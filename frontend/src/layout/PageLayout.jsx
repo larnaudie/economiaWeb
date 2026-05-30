@@ -7,6 +7,7 @@ import {
   House,
   ReceiptText,
   CreditCard,
+  LogOut,
   Settings,
   WalletCards,
 } from "lucide-react";
@@ -221,6 +222,18 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
             </div>
           ))}
         </nav>
+
+        {user ? (
+          <button
+            aria-label="Cerrar sesion"
+            className="mobile-logout-button"
+            onClick={onLogout}
+            type="button"
+          >
+            <LogOut size={17} />
+            <span>Salir</span>
+          </button>
+        ) : null}
 
         <div className="rates-banner">
           <div>
