@@ -9,7 +9,7 @@
     "dev:api": "nodemon server.js",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:full": "node scripts/dev-full.js",
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && node scripts/prepare-vercel-static.js",
     "build:frontend": "npm --prefix frontend run build",
     "mongo": "mongod",
     "mongosh": "mongosh",

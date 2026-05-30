@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "api/index.js": {
-      "includeFiles": "frontend/dist/**"
+      "includeFiles": "{frontend/dist/**,public/**}"
     }
   },
   "rewrites": [
@@ -17,18 +17,6 @@
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/assets/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/favicon.svg",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/icons.svg",
       "destination": "/api/index.js"
     },
     {

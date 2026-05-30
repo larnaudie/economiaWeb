@@ -15,7 +15,15 @@ import { sanitizeMiddleware } from "./v1/middlewares/sanitize.middleware.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicPath = path.join(__dirname, "public");
-const frontendDistPath = path.join(__dirname, "frontend", "dist");
+const frontendDistCandidates = [
+  path.join(__dirname, "frontend", "dist"),
+  path.join(process.cwd(), "frontend", "dist"),
+  path.join(__dirname, "..", "frontend", "dist"),
+  path.join("/var/task", "frontend", "dist"),
+].filter(Boolean);
+const frontendDistPath =
+  frontendDistCandidates.find((candidate) => fs.existsSync(path.join(candidate, "index.html"))) ||
+  frontendDistCandidates[0];
 const reactIndexPath = path.join(frontendDistPath, "index.html");
 const hasReactBuild = fs.existsSync(reactIndexPath);
 
