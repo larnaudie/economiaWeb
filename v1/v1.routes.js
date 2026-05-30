@@ -17,6 +17,14 @@ const router = express.Router({ mergeParams: true });
 //rutas desprotegidas
 router.use("/auth", authRouter);
 
+router.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
+
 router.use(authenticateToken);
 
 //rutas protegidas

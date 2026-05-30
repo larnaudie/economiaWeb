@@ -276,6 +276,10 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
       </aside>
 
       <main className="app-main">
+        <div className="mobile-sync-card">
+          <SyncStatusPanel />
+        </div>
+
         <header className="page-header">
           <div>
             <p className="eyebrow">Migracion gradual</p>

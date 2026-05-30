@@ -67,6 +67,19 @@ const allowedOrigins = [
   "https://economia-web.vercel.app",
 ];
 
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Origen no permitido por CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -106,21 +119,9 @@ app.use(
     },
   }),
 );
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(limiter);
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Origen no permitido por CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
 
 app.use("/imagenes", express.static(path.join(publicPath, "imagenes")));
 app.use("/uploads", express.static(path.join(publicPath, "uploads")));

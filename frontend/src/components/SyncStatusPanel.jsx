@@ -159,3 +159,23 @@ export function SyncStatusPanel() {
     </section>
   );
 }
+
+export async function pullCloudChangesOnce({ force = false } = {}) {
+  const now = Date.now();
+  const backoffUntil = Number(window.localStorage.getItem(PULL_BACKOFF_KEY) || 0);
+  if (!force && now < backoffUntil) return { changed: 0, downloaded: 0, skipped: true };
+
+  try {
+    await ensureLocalDatabase();
+    const result = await pullCloudDataToLocal(remoteApiRequest);
+    if (result.changed > 0) {
+      window.dispatchEvent(new CustomEvent("local-data-pulled"));
+    }
+    return result;
+  } catch (error) {
+    if (error?.status === 429 || /demasiad|too many/i.test(error?.message || "")) {
+      window.localStorage.setItem(PULL_BACKOFF_KEY, String(Date.now() + RATE_LIMIT_BACKOFF_MS));
+    }
+    throw error;
+  }
+}
