@@ -13,8 +13,10 @@ import { Register } from "./pages/Register";
 import { LocalData } from "./pages/LocalData";
 import { Settings } from "./pages/Settings";
 import { ToastHost } from "./components/ToastHost";
+import { pullCloudChangesOnce } from "./components/SyncStatusPanel";
 import { getToken } from "./services/api";
 import { applyTheme, loadSavedTheme } from "./utils/theme";
+import { showToast } from "./utils/toast";
 import "./styles/app.css";
 
 const legacyPathRoutes = {
@@ -85,6 +87,32 @@ function App() {
     return () => window.removeEventListener("local-data-pulled", handleLocalDataPulled);
   }, []);
 
+  useEffect(() => {
+    if (!getToken()) return undefined;
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const result = await pullCloudChangesOnce();
+        if (cancelled || result?.skipped) return;
+        if (Number(result?.downloaded || 0) > 0 || Number(result?.changed || 0) > 0) {
+          showToast({
+            title: "Datos actualizados",
+            message: `Se descargaron ${result.downloaded || result.changed || 0} registro(s) desde la nube.`,
+            type: "success",
+          });
+        }
+      } catch {
+        // La app debe seguir funcionando localmente si la nube no responde.
+      }
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [authVersion]);
+
   function navigate(nextRoute) {
     window.location.hash = nextRoute;
     setRoute(nextRoute);
@@ -96,9 +124,14 @@ function App() {
   }
 
   function renderWithToasts(content) {
+    const shouldPreservePageState =
+      routeBase === "#/importar-excel" || routeBase === "#/importar-excel-personal";
+
     return (
       <>
-        <div key={`${routeBase}-${localDataVersion}`}>{content}</div>
+        <div key={shouldPreservePageState ? routeBase : `${routeBase}-${localDataVersion}`}>
+          {content}
+        </div>
         <ToastHost />
       </>
     );

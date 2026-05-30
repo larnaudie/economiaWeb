@@ -148,6 +148,14 @@ if (hasReactBuild) {
       return next();
     }
 
+    if (
+      req.originalUrl.startsWith("/assets/") ||
+      req.originalUrl === "/favicon.svg" ||
+      req.originalUrl === "/icons.svg"
+    ) {
+      return res.status(404).send("Asset no encontrado");
+    }
+
     return res.sendFile(reactIndexPath);
   });
 } else {

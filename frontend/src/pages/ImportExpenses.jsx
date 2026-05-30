@@ -562,6 +562,9 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
 function parseBankSheet(sheet, XLSX) {
   if (!sheet["!ref"]) return [];
 
+  const headerRows = parseBankSheetByHeaders(sheet, XLSX);
+  if (headerRows.length) return headerRows;
+
   const range = XLSX.utils.decode_range(sheet["!ref"]);
   const parsedRows = [];
 
@@ -597,7 +600,7 @@ function parseBankSheet(sheet, XLSX) {
     });
   }
 
-  return parsedRows.length ? parsedRows : parseBankSheetByHeaders(sheet, XLSX);
+  return parsedRows;
 }
 
 function normalizeHeader(value) {
@@ -606,11 +609,45 @@ function normalizeHeader(value) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function findHeaderIndex(headers, matchers) {
-  return headers.findIndex((cell) => {
-    const header = normalizeHeader(cell);
-    return matchers.some((matcher) => matcher.test(header));
+function isDateHeader(value) {
+  return /fecha|date/.test(normalizeHeader(value));
+}
+
+function isDescriptionHeader(value) {
+  return /descripcion|detalle|concepto|comercio/.test(normalizeHeader(value));
+}
+
+function isAmountHeader(value) {
+  return /flujo\s*bancario|importe|monto|debito|credito|egreso|ingreso/.test(
+    normalizeHeader(value),
+  );
+}
+
+function findBankHeaderBlocks(headers) {
+  const blocks = [];
+
+  headers.forEach((header, index) => {
+    if (!isDateHeader(header)) return;
+
+    const descriptionIndex = headers.findIndex(
+      (candidate, candidateIndex) =>
+        candidateIndex > index &&
+        candidateIndex <= index + 4 &&
+        isDescriptionHeader(candidate),
+    );
+    const amountIndex = headers.findIndex(
+      (candidate, candidateIndex) =>
+        candidateIndex > index &&
+        candidateIndex <= index + 6 &&
+        isAmountHeader(candidate),
+    );
+
+    if (descriptionIndex !== -1 && amountIndex !== -1) {
+      blocks.push({ amountIndex, dateIndex: index, descriptionIndex });
+    }
   });
+
+  return blocks;
 }
 
 function parseBankSheetByHeaders(sheet, XLSX) {
@@ -621,53 +658,46 @@ function parseBankSheetByHeaders(sheet, XLSX) {
   });
 
   const headerRowIndex = rawRows.findIndex((row) => {
-    const headers = row.map(normalizeHeader);
-    const hasDate = headers.some((cell) => /fecha|date/.test(cell));
-    const hasDescription = headers.some((cell) => /descripcion|detalle|concepto|comercio/.test(cell));
-    const hasAmount = headers.some((cell) => /importe|monto|debito|credito|egreso|ingreso/.test(cell));
-    return hasDate && hasDescription && hasAmount;
+    const blocks = findBankHeaderBlocks(row);
+    return blocks.length > 0;
   });
 
   if (headerRowIndex === -1) return [];
 
   const headers = rawRows[headerRowIndex] || [];
-  const dateIndex = findHeaderIndex(headers, [/fecha/, /date/]);
-  const descriptionIndex = findHeaderIndex(headers, [/descripcion/, /detalle/, /concepto/, /comercio/]);
-  const amountIndexes = headers
-    .map((header, index) => ({ header: normalizeHeader(header), index }))
-    .filter(({ header }) => /importe|monto|debito|credito|egreso|ingreso/.test(header))
-    .map(({ index }) => index);
+  const blocks = findBankHeaderBlocks(headers);
 
-  if (dateIndex === -1 || descriptionIndex === -1 || !amountIndexes.length) return [];
+  if (!blocks.length) return [];
 
   return rawRows
     .slice(headerRowIndex + 1)
-    .map((row, index) => {
-      const fecha = excelDateToISO(row[dateIndex], XLSX);
-      const descripcion = String(row[descriptionIndex] || "").trim();
-      const flujoBancario = amountIndexes.reduce((total, amountIndex) => {
-        const value = parseMoneyValue(row[amountIndex]);
-        return total + Number(value || 0);
-      }, 0);
+    .flatMap((row, index) =>
+      blocks.map((block, blockIndex) => {
+        const fecha = excelDateToISO(row[block.dateIndex], XLSX);
+        const descripcion = String(row[block.descriptionIndex] || "").trim();
+        const flujoBancario = parseMoneyValue(row[block.amountIndex]);
 
-      if (!fecha || !descripcion || flujoBancario === 0) return null;
+        if (!fecha || !descripcion || flujoBancario == null || flujoBancario === 0) {
+          return null;
+        }
 
-      const flags = resolveFlags(descripcion, flujoBancario, flujoBancario);
-      return {
-        localId: `row-${Date.now()}-header-${index}`,
-        fecha,
-        descripcion,
-        flujoBancario: Number(flujoBancario || 0),
-        porcentajeEconomiaReal: 100,
-        economiaReal: Number(flujoBancario || 0),
-        categoria: "",
-        categoriaNombreOriginal: "",
-        cuenta: "",
-        selected: true,
-        created: false,
-        ...flags,
-      };
-    })
+        const flags = resolveFlags(descripcion, flujoBancario, flujoBancario);
+        return {
+          localId: `row-${Date.now()}-header-${blockIndex}-${index}`,
+          fecha,
+          descripcion,
+          flujoBancario: Number(flujoBancario || 0),
+          porcentajeEconomiaReal: 100,
+          economiaReal: Number(flujoBancario || 0),
+          categoria: "",
+          categoriaNombreOriginal: "",
+          cuenta: "",
+          selected: true,
+          created: false,
+          ...flags,
+        };
+      }),
+    )
     .filter(Boolean);
 }
 
