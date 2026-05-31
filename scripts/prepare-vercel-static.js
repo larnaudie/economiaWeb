@@ -21,6 +21,7 @@ if (!fs.existsSync(path.join(distPath, "index.html"))) {
   throw new Error("No existe frontend/dist/index.html. Ejecuta primero el build de Vite.");
 }
 
+copyIfExists(path.join(distPath, "index.html"), path.join(publicPath, "index.html"));
 copyIfExists(path.join(distPath, "assets"), path.join(publicPath, "assets"));
 copyIfExists(path.join(distPath, "favicon.svg"), path.join(publicPath, "favicon.svg"));
 copyIfExists(path.join(distPath, "icons.svg"), path.join(publicPath, "icons.svg"));
