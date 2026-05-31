@@ -6,10 +6,13 @@ import { DataTable } from "../components/DataTable";
 import { PageLayout } from "../layout/PageLayout";
 import { getUser, logout } from "../services/api";
 import {
+  cleanupDuplicateLocalExpenses,
+  cleanupDuplicateLocalNamedRecords,
   ensureLocalDatabase,
   getLocalItem,
   getLocalSyncSummary,
   getSyncQueue,
+  resetLocalDatabase,
   undoSyncOperation,
 } from "../services/localDb";
 import { showToast } from "../utils/toast";
@@ -248,6 +251,80 @@ export function LocalData({ onLogout }) {
     }
   }
 
+  async function handleCleanupDuplicates() {
+    if (!window.confirm("Limpiar duplicados locales? Se conservara uno por grupo.")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [expensesResult, namedResult] = await Promise.all([
+        cleanupDuplicateLocalExpenses(),
+        cleanupDuplicateLocalNamedRecords(),
+      ]);
+      const removed = (expensesResult.removed || 0) + (namedResult.removed || 0);
+      const groups = (expensesResult.groups || 0) + (namedResult.groups || 0);
+      await loadData();
+      showToast({
+        title: removed ? "Duplicados limpiados" : "Sin duplicados",
+        message: removed
+          ? `Se eliminaron ${removed} duplicado(s) en ${groups} grupo(s).`
+          : "No se encontraron duplicados locales.",
+        type: removed ? "success" : "info",
+      });
+      setStatus({
+        type: removed ? "success" : "warning",
+        title: removed ? "Duplicados limpiados" : "Sin duplicados",
+        message: removed
+          ? `Se eliminaron ${removed} duplicado(s) locales.`
+          : "No se encontraron duplicados locales.",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudieron limpiar duplicados",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudieron limpiar duplicados",
+        message: error.message,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetLocalDatabase() {
+    const confirmed = window.confirm(
+      "Esto borra los datos locales de este navegador y vuelve a cargar desde Mongo/API al recargar. Si tenes cambios sin sincronizar se perderan. Continuar?",
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      await resetLocalDatabase();
+      showToast({
+        title: "Base local recreada",
+        message: "Se borraron los datos locales. Recargando la app...",
+        type: "success",
+      });
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo recrear la base local",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudo recrear",
+        message: error.message,
+        type: "error",
+      });
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     const timeoutId = window.setTimeout(loadData, 0);
 
@@ -360,6 +437,20 @@ export function LocalData({ onLogout }) {
               variant="danger"
             >
               Deshacer seleccionados
+            </Button>
+            <Button
+              disabled={loading}
+              onClick={handleCleanupDuplicates}
+              variant="secondary"
+            >
+              Limpiar duplicados
+            </Button>
+            <Button
+              disabled={loading}
+              onClick={handleResetLocalDatabase}
+              variant="danger"
+            >
+              Borrar y recargar base local
             </Button>
             <Button onClick={loadData} variant="secondary">
               Actualizar

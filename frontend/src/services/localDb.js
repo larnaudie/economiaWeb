@@ -55,6 +55,29 @@ export function openLocalDatabase() {
   return dbPromise;
 }
 
+export async function resetLocalDatabase() {
+  if (!("indexedDB" in window)) {
+    throw new Error("IndexedDB no esta disponible en este navegador.");
+  }
+
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+
+  await new Promise((resolve, reject) => {
+    const request = window.indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () =>
+      reject(new Error("No se pudo borrar IndexedDB porque esta en uso. Cierra otras pestanas de la app e intenta de nuevo."));
+  });
+
+  emitLocalSyncChange();
+  return true;
+}
+
 export async function ensureLocalDatabase() {
   await openLocalDatabase();
   await setLocalMeta("localDbReady", true);
@@ -123,6 +146,257 @@ export async function deleteLocalItem(storeName, localId) {
   const db = await openLocalDatabase();
   const transaction = db.transaction(storeName, "readwrite");
   await requestToPromise(transaction.objectStore(storeName).delete(localId));
+}
+
+function normalizeDuplicateText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeDuplicateDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value).slice(0, 10) : date.toISOString().slice(0, 10);
+}
+
+function normalizeDuplicateAmount(value) {
+  return String(Math.round(Number(value || 0) * 100));
+}
+
+function expenseDuplicateKey(expense) {
+  return [
+    expense.usuario || "",
+    expense.cuenta?._id || expense.cuenta || "",
+    normalizeDuplicateDate(expense.fecha),
+    normalizeDuplicateText(expense.descripcion),
+    normalizeDuplicateAmount(expense.flujoBancario),
+  ].join("|");
+}
+
+function chooseExpenseToKeep(group) {
+  return [...group].sort((a, b) => {
+    const syncedA = a.syncStatus === "synced" || Boolean(a.cloudId);
+    const syncedB = b.syncStatus === "synced" || Boolean(b.cloudId);
+    if (syncedA !== syncedB) return syncedA ? -1 : 1;
+    return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+  })[0];
+}
+
+function idOf(value) {
+  if (!value) return "";
+  if (typeof value === "object") return value._id || value.localId || "";
+  return value;
+}
+
+function endpointForStore(storeName) {
+  return {
+    bancos: "/bancos",
+    categorias: "/categorias",
+    categoriasGrupo: "/categorias-grupo",
+    cuentas: "/cuentas",
+    tarjetasCredito: "/tarjetas-credito",
+  }[storeName] || `/${storeName}`;
+}
+
+function namedRecordDuplicateKey(storeName, record) {
+  const base = [normalizeDuplicateText(record.nombre)];
+
+  if (storeName === "cuentas") {
+    base.push(idOf(record.banco), record.tipo || "");
+  }
+
+  return [
+    ...base,
+  ].join("|");
+}
+
+function chooseNamedRecordToKeep(group) {
+  return [...group].sort((a, b) => {
+    const syncedA = a.syncStatus === "synced" || Boolean(a.cloudId);
+    const syncedB = b.syncStatus === "synced" || Boolean(b.cloudId);
+    if (syncedA !== syncedB) return syncedA ? -1 : 1;
+    return String(a.createdAt || "").localeCompare(String(b.createdAt || ""));
+  })[0];
+}
+
+async function markRelatedRecordChanged(storeName, item, previousItem) {
+  const nextItem = await putLocalItem(storeName, {
+    ...item,
+    syncStatus: "pending_upload",
+  });
+
+  if (nextItem.cloudId) {
+    await enqueueSyncOperation({
+      endpoint: endpointForStore(storeName),
+      itemLocalId: nextItem.localId,
+      method: "PATCH",
+      previousItem,
+      resource: storeName,
+    });
+  }
+}
+
+async function reassignReferencesForDuplicate(storeName, duplicate, keep) {
+  const duplicateId = duplicate.localId || duplicate._id;
+  const keepId = keep.localId || keep._id;
+
+  if (storeName === "categoriasGrupo") {
+    const categorias = await getLocalItems("categorias", { includeDeleted: true });
+    for (const categoria of categorias) {
+      if (idOf(categoria.categoriaGrupo) !== duplicateId) continue;
+      await markRelatedRecordChanged(
+        "categorias",
+        { ...categoria, categoriaGrupo: keepId },
+        categoria,
+      );
+    }
+  }
+
+  if (storeName === "categorias") {
+    const gastos = await getLocalItems("gastos", { includeDeleted: true });
+    for (const gasto of gastos) {
+      if (idOf(gasto.categoria) !== duplicateId) continue;
+      await markRelatedRecordChanged("gastos", { ...gasto, categoria: keepId }, gasto);
+    }
+  }
+
+  if (storeName === "bancos") {
+    const cuentas = await getLocalItems("cuentas", { includeDeleted: true });
+    for (const cuenta of cuentas) {
+      if (idOf(cuenta.banco) !== duplicateId) continue;
+      await markRelatedRecordChanged("cuentas", { ...cuenta, banco: keepId }, cuenta);
+    }
+  }
+
+  if (storeName === "cuentas") {
+    const [gastos, tarjetas] = await Promise.all([
+      getLocalItems("gastos", { includeDeleted: true }),
+      getLocalItems("tarjetasCredito", { includeDeleted: true }),
+    ]);
+
+    for (const gasto of gastos) {
+      if (idOf(gasto.cuenta) !== duplicateId) continue;
+      await markRelatedRecordChanged("gastos", { ...gasto, cuenta: keepId }, gasto);
+    }
+
+    for (const tarjeta of tarjetas) {
+      const nextTarjeta = { ...tarjeta };
+      let changed = false;
+      if (idOf(tarjeta.cuentaTarjeta) === duplicateId) {
+        nextTarjeta.cuentaTarjeta = keepId;
+        changed = true;
+      }
+      if (idOf(tarjeta.cuentaPagoDefault) === duplicateId) {
+        nextTarjeta.cuentaPagoDefault = keepId;
+        changed = true;
+      }
+      if (changed) {
+        await markRelatedRecordChanged("tarjetasCredito", nextTarjeta, tarjeta);
+      }
+    }
+  }
+}
+
+export async function cleanupDuplicateLocalNamedRecords() {
+  const stores = ["bancos", "cuentas", "categoriasGrupo", "categorias"];
+  let groups = 0;
+  let removed = 0;
+
+  for (const storeName of stores) {
+    const records = await getLocalItems(storeName, { includeDeleted: true });
+    const activeRecords = records.filter((record) => !record._deleted);
+    const byKey = new Map();
+
+    activeRecords.forEach((record) => {
+      const key = namedRecordDuplicateKey(storeName, record);
+      if (!key.endsWith("|")) {
+        const group = byKey.get(key) || [];
+        group.push(record);
+        byKey.set(key, group);
+      }
+    });
+
+    for (const group of byKey.values()) {
+      if (group.length < 2) continue;
+      groups++;
+      const keep = chooseNamedRecordToKeep(group);
+
+      for (const duplicate of group.filter((record) => record.localId !== keep.localId)) {
+        await reassignReferencesForDuplicate(storeName, duplicate, keep);
+        await removeSyncOperationsForItem(storeName, duplicate.localId);
+
+        if (duplicate.cloudId) {
+          await putLocalItem(storeName, {
+            ...duplicate,
+            _deleted: true,
+            syncStatus: "pending_upload",
+          });
+          await enqueueSyncOperation({
+            endpoint: endpointForStore(storeName),
+            itemLocalId: duplicate.localId,
+            method: "DELETE",
+            previousItem: duplicate,
+            resource: storeName,
+          });
+        } else {
+          await deleteLocalItem(storeName, duplicate.localId);
+        }
+        removed++;
+      }
+    }
+  }
+
+  if (removed) emitLocalSyncChange();
+
+  return { groups, removed };
+}
+
+export async function findDuplicateLocalExpenses() {
+  const expenses = await getLocalItems("gastos", { includeDeleted: true });
+  const activeExpenses = expenses.filter((expense) => !expense._deleted);
+  const groups = new Map();
+
+  activeExpenses.forEach((expense) => {
+    const key = expenseDuplicateKey(expense);
+    const group = groups.get(key) || [];
+    group.push(expense);
+    groups.set(key, group);
+  });
+
+  return [...groups.values()]
+    .filter((group) => group.length > 1)
+    .map((group) => {
+      const keep = chooseExpenseToKeep(group);
+      return {
+        keep,
+        remove: group.filter((expense) => expense.localId !== keep.localId),
+      };
+    });
+}
+
+export async function cleanupDuplicateLocalExpenses() {
+  const duplicateGroups = await findDuplicateLocalExpenses();
+  let removed = 0;
+
+  for (const group of duplicateGroups) {
+    for (const expense of group.remove) {
+      await removeSyncOperationsForItem("gastos", expense.localId);
+      await deleteLocalItem("gastos", expense.localId);
+      removed++;
+    }
+  }
+
+  if (removed) emitLocalSyncChange();
+
+  return {
+    groups: duplicateGroups.length,
+    removed,
+  };
 }
 
 export async function enqueueSyncOperation(operation) {

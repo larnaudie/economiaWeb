@@ -56,6 +56,12 @@ function normalizeSearch(value) {
     .trim();
 }
 
+function idOf(value) {
+  if (!value) return "";
+  if (typeof value === "object") return value._id || value.localId || "";
+  return value;
+}
+
 function navigateToExpenses() {
   window.location.assign("#/gastos");
 }
@@ -66,6 +72,7 @@ export function Creations({ onLogout }) {
   const [cuentas, setCuentas] = useState([]);
   const [categoriasGrupo, setCategoriasGrupo] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [gastos, setGastos] = useState([]);
   const [modalState, setModalState] = useState({ mode: "", item: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [visibleCount, setVisibleCount] = useState(CREATIONS_PAGE_SIZE);
@@ -78,18 +85,20 @@ export function Creations({ onLogout }) {
     setStatus({ type: "", title: "", message: "" });
 
     try {
-      const [bancosResp, cuentasResp, gruposResp, categoriasResp] =
+      const [bancosResp, cuentasResp, gruposResp, categoriasResp, gastosResp] =
         await Promise.all([
           apiRequest("/bancos"),
           apiRequest("/cuentas"),
           apiRequest("/categorias-grupo"),
           apiRequest("/categorias"),
+          apiRequest("/gastos"),
         ]);
 
       setBancos(normalizeItems(bancosResp));
       setCuentas(normalizeItems(cuentasResp));
       setCategoriasGrupo(normalizeItems(gruposResp));
       setCategorias(normalizeItems(categoriasResp));
+      setGastos(normalizeItems(gastosResp));
     } catch (error) {
       setStatus({
         type: "error",
@@ -125,6 +134,14 @@ export function Creations({ onLogout }) {
   }, [activeItems, searchTerm]);
   const visibleItems = filteredItems.slice(0, visibleCount);
   const hasMoreItems = visibleItems.length < filteredItems.length;
+  const categoryUsage = useMemo(() => {
+    return gastos.reduce((accumulator, gasto) => {
+      const categoriaId = idOf(gasto.categoria);
+      if (!categoriaId) return accumulator;
+      accumulator[categoriaId] = (accumulator[categoriaId] || 0) + 1;
+      return accumulator;
+    }, {});
+  }, [gastos]);
   const quickActions = buildQuickActions(
     {
       gasto: navigateToExpenses,
@@ -149,6 +166,7 @@ export function Creations({ onLogout }) {
   );
 
   const columns = buildColumns({
+    categoryUsage,
     entity: activeEntity,
     onEdit: (item) => setModalState({ mode: "edit", item }),
     onDelete: handleDelete,
@@ -344,7 +362,7 @@ export function Creations({ onLogout }) {
   );
 }
 
-function buildColumns({ entity, onEdit, onDelete }) {
+function buildColumns({ categoryUsage, entity, onEdit, onDelete }) {
   const baseColumns = [
     {
       key: "nombre",
@@ -371,6 +389,18 @@ function buildColumns({ entity, onEdit, onDelete }) {
       key: "grupo",
       header: "Categoria principal",
       render: (item) => item.categoriaGrupo?.nombre || "Sin categoria principal",
+    });
+    baseColumns.push({
+      key: "gastosAsignados",
+      header: "Gastos asignados",
+      render: (item) => {
+        const count = categoryUsage?.[item._id] || categoryUsage?.[item.localId] || 0;
+        return (
+          <span className={`status-pill ${count ? "status-creado" : "status-neutral"}`}>
+            {count}
+          </span>
+        );
+      },
     });
   }
 

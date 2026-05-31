@@ -1,4 +1,6 @@
 import {
+  cleanupDuplicateLocalExpenses,
+  cleanupDuplicateLocalNamedRecords,
   createLocalId,
   deleteLocalItem,
   enqueueSyncOperation,
@@ -213,6 +215,16 @@ function normalizeComparableDate(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+function normalizeComparableName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 function applyGastosFilters(items, params) {
   const fechaDesde = params.get("fechaDesde") || "";
   const fechaHasta = params.get("fechaHasta") || "";
@@ -301,6 +313,46 @@ function buildLocalItem(parsed, body = {}) {
 }
 
 async function handleLocalPost(parsed, body) {
+  if (["bancos", "cuentas", "categoriasGrupo", "categorias"].includes(parsed.store)) {
+    const existing = await getLocalItems(parsed.store);
+    const bodyName = normalizeComparableName(body.nombre);
+    const duplicated = existing.find((item) => {
+      if (normalizeComparableName(item.nombre) !== bodyName) return false;
+      if (parsed.store === "cuentas") {
+        return idOf(item.banco) === idOf(body.banco) && (item.tipo || "") === (body.tipo || "");
+      }
+      return true;
+    });
+
+    if (duplicated) {
+      return success(
+        await populateLocalItem(parsed.store, duplicated),
+        "Este registro ya existe localmente",
+      );
+    }
+  }
+
+  if (parsed.store === "gastos") {
+    const existing = await getLocalItems("gastos");
+    const bodyDate = normalizeComparableDate(body.fecha);
+    const bodyDescription = String(body.descripcion || "").trim().toLowerCase();
+    const bodyAmount = Math.round(Number(body.flujoBancario || 0) * 100);
+    const bodyAccount = idOf(body.cuenta);
+    const duplicated = existing.find((item) => {
+      if (idOf(item.cuenta) !== bodyAccount) return false;
+      if (normalizeComparableDate(item.fecha) !== bodyDate) return false;
+      if (String(item.descripcion || "").trim().toLowerCase() !== bodyDescription) return false;
+      return Math.round(Number(item.flujoBancario || 0) * 100) === bodyAmount;
+    });
+
+    if (duplicated) {
+      return success(
+        await populateLocalItem(parsed.store, duplicated),
+        "Este gasto ya existe localmente",
+      );
+    }
+  }
+
   const item = await putLocalItem(parsed.store, buildLocalItem(parsed, body));
   await enqueueSyncOperation({
     endpoint: parsed.collectionPath,
@@ -635,6 +687,31 @@ function plainItem(item) {
   return payload;
 }
 
+function stripCloudInternalFields(value) {
+  if (Array.isArray(value)) {
+    return value.map(stripCloudInternalFields);
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const clean = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (
+      key === "__v" ||
+      key === "_deleted" ||
+      key === "cloudId" ||
+      key === "localId" ||
+      key === "syncStatus"
+    ) {
+      continue;
+    }
+    clean[key] = stripCloudInternalFields(entry);
+  }
+  return clean;
+}
+
 async function saveCardSummariesFromCloud(cardLocalId, summaries = []) {
   const localSummaries = await getLocalItems("resumenesTarjeta", { includeDeleted: true });
   const localByRemoteId = new Map(
@@ -756,7 +833,14 @@ export async function pullCloudDataToLocal(remoteRequest) {
     }
   }
 
-  return { changed, downloaded };
+  const [expenseCleanup, namedCleanup] = await Promise.all([
+    cleanupDuplicateLocalExpenses(),
+    cleanupDuplicateLocalNamedRecords(),
+  ]);
+  const cleaned = (expenseCleanup.removed || 0) + (namedCleanup.removed || 0);
+  changed += cleaned;
+
+  return { changed, downloaded, cleanedDuplicates: cleaned };
 }
 
 async function resolveRef(store, value) {
@@ -767,7 +851,7 @@ async function resolveRef(store, value) {
 }
 
 async function buildCloudPayload(resource, item) {
-  const payload = plainItem(item);
+  const payload = stripCloudInternalFields(plainItem(item));
 
   delete payload._id;
   delete payload.usuario;
@@ -874,9 +958,31 @@ export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
           method: "POST",
         });
         const cloudItem = response?.data || response;
+        const cloudId = cloudItem?._id || item.cloudId;
+        const existingLocal = cloudId
+          ? (await getLocalItems(operation.resource, { includeDeleted: true })).find(
+              (localItem) =>
+                localItem.localId !== item.localId &&
+                !localItem._deleted &&
+                (localItem.cloudId === cloudId || localItem._id === cloudId),
+            )
+          : null;
+
+        if (existingLocal) {
+          await deleteLocalItem(operation.resource, item.localId);
+          await putLocalItem(operation.resource, {
+            ...existingLocal,
+            cloudId,
+            syncStatus: "synced",
+          });
+          await removeSyncOperation(operation.localId);
+          synced++;
+          continue;
+        }
+
         await putLocalItem(operation.resource, {
           ...item,
-          cloudId: cloudItem?._id || item.cloudId,
+          cloudId,
           syncStatus: "synced",
         });
       }
@@ -934,5 +1040,10 @@ export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
 
   const pullResult = await pullCloudDataToLocal(remoteRequest);
   await setLocalMeta("lastSyncAt", new Date().toISOString());
-  return { cleaned, downloaded: pullResult.downloaded, failed, synced };
+  return {
+    cleaned: cleaned + (pullResult.cleanedDuplicates || 0),
+    downloaded: pullResult.downloaded,
+    failed,
+    synced,
+  };
 }

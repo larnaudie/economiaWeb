@@ -1,6 +1,19 @@
 import CategoriaGrupo from "../models/categoriaGrupo.model.js";
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function crearCategoriaGrupoService(data, usuarioId) {
+  const existente = await CategoriaGrupo.findOne({
+    usuario: usuarioId,
+    nombre: { $regex: new RegExp(`^${escapeRegex(data.nombre)}$`, "i") }
+  });
+
+  if (existente) {
+    return existente;
+  }
+
   return await CategoriaGrupo.create({
     nombre: data.nombre,
     usuario: usuarioId

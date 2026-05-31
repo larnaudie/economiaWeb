@@ -1,6 +1,10 @@
 import Cuenta from "../models/cuenta.model.js";
 import Banco from "../models/banco.model.js";
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const obtenerCuentasService = async (usuarioId, banco) => {
   const filtro = { usuario: usuarioId };
 
@@ -71,6 +75,18 @@ export const crearCuentaService = async (data, usuarioId) => {
   if (!banco) {
     throw new Error("Banco no encontrado");
   }
+
+  const cuentaExistente = await Cuenta.findOne({
+    usuario: usuarioId,
+    banco: data.banco,
+    tipo: data.tipo || "caja_ahorro",
+    nombre: { $regex: new RegExp(`^${escapeRegex(data.nombre)}$`, "i") },
+  }).populate("banco");
+
+  if (cuentaExistente) {
+    return cuentaExistente;
+  }
+
   const nuevaCuenta = new Cuenta({ ...data, usuario: usuarioId });
   await nuevaCuenta.save();
   const cuentaConBanco = await Cuenta.findById(nuevaCuenta._id).populate(

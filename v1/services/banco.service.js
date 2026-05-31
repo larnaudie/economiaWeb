@@ -1,5 +1,9 @@
 import Banco from "../models/banco.model.js";
 
+function escapeRegex(value) {
+    return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const obtenerBancosService = async (usuarioId) => {
     const bancos = await Banco.find({ usuario: usuarioId });
     return bancos;
@@ -46,6 +50,15 @@ export const eliminarBancoService = async (id, usuarioId) => {
 }
 
 export const crearBancoService = async (data, usuarioId) => {
+    const existente = await Banco.findOne({
+        usuario: usuarioId,
+        nombre: { $regex: new RegExp(`^${escapeRegex(data.nombre)}$`, "i") }
+    });
+
+    if (existente) {
+        return existente;
+    }
+
     const nuevoBanco = new Banco({ ...data, usuario: usuarioId });
     await nuevoBanco.save();
     return nuevoBanco;

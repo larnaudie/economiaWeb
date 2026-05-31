@@ -3,6 +3,10 @@ import Categoria from "../models/categoria.model.js";
 import CategoriaGrupo from "../models/categoriaGrupo.model.js";
 import Gasto from "../models/gasto.model.js";
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const obtenerTotalesPorCategoriaService = async (
   usuarioId,
   mes,
@@ -118,7 +122,7 @@ export const eliminarCategoriaService = async (id, usuarioId) => {
 export const crearCategoriaService = async (data, usuarioId) => {
   const categoriaExistente = await Categoria.findOne({
     usuario: usuarioId,
-    nombre: { $regex: new RegExp(`^${data.nombre}$`, "i") },
+    nombre: { $regex: new RegExp(`^${escapeRegex(data.nombre)}$`, "i") },
   }).populate("categoriaGrupo", "nombre");
 
   if (categoriaExistente) {

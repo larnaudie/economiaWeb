@@ -398,6 +398,35 @@ async function crearDebitoPagoDesdeCuenta({
 
   if (!amount) return null;
 
+  const fecha = new Date(movimiento.fecha);
+  const inicioDia = new Date(fecha);
+  inicioDia.setUTCHours(0, 0, 0, 0);
+  const finDia = new Date(inicioDia);
+  finDia.setUTCDate(finDia.getUTCDate() + 1);
+
+  const pagoExistente = await Gasto.findOne({
+    usuario: usuarioId,
+    cuenta: cuentaPago,
+    fecha: { $gte: inicioDia, $lt: finDia },
+    $expr: {
+      $lt: [
+        {
+          $abs: {
+            $subtract: [
+              { $abs: { $ifNull: ["$flujoBancario", 0] } },
+              amount,
+            ],
+          },
+        },
+        0.01,
+      ],
+    },
+  });
+
+  if (pagoExistente) {
+    return pagoExistente;
+  }
+
   return crearGastoService({
     usuarioId,
     data: {
