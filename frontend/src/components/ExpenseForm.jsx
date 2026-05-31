@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "./Button";
 import { FormField } from "./FormField";
 
@@ -12,6 +14,17 @@ function idValue(value) {
   if (typeof value === "string") return value;
   if (typeof value === "object" && typeof value._id === "string") return value._id;
   return "";
+}
+
+function dataUrlToFile(dataUrl, fileName = "factura.jpg") {
+  const [header, data] = dataUrl.split(",");
+  const mime = header.match(/data:(.*?);/)?.[1] || "image/jpeg";
+  const binary = window.atob(data || "");
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new File([bytes], fileName, { type: mime });
 }
 
 const initialState = {
@@ -94,6 +107,29 @@ export function ExpenseForm({
     });
   }
 
+  async function handleTakePhoto() {
+    if (!Capacitor.isNativePlatform()) {
+      cameraInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const photo = await Camera.getPhoto({
+        allowEditing: false,
+        quality: 80,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+      });
+
+      if (photo.dataUrl) {
+        setFacturaFile(dataUrlToFile(photo.dataUrl, `factura-${Date.now()}.jpg`));
+      }
+    } catch (error) {
+      if (/cancel/i.test(error?.message || "")) return;
+      cameraInputRef.current?.click();
+    }
+  }
+
   return (
     <form className="stack-form" onSubmit={handleSubmit}>
       <FormField id="expenseDescripcion" label="Descripcion">
@@ -135,7 +171,7 @@ export function ExpenseForm({
           type="file"
         />
         <div className="button-row">
-          <Button onClick={() => cameraInputRef.current?.click()} variant="secondary">
+          <Button onClick={handleTakePhoto} variant="secondary">
             Sacar foto
           </Button>
           <Button onClick={() => fileInputRef.current?.click()} variant="secondary">

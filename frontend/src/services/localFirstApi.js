@@ -732,7 +732,7 @@ async function saveCardSummariesFromCloud(cardLocalId, summaries = []) {
       continue;
     }
 
-    const localId = summary.localId || summary._id;
+    const localId = current?.localId || summary.localId || summary._id;
     const nextSummary = {
       ...summary,
       cloudId: summary.cloudId || summary._id,
@@ -773,7 +773,6 @@ async function saveCloudCollection(store, items) {
   let changed = 0;
 
   for (const item of items) {
-    const localId = item.localId || item._id;
     const current = localByRemoteId.get(item._id);
     const hasPendingLocalDelete =
       current?._deleted && current?.syncStatus === "pending_upload";
@@ -781,6 +780,8 @@ async function saveCloudCollection(store, items) {
     if (hasPendingLocalDelete) {
       continue;
     }
+
+    const localId = current?.localId || item.localId || item._id;
 
     if (JSON.stringify(plainItem(current || {})) !== JSON.stringify(item)) {
       changed++;

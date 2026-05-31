@@ -330,7 +330,11 @@ export async function cleanupDuplicateLocalNamedRecords() {
         await reassignReferencesForDuplicate(storeName, duplicate, keep);
         await removeSyncOperationsForItem(storeName, duplicate.localId);
 
-        if (duplicate.cloudId) {
+        const duplicateCloudId = duplicate.cloudId || duplicate._id;
+        const keepCloudId = keep.cloudId || keep._id;
+        const isSameCloudRecord = duplicateCloudId && duplicateCloudId === keepCloudId;
+
+        if (duplicate.cloudId && !isSameCloudRecord) {
           await putLocalItem(storeName, {
             ...duplicate,
             _deleted: true,

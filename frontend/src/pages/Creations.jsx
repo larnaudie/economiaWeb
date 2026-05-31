@@ -42,6 +42,7 @@ const accountTypeLabels = {
 };
 
 const CREATIONS_PAGE_SIZE = 30;
+const CREATIONS_ACTIVE_TAB_KEY = "creationsActiveEntity";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -66,8 +67,13 @@ function navigateToExpenses() {
   window.location.assign("#/gastos");
 }
 
+function getInitialActiveEntity() {
+  const saved = window.localStorage.getItem(CREATIONS_ACTIVE_TAB_KEY);
+  return entityConfig[saved] ? saved : "bancos";
+}
+
 export function Creations({ onLogout }) {
-  const [activeEntity, setActiveEntity] = useState("bancos");
+  const [activeEntity, setActiveEntity] = useState(getInitialActiveEntity);
   const [bancos, setBancos] = useState([]);
   const [cuentas, setCuentas] = useState([]);
   const [categoriasGrupo, setCategoriasGrupo] = useState([]);
@@ -173,6 +179,7 @@ export function Creations({ onLogout }) {
   });
 
   useEffect(() => {
+    window.localStorage.setItem(CREATIONS_ACTIVE_TAB_KEY, activeEntity);
     setSearchTerm("");
     setVisibleCount(CREATIONS_PAGE_SIZE);
   }, [activeEntity]);
