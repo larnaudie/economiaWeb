@@ -101,6 +101,7 @@ async function hydrateOperation(operation) {
 export function LocalData({ onLogout }) {
   const [summary, setSummary] = useState(initialSummary);
   const [queue, setQueue] = useState([]);
+  const [selectedOperations, setSelectedOperations] = useState([]);
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
   const user = getUser();
@@ -124,6 +125,11 @@ export function LocalData({ onLogout }) {
 
       setSummary(nextSummary);
       setQueue(hydrated);
+      setSelectedOperations((current) =>
+        current.filter((operationId) =>
+          hydrated.some((operation) => operation.localId === operationId),
+        ),
+      );
     } catch (error) {
       setStatus({
         type: "error",
@@ -173,6 +179,75 @@ export function LocalData({ onLogout }) {
     }
   }
 
+  function toggleOperation(operationId) {
+    setSelectedOperations((current) =>
+      current.includes(operationId)
+        ? current.filter((item) => item !== operationId)
+        : [...current, operationId],
+    );
+  }
+
+  function toggleAllOperations() {
+    setSelectedOperations((current) =>
+      current.length === queue.length ? [] : queue.map((operation) => operation.localId),
+    );
+  }
+
+  async function handleUndoSelected() {
+    if (!selectedOperations.length) return;
+
+    if (!window.confirm(`Deshacer ${selectedOperations.length} operacion(es) local(es)?`)) {
+      return;
+    }
+
+    setLoading(true);
+    let undone = 0;
+    const failedMessages = [];
+
+    try {
+      for (const operationId of selectedOperations) {
+        const result = await undoSyncOperation(operationId);
+        if (result.undone) {
+          undone++;
+        } else {
+          failedMessages.push(result.message);
+        }
+      }
+
+      setSelectedOperations([]);
+      await loadData();
+
+      showToast({
+        title: undone ? "Deshecho" : "No se pudo deshacer",
+        message: failedMessages.length
+          ? `${undone} deshecha(s). ${failedMessages.length} con error.`
+          : `${undone} operacion(es) local(es) deshecha(s).`,
+        type: failedMessages.length ? "warning" : "success",
+      });
+
+      if (failedMessages.length) {
+        setStatus({
+          type: "warning",
+          title: "Algunas operaciones no se pudieron deshacer",
+          message: failedMessages[0],
+        });
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo deshacer",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudo deshacer",
+        message: error.message,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     const timeoutId = window.setTimeout(loadData, 0);
 
@@ -189,6 +264,25 @@ export function LocalData({ onLogout }) {
 
   const columns = useMemo(
     () => [
+      {
+        key: "select",
+        header: (
+          <input
+            aria-label="Seleccionar todos los pendientes"
+            checked={queue.length > 0 && selectedOperations.length === queue.length}
+            onChange={toggleAllOperations}
+            type="checkbox"
+          />
+        ),
+        render: (operation) => (
+          <input
+            aria-label={`Seleccionar ${getOperationName(operation, operation.item)}`}
+            checked={selectedOperations.includes(operation.localId)}
+            onChange={() => toggleOperation(operation.localId)}
+            type="checkbox"
+          />
+        ),
+      },
       {
         key: "createdAt",
         header: "Fecha",
@@ -221,7 +315,7 @@ export function LocalData({ onLogout }) {
         ),
       },
     ],
-    [],
+    [queue, selectedOperations],
   );
 
   return (
@@ -259,10 +353,25 @@ export function LocalData({ onLogout }) {
             Estas son las acciones que la app guarda localmente hasta que pulses
             Sync nube.
           </p>
-          <Button onClick={loadData} variant="secondary">
-            Actualizar
-          </Button>
+          <div className="inline-actions">
+            <Button
+              disabled={!selectedOperations.length || loading}
+              onClick={handleUndoSelected}
+              variant="danger"
+            >
+              Deshacer seleccionados
+            </Button>
+            <Button onClick={loadData} variant="secondary">
+              Actualizar
+            </Button>
+          </div>
         </div>
+
+        {queue.length ? (
+          <p className="muted-text">
+            Seleccionados: {selectedOperations.length}
+          </p>
+        ) : null}
 
         {loading ? (
           <p className="empty-state">Leyendo datos locales...</p>

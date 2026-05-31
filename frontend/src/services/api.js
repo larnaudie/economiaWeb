@@ -46,6 +46,26 @@ function httpError(message, status) {
   return error;
 }
 
+let sessionExpiredNotified = false;
+
+function handleSessionExpired(status) {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  if (sessionExpiredNotified) return;
+  sessionExpiredNotified = true;
+
+  window.dispatchEvent(
+    new CustomEvent("session-expired", {
+      detail: { status },
+    }),
+  );
+
+  window.setTimeout(() => {
+    sessionExpiredNotified = false;
+  }, 2500);
+}
+
 export async function remoteApiRequest(endpoint, options = {}) {
   const { method = "GET", body, token = getToken() } = options;
 
@@ -75,8 +95,7 @@ export async function remoteApiRequest(endpoint, options = {}) {
   const data = await response.json().catch(() => null);
 
   if (response.status === 401 || response.status === 403) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    handleSessionExpired(response.status);
     throw httpError("Sesion expirada o invalida", response.status);
   }
 
@@ -204,8 +223,7 @@ export async function remoteUploadApiFile(endpoint, fieldName, file, options = {
   const data = await response.json().catch(() => null);
 
   if (response.status === 401 || response.status === 403) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    handleSessionExpired(response.status);
     throw httpError("Sesion expirada o invalida", response.status);
   }
 

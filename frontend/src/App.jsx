@@ -58,10 +58,28 @@ function getRouteParams(route) {
   return new URLSearchParams(query);
 }
 
+function SessionExpiredModal() {
+  return (
+    <div className="session-expired-backdrop" role="presentation">
+      <section
+        aria-live="assertive"
+        aria-modal="true"
+        className="session-expired-modal"
+        role="dialog"
+      >
+        <span className="session-expired-pulse" aria-hidden="true" />
+        <h2>Tu sesion expiro</h2>
+        <p>Redirigiendo para loguearte...</p>
+      </section>
+    </div>
+  );
+}
+
 function App() {
   const [route, setRoute] = useState(getRouteFromLocation);
   const [authVersion, setAuthVersion] = useState(0);
   const [localDataVersion, setLocalDataVersion] = useState(0);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const routeBase = getRouteBase(route);
   const routeParams = getRouteParams(route);
 
@@ -86,6 +104,26 @@ function App() {
     window.addEventListener("local-data-pulled", handleLocalDataPulled);
     return () => window.removeEventListener("local-data-pulled", handleLocalDataPulled);
   }, []);
+
+  useEffect(() => {
+    let redirectTimer;
+
+    function handleSessionExpired() {
+      if (routeBase === "#/login" || routeBase === "#/registro") return;
+
+      setSessionExpired(true);
+      redirectTimer = window.setTimeout(() => {
+        setSessionExpired(false);
+        navigate("#/login");
+      }, 1500);
+    }
+
+    window.addEventListener("session-expired", handleSessionExpired);
+    return () => {
+      window.removeEventListener("session-expired", handleSessionExpired);
+      window.clearTimeout(redirectTimer);
+    };
+  }, [routeBase]);
 
   useEffect(() => {
     if (!getToken()) return undefined;
@@ -132,6 +170,7 @@ function App() {
         <div key={shouldPreservePageState ? routeBase : `${routeBase}-${localDataVersion}`}>
           {content}
         </div>
+        {sessionExpired ? <SessionExpiredModal /> : null}
         <ToastHost />
       </>
     );

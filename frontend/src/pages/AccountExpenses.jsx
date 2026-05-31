@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -17,8 +17,12 @@ import {
   logout,
   uploadApiFile,
 } from "../services/api";
+import { parseBankSheet } from "../utils/bankExcelParser";
 import { formatCurrency, formatDate } from "../utils/formatters";
 import { buildDateRange, currentMonthPeriod } from "../utils/periodFilters";
+import { showToast } from "../utils/toast";
+
+const ACCOUNT_COMPARE_DIFFS_KEY = "accountExcelComparisonDiffs";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -48,7 +52,34 @@ function normalizeExpensePayload(payload, fallbackCuenta) {
   };
 }
 
+function normalizeCompareText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function amountKey(value) {
+  return String(Math.round(Number(value || 0) * 100));
+}
+
+function dateKey(value) {
+  return String(value || "").slice(0, 10);
+}
+
+function comparisonKey(item) {
+  return [
+    dateKey(item.fecha),
+    amountKey(item.flujoBancario),
+    normalizeCompareText(item.descripcion),
+  ].join("|");
+}
+
 export function AccountExpenses({ initialCuentaId = "", onLogout }) {
+  const compareFileInputRef = useRef(null);
   const [cuentas, setCuentas] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [selectedCuenta, setSelectedCuenta] = useState("");
@@ -68,6 +99,11 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   });
   const [status, setStatus] = useState({ type: "", title: "", message: "" });
   const [loading, setLoading] = useState(false);
+  const [comparison, setComparison] = useState({
+    differences: [],
+    totalExcelRows: 0,
+  });
+  const [comparingExcel, setComparingExcel] = useState(false);
   const user = getUser();
   const selectedCuentaData = useMemo(
     () => cuentas.find((cuenta) => cuenta._id === selectedCuenta) || null,
@@ -112,6 +148,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
         const items = normalizeItems(response);
         setGastos(items);
         setSelectedIds(new Set());
+        setComparison({ differences: [], totalExcelRows: 0 });
       } catch (error) {
         setStatus({
           type: "error",
@@ -488,6 +525,90 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     }
   }
 
+  function findExcelDifferences(parsedRows) {
+    const visibleCounts = new Map();
+
+    gastos.forEach((gasto) => {
+      const key = comparisonKey(gasto);
+      visibleCounts.set(key, (visibleCounts.get(key) || 0) + 1);
+    });
+
+    return parsedRows.filter((row) => {
+      const key = comparisonKey(row);
+      const available = visibleCounts.get(key) || 0;
+      if (available > 0) {
+        visibleCounts.set(key, available - 1);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  async function handleCompareFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setComparingExcel(true);
+    setStatus({ type: "", title: "", message: "" });
+
+    try {
+      const XLSX = await import("xlsx");
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) throw new Error("No se encontro una hoja valida.");
+
+      const parsedRows = parseBankSheet(sheet, XLSX).map((row, index) => ({
+        ...row,
+        cuenta: selectedCuenta,
+        localId: `comparison-${Date.now()}-${index}`,
+      }));
+      const differences = findExcelDifferences(parsedRows);
+
+      setComparison({
+        differences,
+        totalExcelRows: parsedRows.length,
+      });
+
+      showToast({
+        title: differences.length ? "Diferencias detectadas" : "Todo al dia",
+        message: differences.length
+          ? `Se detectaron ${differences.length} gasto(s) que no estan visibles.`
+          : "No se detectaron diferencias contra los gastos visibles.",
+        type: differences.length ? "warning" : "success",
+      });
+    } catch (error) {
+      setComparison({ differences: [], totalExcelRows: 0 });
+      setStatus({
+        type: "error",
+        title: "No se pudo comparar Excel",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudo comparar",
+        message: error.message,
+        type: "error",
+      });
+    } finally {
+      setComparingExcel(false);
+      event.target.value = "";
+    }
+  }
+
+  function openDifferencesInImport() {
+    if (!comparison.differences.length) return;
+
+    window.sessionStorage.setItem(
+      ACCOUNT_COMPARE_DIFFS_KEY,
+      JSON.stringify({
+        cuenta: selectedCuenta,
+        rows: comparison.differences,
+        source: "gastos-cuenta",
+      }),
+    );
+    window.location.hash = "#/importar-excel";
+  }
+
   const columns = [
     {
       key: "select",
@@ -701,6 +822,56 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
           </div>
         </Card>
       </section>
+
+      <Card className="expenses-table-card" title="Comprobar con Excel">
+        <div className="local-data-toolbar">
+          <div>
+            <strong>Quieres comprobar si tus gastos estan al dia?</strong>
+            <p>
+              Importa tu Excel bancario y lo comparo contra los gastos visibles
+              de esta cuenta y filtro.
+            </p>
+          </div>
+          <div className="inline-actions">
+            <Button
+              disabled={!selectedCuenta || comparingExcel}
+              onClick={() => compareFileInputRef.current?.click()}
+              variant="secondary"
+            >
+              {comparingExcel ? "Comparando..." : "Importar Excel"}
+            </Button>
+            <input
+              accept=".csv,.xlsx,.xls"
+              hidden
+              onChange={handleCompareFileChange}
+              ref={compareFileInputRef}
+              type="file"
+            />
+          </div>
+        </div>
+
+        {comparison.totalExcelRows ? (
+          <div className="comparison-result">
+            <span>
+              Excel leido: {comparison.totalExcelRows} movimiento(s). Gastos
+              visibles: {gastos.length}.
+            </span>
+            {comparison.differences.length ? (
+              <Button onClick={openDifferencesInImport} variant="warning">
+                Diferencias detectadas: {comparison.differences.length}. Deseas
+                agregarlas?
+              </Button>
+            ) : (
+              <strong>Estas al dia!</strong>
+            )}
+          </div>
+        ) : (
+          <p className="muted-text">
+            La comparacion busca coincidencias por fecha, descripcion y monto
+            bancario.
+          </p>
+        )}
+      </Card>
 
       <Card className="expenses-table-card" title="Edicion Multiple">
         <div className="bulk-actions">

@@ -20,7 +20,7 @@ export function ToastHost() {
 
     window.setTimeout(() => {
       setToasts((current) => current.filter((toast) => toast.id !== id));
-    }, 220);
+    }, 300);
   }
 
   useEffect(() => {

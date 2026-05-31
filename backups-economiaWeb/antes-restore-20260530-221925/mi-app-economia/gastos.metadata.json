@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"usuario":{"$numberInt":"1"},"cuenta":{"$numberInt":"1"},"hashImportacion":{"$numberInt":"1"}},"name":"usuario_1_cuenta_1_hashImportacion_1","unique":true}],"uuid":"ab8ab9c6ce9d4072b17b2c30d22c7967","collectionName":"gastos","type":"collection"}

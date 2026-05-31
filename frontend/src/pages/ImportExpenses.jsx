@@ -8,9 +8,12 @@ import { Modal } from "../components/Modal";
 import { QuickActions } from "../components/QuickActions";
 import { PageLayout } from "../layout/PageLayout";
 import { apiRequest, getApiData, getUser, logout } from "../services/api";
+import { parseBankSheet as parseReusableBankSheet } from "../utils/bankExcelParser";
 import { excelDateToISO, parseMoneyValue } from "../utils/formatters";
 import { creationActionMeta } from "../utils/quickActions";
 import { showToast } from "../utils/toast";
+
+const ACCOUNT_COMPARE_DIFFS_KEY = "accountExcelComparisonDiffs";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -104,6 +107,46 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
     return () => window.clearTimeout(timeoutId);
   }, [loadResources]);
 
+  useEffect(() => {
+    if (isPersonal) return;
+
+    const raw = window.sessionStorage.getItem(ACCOUNT_COMPARE_DIFFS_KEY);
+    if (!raw) return;
+
+    try {
+      const payload = JSON.parse(raw);
+      const importedRows = Array.isArray(payload?.rows) ? payload.rows : [];
+      const rowsFromComparison = importedRows.map((row, index) => ({
+        ...row,
+        localId: row.localId || `comparison-${Date.now()}-${index}`,
+        selected: row.selected !== false,
+        created: false,
+      }));
+
+      setRows(rowsFromComparison);
+      setStatus({
+        type: rowsFromComparison.length ? "success" : "warning",
+        title: "Diferencias detectadas",
+        message: rowsFromComparison.length
+          ? `Se cargaron ${rowsFromComparison.length} diferencia(s) desde Gastos por Cuenta.`
+          : "No se encontraron diferencias para precargar.",
+      });
+      showToast({
+        title: "Diferencias precargadas",
+        message: `Se precargaron ${rowsFromComparison.length} gasto(s) para revisar.`,
+        type: rowsFromComparison.length ? "success" : "warning",
+      });
+    } catch {
+      setStatus({
+        type: "error",
+        title: "No se pudieron cargar diferencias",
+        message: "El paquete de diferencias no se pudo leer.",
+      });
+    } finally {
+      window.sessionStorage.removeItem(ACCOUNT_COMPARE_DIFFS_KEY);
+    }
+  }, [isPersonal]);
+
   const selectedRows = useMemo(
     () => rows.filter((row) => row.selected && !row.created),
     [rows],
@@ -132,7 +175,7 @@ export function ImportExpenses({ mode = "bank", onLogout }) {
 
     const parsedRows = isPersonal
       ? parsePersonalSheet(sheet, resources.categorias, XLSX)
-      : parseBankSheet(sheet, XLSX);
+      : parseReusableBankSheet(sheet, XLSX);
 
     setRows(parsedRows);
     setStatus({
