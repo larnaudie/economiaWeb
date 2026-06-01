@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "./Button";
+import { FacturaLink } from "./FacturaLink";
 import { FormField } from "./FormField";
 
 function dateInputValue(value) {
@@ -60,13 +61,17 @@ export function ExpenseForm({
   mode = "full",
   onCancel,
   onSubmit,
+  requireAccounting = false,
   submitLabel = "Guardar gasto",
 }) {
   const [form, setForm] = useState(() => getInitialState(expense));
   const [facturaFile, setFacturaFile] = useState(null);
+  const [formError, setFormError] = useState("");
   const [showAccountingFields, setShowAccountingFields] = useState(mode !== "quick");
+  const [cameraStream, setCameraStream] = useState(null);
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
   const isQuickMode = mode === "quick";
 
   const economiaReal = useMemo(() => {
@@ -83,11 +88,42 @@ export function ExpenseForm({
   }, [form.flujoBancario, form.porcentajeEconomiaReal]);
 
   function updateField(field, value) {
+    setFormError("");
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
+    return () => {
+      cameraStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, [cameraStream]);
+
+  function closeCameraPreview() {
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    setCameraStream(null);
   }
 
   function handleSubmit(event) {
     event.preventDefault();
+
+    if (requireAccounting) {
+      const missing = [];
+      if (form.flujoBancario === "") missing.push("gasto bancario");
+      if (!form.categoria) missing.push("subcategoria");
+      if (!form.cuenta) missing.push("cuenta");
+
+      if (missing.length) {
+        setShowAccountingFields(true);
+        setFormError(`Para completar el gasto falta: ${missing.join(", ")}.`);
+        return;
+      }
+    }
 
     onSubmit({
       fecha: form.fecha,
@@ -109,6 +145,19 @@ export function ExpenseForm({
 
   async function handleTakePhoto() {
     if (!Capacitor.isNativePlatform()) {
+      if (navigator.mediaDevices?.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+          });
+          setCameraStream(stream);
+          return;
+        } catch {
+          cameraInputRef.current?.click();
+          return;
+        }
+      }
+
       cameraInputRef.current?.click();
       return;
     }
@@ -128,6 +177,27 @@ export function ExpenseForm({
       if (/cancel/i.test(error?.message || "")) return;
       cameraInputRef.current?.click();
     }
+  }
+
+  function captureBrowserPhoto() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          setFacturaFile(new File([blob], `factura-${Date.now()}.jpg`, { type: "image/jpeg" }));
+        }
+        closeCameraPreview();
+      },
+      "image/jpeg",
+      0.85,
+    );
   }
 
   return (
@@ -182,18 +252,24 @@ export function ExpenseForm({
           <small className="field-hint">Archivo seleccionado: {facturaFile.name}</small>
         ) : null}
         {expense?.facturaUrl ? (
-          <a
-            className="text-link"
-            href={expense.facturaUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Ver factura actual
-          </a>
+          <FacturaLink className="text-link" url={expense.facturaUrl} />
         ) : null}
         <small className="field-hint">
           Opcional. Podes sacar una foto o adjuntar una imagen/PDF.
         </small>
+        {cameraStream ? (
+          <div className="camera-preview">
+            <video autoPlay playsInline ref={videoRef} />
+            <div className="button-row">
+              <Button onClick={captureBrowserPhoto} variant="primary">
+                Usar foto
+              </Button>
+              <Button onClick={closeCameraPreview} variant="secondary">
+                Cancelar camara
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </FormField>
 
       {isQuickMode ? (
@@ -297,6 +373,12 @@ export function ExpenseForm({
             </label>
           </div>
         </>
+      ) : null}
+
+      {formError ? (
+        <div className="form-inline-error" role="alert">
+          {formError}
+        </div>
       ) : null}
 
       <div className="button-row button-row-end">

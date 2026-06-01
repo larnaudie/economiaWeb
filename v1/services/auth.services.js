@@ -4,6 +4,10 @@ import { successResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export const registrarUsuarioService = async (data) => {
   if(data.username === "OR 1=1"){
     const error = new Error("Nop! Hacer cosas feas esta mal!");
@@ -12,12 +16,18 @@ export const registrarUsuarioService = async (data) => {
   }
   
   const usuarioExistente = await Usuario.findOne({
-    username: new RegExp(`^${data.username}$`, "i"),
+    username: new RegExp(`^${escapeRegex(data.username)}$`, "i"),
   });
 
   if (usuarioExistente) {
     const error = new Error("Usuario ya existe");
     error.status = 409;
+    throw error;
+  }
+
+  if (!process.env.SECRET_KEY) {
+    const error = new Error("SECRET_KEY no esta configurada");
+    error.status = 500;
     throw error;
   }
 
@@ -34,7 +44,7 @@ export const registrarUsuarioService = async (data) => {
 
     if (adminExistente) {
       const error = new Error(
-        "Error al registrar el Admin, contacte con soporte",
+        "Ya existe un administrador registrado. Inicia sesion con ese admin o elimina el admin actual antes de crear otro.",
       );
       error.status = 409;
       throw error;
@@ -54,10 +64,17 @@ export const registrarUsuarioService = async (data) => {
     rol,
   });
 
+  const tokenExpiration = nuevoUsuario.rol === "admin" ? "1h" : "6h";
+  const token = jwt.sign(
+    { id: nuevoUsuario._id, rol: nuevoUsuario.rol },
+    process.env.SECRET_KEY,
+    { expiresIn: tokenExpiration },
+  );
+
   await nuevoUsuario.save();
 
   if (nuevoUsuario.rol === "admin") {
-    await crearAuditLogService({
+    crearAuditLogService({
       usuario: nuevoUsuario._id,
       accion: "CREAR_ADMIN",
       entidad: "Usuario",
@@ -65,15 +82,10 @@ export const registrarUsuarioService = async (data) => {
       detalle: {
         username: nuevoUsuario.username,
       },
+    }).catch((error) => {
+      console.error("No se pudo crear audit log de admin", error);
     });
   }
-  const tokenExpiration = nuevoUsuario.rol === "admin" ? "1h" : "6h";
-  const token = jwt.sign(
-    { id: nuevoUsuario._id, rol: nuevoUsuario.rol },
-    process.env.SECRET_KEY,
-    { expiresIn: "tokenExpiration" },
-  );
-
   return {
     token,
     id: nuevoUsuario._id,
@@ -91,7 +103,7 @@ export const loginUsuarioService = async (username, password) => {
   }
 
   const usuario = await Usuario.findOne({
-    username: new RegExp(`^${username}$`, "i"),
+    username: new RegExp(`^${escapeRegex(username)}$`, "i"),
   });
   if (!usuario) {
     return { message: "Usuario o contraseña incorrectos" };

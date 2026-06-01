@@ -25,7 +25,11 @@ const frontendDistPath =
   frontendDistCandidates.find((candidate) => fs.existsSync(path.join(candidate, "index.html"))) ||
   frontendDistCandidates[0];
 const reactIndexPath = path.join(frontendDistPath, "index.html");
-const hasReactBuild = fs.existsSync(reactIndexPath);
+const publicIndexPath = path.join(publicPath, "index.html");
+const hasPublicReactBuild = fs.existsSync(publicIndexPath);
+const hasReactBuild = hasPublicReactBuild || fs.existsSync(reactIndexPath);
+const staticFrontendPath = hasPublicReactBuild ? publicPath : frontendDistPath;
+const staticIndexPath = hasPublicReactBuild ? publicIndexPath : reactIndexPath;
 
 const legacyHtmlRoutes = [
   "/index.html",
@@ -140,7 +144,7 @@ app.use("/imagenes", express.static(path.join(publicPath, "imagenes")));
 app.use("/uploads", express.static(path.join(publicPath, "uploads")));
 
 if (hasReactBuild) {
-  app.use(express.static(frontendDistPath));
+  app.use(express.static(staticFrontendPath));
 } else {
   app.use(express.static(publicPath));
 }
@@ -153,7 +157,7 @@ app.use("/v1", v1Router);
 
 if (hasReactBuild) {
   app.get(["/", ...legacyHtmlRoutes], (req, res) => {
-    res.sendFile(reactIndexPath);
+    res.sendFile(staticIndexPath);
   });
 
   app.use((req, res, next) => {
@@ -169,7 +173,7 @@ if (hasReactBuild) {
       return res.status(404).send("Asset no encontrado");
     }
 
-    return res.sendFile(reactIndexPath);
+    return res.sendFile(staticIndexPath);
   });
 } else {
   app.get("/", (req, res) => {

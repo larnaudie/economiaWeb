@@ -896,7 +896,7 @@ function DebtForm({
       entregaInicialConvertida:
         entregaInicialConvertida === null ? 0 : Number(entregaInicialConvertida || 0),
       cuotasTotales: Number(cuotasDerivadas),
-      montoCuota: montoCuota === "" ? null : Number(montoCuota),
+      montoCuota: montoCuota === "" ? Number(cuotaCalculada || 0) : Number(montoCuota),
       cuotaActual: cuotasPagasIniciales === "" ? 0 : Number(cuotasPagasIniciales),
       montoPagadoInicial:
         montoPagadoInicial === "" ? 0 : Number(montoPagadoInicial),
@@ -1033,7 +1033,7 @@ function DebtForm({
       </div>
 
       <div className="form-grid">
-        <FormField id="debtTotal" label="Monto total antes de entrega">
+        <FormField id="debtTotal" label="Monto Total Convertido">
           <input
             id="debtTotal"
             onChange={(event) => setMontoTotal(event.target.value)}

@@ -212,7 +212,12 @@ async function populateLocalItems(store, items) {
 
 function normalizeComparableDate(value) {
   if (!value) return "";
-  return new Date(value).toISOString().slice(0, 10);
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
+function normalizeCloudDate(value) {
+  return normalizeComparableDate(value) || new Date().toISOString().slice(0, 10);
 }
 
 function normalizeComparableName(value) {
@@ -312,6 +317,81 @@ function buildLocalItem(parsed, body = {}) {
   };
 }
 
+function localExpenseRequiresCategory(expense) {
+  return expense.incluirEnGastoBancario !== false || expense.incluirEnGastoReal !== false;
+}
+
+function inferLocalExpenseStatus(expense) {
+  const requiredFields = [
+    "fecha",
+    "descripcion",
+    "flujoBancario",
+    "economiaReal",
+    "porcentajeEconomiaReal",
+    "cuenta",
+  ];
+
+  if (localExpenseRequiresCategory(expense)) {
+    requiredFields.push("categoria");
+  }
+
+  const complete = requiredFields.every((field) => {
+    const value = expense[field];
+    return value !== undefined && value !== null && value !== "";
+  });
+
+  return complete ? "creado" : "pendiente";
+}
+
+function calculateLocalDebtInstallment(total, installments, installment, annualRate) {
+  if (installment !== undefined && installment !== null && installment !== "") {
+    return Number(installment);
+  }
+
+  const amount = Number(total || 0);
+  const cuotas = Number(installments || 0);
+  const rate = Number(annualRate || 0);
+
+  if (!amount || !cuotas) return 0;
+  if (!rate) return Number((amount / cuotas).toFixed(2));
+
+  const monthlyRate = rate / 100 / 12;
+  return Number(
+    ((amount * monthlyRate) / (1 - (1 + monthlyRate) ** -cuotas)).toFixed(2),
+  );
+}
+
+function normalizeLocalDebt(body) {
+  const cuotasTotales =
+    body.cuotasTotales !== undefined && body.cuotasTotales !== null && body.cuotasTotales !== ""
+      ? Number(body.cuotasTotales)
+      : body.plazoAnios
+        ? Number(body.plazoAnios) * 12
+        : 0;
+  const montoCuota = calculateLocalDebtInstallment(
+    body.montoTotal,
+    cuotasTotales,
+    body.montoCuota,
+    body.tasaInteres,
+  );
+  const cuotaActual = Number(body.cuotaActual || 0);
+  const montoPagadoInicial = Number(body.montoPagadoInicial || 0);
+  const pagadoInicial = Number((cuotaActual * montoCuota + montoPagadoInicial).toFixed(2));
+  const saldoPendiente =
+    body.saldoPendiente !== undefined && body.saldoPendiente !== null
+      ? Number(body.saldoPendiente)
+      : Math.max(0, Number(body.montoTotal || 0) - pagadoInicial);
+
+  return {
+    activa: cuotaActual < cuotasTotales && saldoPendiente > 0,
+    cuotaActual,
+    cuotasTotales,
+    montoCuota,
+    montoPagadoInicial,
+    saldoPendiente,
+  };
+}
+
 async function handleLocalPost(parsed, body) {
   if (["bancos", "cuentas", "categoriasGrupo", "categorias"].includes(parsed.store)) {
     const existing = await getLocalItems(parsed.store);
@@ -353,7 +433,13 @@ async function handleLocalPost(parsed, body) {
     }
   }
 
-  const item = await putLocalItem(parsed.store, buildLocalItem(parsed, body));
+  const localBody =
+    parsed.store === "gastos"
+      ? { ...body, estado: inferLocalExpenseStatus(body) }
+      : parsed.store === "deudas"
+        ? { ...body, ...normalizeLocalDebt(body) }
+        : body;
+  const item = await putLocalItem(parsed.store, buildLocalItem(parsed, localBody));
   await enqueueSyncOperation({
     endpoint: parsed.collectionPath,
     itemLocalId: item.localId,
@@ -367,9 +453,16 @@ async function handleLocalPatch(parsed, body) {
   const current = await getLocalItem(parsed.store, parsed.id);
   if (!current) throw new Error("Registro local no encontrado");
 
+  const merged = { ...current, ...body };
+  const nextBody =
+    parsed.store === "gastos"
+      ? { ...merged, estado: inferLocalExpenseStatus(merged) }
+      : parsed.store === "deudas"
+        ? { ...merged, ...normalizeLocalDebt(merged) }
+      : merged;
+
   const item = await putLocalItem(parsed.store, {
-    ...current,
-    ...body,
+    ...nextBody,
     localId: current.localId,
     syncStatus: "pending_upload",
     updatedAt: new Date().toISOString(),
@@ -455,7 +548,7 @@ async function createExpenseFromCardMovement({ cardId, cuentaPago, movementId })
     descripcion: `${descripcionPrefix}: ${movimiento.detalle}`,
     economiaReal: isCompra ? -Math.abs(monto) : 0,
     estado: isCompra ? "pendiente" : "creado",
-    fecha: movimiento.fecha,
+    fecha: normalizeCloudDate(movimiento.fecha),
     flujoBancario: isPago ? Math.abs(monto) : isCompra ? -Math.abs(monto) : monto,
     incluirEnGastoBancario: true,
     incluirEnGastoReal: isCompra,
@@ -687,6 +780,10 @@ function plainItem(item) {
   return payload;
 }
 
+function isDataUrl(value) {
+  return typeof value === "string" && value.startsWith("data:");
+}
+
 function stripCloudInternalFields(value) {
   if (Array.isArray(value)) {
     return value.map(stripCloudInternalFields);
@@ -866,8 +963,24 @@ async function buildCloudPayload(resource, item) {
   }
 
   if (resource === "gastos") {
+    payload.fecha = normalizeCloudDate(payload.fecha);
     payload.cuenta = await resolveRef("cuentas", payload.cuenta);
     payload.categoria = await resolveRef("categorias", payload.categoria);
+    payload.tarjetaCredito = await resolveRef("tarjetasCredito", payload.tarjetaCredito);
+    payload.movimientoTarjeta = await resolveRef("movimientosTarjeta", payload.movimientoTarjeta);
+    delete payload.facturaLocalName;
+
+    if (isDataUrl(payload.facturaUrl)) {
+      delete payload.facturaUrl;
+    }
+
+    if (!/^[0-9a-fA-F]{24}$/.test(String(payload.tarjetaCredito || ""))) {
+      payload.tarjetaCredito = null;
+    }
+
+    if (!/^[0-9a-fA-F]{24}$/.test(String(payload.movimientoTarjeta || ""))) {
+      payload.movimientoTarjeta = null;
+    }
   }
 
   if (resource === "tarjetasCredito") {
@@ -877,6 +990,26 @@ async function buildCloudPayload(resource, item) {
   }
 
   return payload;
+}
+
+async function uploadLocalExpenseInvoice(remoteUpload, gasto, cloudId) {
+  if (!remoteUpload || !cloudId || !isDataUrl(gasto?.facturaUrl)) return null;
+
+  const file = dataUrlToFile(
+    gasto.facturaUrl,
+    gasto.facturaLocalName || `factura-${Date.now()}.jpg`,
+  );
+
+  const response = await remoteUpload(`/gastos/${cloudId}/factura`, "factura", file, {
+    localFirst: false,
+  });
+  const uploaded = response?.data || response || null;
+  return uploaded
+    ? {
+        facturaPublicId: uploaded.facturaPublicId || gasto.facturaPublicId || "",
+        facturaUrl: uploaded.facturaUrl || gasto.facturaUrl || "",
+      }
+    : null;
 }
 
 function getRemoteId(item) {
@@ -909,8 +1042,11 @@ function dataUrlToFile(dataUrl, fileName, fileType) {
   return new File([bytes], fileName || "archivo", { type: mime });
 }
 
-export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
-  const queue = sortQueue(await getSyncQueue());
+export async function syncLocalChangesToCloud(remoteRequest, remoteUpload, options = {}) {
+  const operationIds = new Set(options.operationIds || []);
+  const queue = sortQueue(await getSyncQueue()).filter(
+    (operation) => !operationIds.size || operationIds.has(operation.localId),
+  );
   let synced = 0;
   let failed = 0;
   let cleaned = 0;
@@ -981,8 +1117,14 @@ export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
           continue;
         }
 
+        const uploadedInvoice =
+          operation.resource === "gastos"
+            ? await uploadLocalExpenseInvoice(remoteUpload, item, cloudId)
+            : null;
+
         await putLocalItem(operation.resource, {
           ...item,
+          ...(uploadedInvoice || {}),
           cloudId,
           syncStatus: "synced",
         });
@@ -998,9 +1140,15 @@ export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
             method: "POST",
           });
           const cloudItem = response?.data || response;
+          const cloudId = cloudItem?._id || item.cloudId;
+          const uploadedInvoice =
+            operation.resource === "gastos"
+              ? await uploadLocalExpenseInvoice(remoteUpload, item, cloudId)
+              : null;
           await putLocalItem(operation.resource, {
             ...item,
-            cloudId: cloudItem?._id || item.cloudId,
+            ...(uploadedInvoice || {}),
+            cloudId,
             syncStatus: "synced",
           });
         } else {
@@ -1010,7 +1158,15 @@ export async function syncLocalChangesToCloud(remoteRequest, remoteUpload) {
             localFirst: false,
             method: "PATCH",
           });
-          await putLocalItem(operation.resource, { ...item, syncStatus: "synced" });
+          const uploadedInvoice =
+            operation.resource === "gastos"
+              ? await uploadLocalExpenseInvoice(remoteUpload, item, remoteId)
+              : null;
+          await putLocalItem(operation.resource, {
+            ...item,
+            ...(uploadedInvoice || {}),
+            syncStatus: "synced",
+          });
         }
       }
 

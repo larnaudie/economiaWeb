@@ -22,7 +22,7 @@ export const deudaSchema = Joi.object({
     "any.required": "El monto total es obligatorio",
   }),
 
-  montoOriginalAntesEntrega: Joi.number().positive().optional().allow(null),
+  montoOriginalAntesEntrega: Joi.number().min(0).optional().allow(null),
   porcentajeFinanciacion: Joi.number().min(0).max(100).optional().allow(null),
   entregaInicialMonto: Joi.number().min(0).optional().allow(null),
   entregaInicialMoneda: Joi.string().valid("UYU", "USD", "UI").optional(),
@@ -38,13 +38,13 @@ export const deudaSchema = Joi.object({
   cuotaActual: Joi.number().integer().min(0).optional().allow(null),
   montoPagadoInicial: Joi.number().min(0).optional().allow(null),
 
-  montoCuota: Joi.number().positive().optional().allow(null).messages({
+  montoCuota: Joi.number().min(0).optional().allow(null).messages({
     "number.base": "El monto de la cuota debe ser un numero",
-    "number.positive": "El monto de la cuota debe ser mayor a 0",
+    "number.min": "El monto de la cuota no puede ser negativo",
   }),
 
   tasaInteres: Joi.number().min(0).optional().allow(null),
-  plazoAnios: Joi.number().integer().positive().optional().allow(null),
+  plazoAnios: Joi.number().integer().min(0).optional().allow(null),
   diaVencimiento: Joi.number().integer().min(1).max(31).optional().allow(null),
   cuentaPagoDefault: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow(null, ""),
   categoriaDefault: Joi.string().regex(/^[0-9a-fA-F]{24}$/).optional().allow(null, ""),

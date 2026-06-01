@@ -5,6 +5,7 @@ import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
 import { DeleteIconButton } from "../components/DeleteIconButton";
 import { ExpenseForm } from "../components/ExpenseForm";
+import { FacturaLink } from "../components/FacturaLink";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PageLayout } from "../layout/PageLayout";
@@ -291,19 +292,7 @@ export function PendingExpenses({ onLogout }) {
     {
       key: "factura",
       header: "Factura",
-      render: (gasto) =>
-        gasto.facturaUrl ? (
-          <a
-            className="text-link table-link"
-            href={gasto.facturaUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Ver
-          </a>
-        ) : (
-          "N/A"
-        ),
+      render: (gasto) => <FacturaLink url={gasto.facturaUrl} />,
     },
     {
       key: "acciones",
@@ -423,6 +412,7 @@ export function PendingExpenses({ onLogout }) {
           expense={editingExpense}
           onCancel={() => setEditingExpense(null)}
           onSubmit={handleEdit}
+          requireAccounting
           submitLabel="Guardar y completar"
         />
       </Modal>

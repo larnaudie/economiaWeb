@@ -1366,8 +1366,35 @@ input[type="checkbox"]:focus-visible {
   font-weight: 500;
 }
 
+.camera-preview {
+  background: rgba(10, 26, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+}
+
+.camera-preview video {
+  background: #050f12;
+  border-radius: calc(var(--radius) - 2px);
+  max-height: 360px;
+  object-fit: contain;
+  width: 100%;
+}
+
 .field-error {
   color: var(--danger);
+}
+
+.form-inline-error {
+  background: rgba(255, 237, 237, 0.86);
+  border: 1px solid rgba(220, 53, 69, 0.32);
+  border-radius: var(--radius);
+  color: #8a1f2d;
+  font-weight: 750;
+  padding: 9px 11px;
 }
 
 .quick-expense-note {

@@ -1,5 +1,11 @@
 import { localFirstRequest, shouldUseLocalFirst } from "./localFirstApi";
-import { createLocalId, enqueueSyncOperation, getLocalItem, putLocalItem } from "./localDb";
+import {
+  createLocalId,
+  enqueueSyncOperation,
+  getLocalItem,
+  getSyncQueue,
+  putLocalItem,
+} from "./localDb";
 import { parseCreditCardExcelFile } from "../utils/creditCardExcelParser";
 
 const API_URL = import.meta.env.VITE_API_URL || "/v1";
@@ -244,7 +250,7 @@ export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
 
   if (localFacturaMatch?.[1]) {
     const gasto = await getLocalItem("gastos", localFacturaMatch[1]);
-    if (gasto && !gasto.cloudId) {
+    if (gasto) {
       const facturaUrl = await readFileAsDataUrl(file);
 
       const updated = await putLocalItem("gastos", {
@@ -253,13 +259,23 @@ export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
         facturaUrl,
         syncStatus: "pending_upload",
       });
-      await enqueueSyncOperation({
-        endpoint: "/gastos",
-        itemLocalId: updated.localId,
-        method: "PATCH",
-        previousItem: gasto,
-        resource: "gastos",
-      });
+      const queue = await getSyncQueue();
+      const hasPendingCreate = queue.some(
+        (operation) =>
+          operation.resource === "gastos" &&
+          operation.itemLocalId === updated.localId &&
+          operation.method === "POST",
+      );
+
+      if (!hasPendingCreate) {
+        await enqueueSyncOperation({
+          endpoint: "/gastos",
+          itemLocalId: updated.localId,
+          method: "PATCH",
+          previousItem: gasto,
+          resource: "gastos",
+        });
+      }
 
       return {
         success: true,

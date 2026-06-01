@@ -4,7 +4,13 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { DataTable } from "../components/DataTable";
 import { PageLayout } from "../layout/PageLayout";
-import { getUser, logout } from "../services/api";
+import {
+  getUser,
+  logout,
+  remoteApiRequest,
+  remoteUploadApiFile,
+} from "../services/api";
+import { syncLocalChangesToCloud } from "../services/localFirstApi";
 import {
   cleanupDuplicateLocalExpenses,
   cleanupDuplicateLocalNamedRecords,
@@ -251,6 +257,55 @@ export function LocalData({ onLogout }) {
     }
   }
 
+  async function handleSyncSelected() {
+    if (!selectedOperations.length) return;
+
+    if (!window.confirm(`Subir ${selectedOperations.length} operacion(es) seleccionada(s) a la nube?`)) {
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: "", title: "", message: "" });
+
+    try {
+      const result = await syncLocalChangesToCloud(
+        remoteApiRequest,
+        remoteUploadApiFile,
+        { operationIds: selectedOperations },
+      );
+
+      setSelectedOperations([]);
+      await loadData();
+
+      const hasErrors = result.failed > 0;
+      const message = `Subidas: ${result.synced}. Descargadas: ${result.downloaded}. Errores: ${result.failed}.`;
+
+      setStatus({
+        type: hasErrors ? "warning" : "success",
+        title: hasErrors ? "Sync parcial con errores" : "Sync seleccionado completado",
+        message,
+      });
+      showToast({
+        title: hasErrors ? "Sync parcial" : "Sync completado",
+        message,
+        type: hasErrors ? "warning" : "success",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        title: "No se pudo sincronizar",
+        message: error.message,
+      });
+      showToast({
+        title: "No se pudo sincronizar",
+        message: error.message,
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleCleanupDuplicates() {
     if (!window.confirm("Limpiar duplicados locales? Se conservara uno por grupo.")) {
       return;
@@ -437,6 +492,12 @@ export function LocalData({ onLogout }) {
               variant="danger"
             >
               Deshacer seleccionados
+            </Button>
+            <Button
+              disabled={!selectedOperations.length || loading}
+              onClick={handleSyncSelected}
+            >
+              Sync seleccionados
             </Button>
             <Button
               disabled={loading}

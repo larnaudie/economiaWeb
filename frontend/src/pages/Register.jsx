@@ -3,7 +3,7 @@ import { Alert } from "../components/Alert";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { FormField } from "../components/FormField";
-import { apiRequest, saveAuth } from "../services/api";
+import { remoteApiRequest, saveAuth } from "../services/api";
 
 export function Register({ onAuthenticated, onGoToLogin }) {
   const [username, setUsername] = useState("");
@@ -25,7 +25,7 @@ export function Register({ onAuthenticated, onGoToLogin }) {
     setLoading(true);
 
     try {
-      const auth = await apiRequest("/auth/register", {
+      const auth = await remoteApiRequest("/auth/register", {
         method: "POST",
         body: {
           username: username.trim(),

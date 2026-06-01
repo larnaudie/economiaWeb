@@ -6,6 +6,7 @@ import { DataTable } from "../components/DataTable";
 import { DeleteIconButton } from "../components/DeleteIconButton";
 import { EditIconButton } from "../components/EditIconButton";
 import { ExpenseForm } from "../components/ExpenseForm";
+import { FacturaLink } from "../components/FacturaLink";
 import { FormField } from "../components/FormField";
 import { Modal } from "../components/Modal";
 import { PeriodFilter } from "../components/PeriodFilter";
@@ -692,19 +693,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     {
       key: "factura",
       header: "Factura",
-      render: (gasto) =>
-        gasto.facturaUrl ? (
-          <a
-            className="text-link table-link"
-            href={gasto.facturaUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Ver
-          </a>
-        ) : (
-          "N/A"
-        ),
+      render: (gasto) => <FacturaLink url={gasto.facturaUrl} />,
     },
     {
       key: "acciones",

@@ -69,6 +69,11 @@ export const gastoSchema = Joi.object({
   incluirEnGastoReal: Joi.boolean().optional(),
   facturaUrl: Joi.string().uri().optional().allow(""),
   facturaPublicId: Joi.string().optional().allow(""),
+  origen: Joi.string()
+    .valid("manual", "excel_bancario", "tarjeta_credito", "deuda")
+    .optional(),
+  tarjetaCredito: objectIdSchema.optional().allow(null, ""),
+  movimientoTarjeta: objectIdSchema.optional().allow(null, ""),
 });
 
 export const gastosBulkSchema = Joi.object({
