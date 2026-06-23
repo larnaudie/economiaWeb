@@ -1,13 +1,3 @@
-import { localFirstRequest, shouldUseLocalFirst } from "./localFirstApi";
-import {
-  createLocalId,
-  enqueueSyncOperation,
-  getLocalItem,
-  getSyncQueue,
-  putLocalItem,
-} from "./localDb";
-import { parseCreditCardExcelFile } from "../utils/creditCardExcelParser";
-
 const API_URL = import.meta.env.VITE_API_URL || "/v1";
 
 export function getToken() {
@@ -46,8 +36,9 @@ export function getApiData(response) {
   return response?.data ?? response;
 }
 
-function httpError(message, status) {
+function httpError(message, status, details = null) {
   const error = new Error(message);
+  error.details = details;
   error.status = status;
   return error;
 }
@@ -72,7 +63,7 @@ function handleSessionExpired(status) {
   }, 2500);
 }
 
-export async function remoteApiRequest(endpoint, options = {}) {
+export async function apiRequest(endpoint, options = {}) {
   const { method = "GET", body, token = getToken() } = options;
 
   const headers = {
@@ -102,106 +93,23 @@ export async function remoteApiRequest(endpoint, options = {}) {
 
   if (response.status === 401 || response.status === 403) {
     handleSessionExpired(response.status);
-    throw httpError("Sesion expirada o invalida", response.status);
+    throw httpError("Sesion expirada o invalida", response.status, data?.details || data || null);
   }
 
   if (!response.ok) {
-    throw httpError(data?.message || `Error HTTP ${response.status}`, response.status);
+    throw httpError(
+      data?.message || `Error HTTP ${response.status}`,
+      response.status,
+      data?.details || data || null,
+    );
   }
 
   return data;
 }
 
-export async function apiRequest(endpoint, options = {}) {
-  if (shouldUseLocalFirst(endpoint, options)) {
-    return localFirstRequest(endpoint, options);
-  }
+export const remoteApiRequest = apiRequest;
 
-  return remoteApiRequest(endpoint, options);
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function saveLocalCardImport(endpoint, file) {
-  const match = endpoint.match(/^\/tarjetas-credito\/([^/]+)\/importar-excel$/);
-  if (!match) return null;
-
-  const tarjetaId = match[1];
-  const tarjeta = await getLocalItem("tarjetasCredito", tarjetaId);
-  if (!tarjeta) return null;
-
-  const parsed = await parseCreditCardExcelFile(file);
-  const resumenLocalId = createLocalId("resumenTarjeta");
-  const resumen = await putLocalItem("resumenesTarjeta", {
-    ...parsed.resumen,
-    _id: resumenLocalId,
-    localId: resumenLocalId,
-    syncStatus: "pending_upload",
-    tarjeta: tarjetaId,
-  });
-
-  let movimientosCreados = 0;
-  let movimientosDuplicados = 0;
-  const importedItems = [
-    { itemLocalId: resumen.localId, resource: "resumenesTarjeta" },
-  ];
-  const existing = await localFirstRequest(`/tarjetas-credito/${tarjetaId}/movimientos`);
-  const existingHashes = new Set((existing.data || []).map((movimiento) => movimiento.hashImportacion));
-
-  for (const movimiento of parsed.movimientos) {
-    if (existingHashes.has(movimiento.hashImportacion)) {
-      movimientosDuplicados++;
-      continue;
-    }
-
-    const movimientoLocalId = createLocalId("movimientoTarjeta");
-    const createdMovement = await putLocalItem("movimientosTarjeta", {
-      ...movimiento,
-      _id: movimientoLocalId,
-      localId: movimientoLocalId,
-      resumen: resumen.localId,
-      syncStatus: "pending_upload",
-      tarjeta: tarjetaId,
-    });
-    importedItems.push({
-      itemLocalId: createdMovement.localId,
-      resource: "movimientosTarjeta",
-    });
-    movimientosCreados++;
-  }
-
-  const fileData = await readFileAsDataUrl(file);
-  await enqueueSyncOperation({
-    endpoint,
-    fileData,
-    fileName: file.name,
-    fileType: file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    fieldName: "excel",
-    importedItems,
-    method: "UPLOAD_CARD_EXCEL",
-    resource: "tarjetaImportaciones",
-  });
-
-  return {
-    success: true,
-    message: "Resumen importado localmente",
-    data: {
-      movimientosCreados,
-      movimientosDetectados: parsed.movimientos.length,
-      movimientosDuplicados,
-      resumen,
-    },
-  };
-}
-
-export async function remoteUploadApiFile(endpoint, fieldName, file, options = {}) {
+export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
   const { token = getToken() } = options;
   const headers = {};
 
@@ -216,7 +124,7 @@ export async function remoteUploadApiFile(endpoint, fieldName, file, options = {
 
   try {
     response = await fetch(`${API_URL}${endpoint}`, {
-      method: "POST",
+      method: options.method || "POST",
       headers,
       body: formData,
     });
@@ -230,60 +138,18 @@ export async function remoteUploadApiFile(endpoint, fieldName, file, options = {
 
   if (response.status === 401 || response.status === 403) {
     handleSessionExpired(response.status);
-    throw httpError("Sesion expirada o invalida", response.status);
+    throw httpError("Sesion expirada o invalida", response.status, data?.details || data || null);
   }
 
   if (!response.ok) {
-    throw httpError(data?.message || `Error HTTP ${response.status}`, response.status);
+    throw httpError(
+      data?.message || `Error HTTP ${response.status}`,
+      response.status,
+      data?.details || data || null,
+    );
   }
 
   return data;
 }
 
-export async function uploadApiFile(endpoint, fieldName, file, options = {}) {
-  if (options.localFirst !== false) {
-    const localCardImport = await saveLocalCardImport(endpoint, file);
-    if (localCardImport) return localCardImport;
-  }
-
-  const localFacturaMatch = endpoint.match(/^\/gastos\/([^/]+)\/factura$/);
-
-  if (localFacturaMatch?.[1]) {
-    const gasto = await getLocalItem("gastos", localFacturaMatch[1]);
-    if (gasto) {
-      const facturaUrl = await readFileAsDataUrl(file);
-
-      const updated = await putLocalItem("gastos", {
-        ...gasto,
-        facturaLocalName: file.name,
-        facturaUrl,
-        syncStatus: "pending_upload",
-      });
-      const queue = await getSyncQueue();
-      const hasPendingCreate = queue.some(
-        (operation) =>
-          operation.resource === "gastos" &&
-          operation.itemLocalId === updated.localId &&
-          operation.method === "POST",
-      );
-
-      if (!hasPendingCreate) {
-        await enqueueSyncOperation({
-          endpoint: "/gastos",
-          itemLocalId: updated.localId,
-          method: "PATCH",
-          previousItem: gasto,
-          resource: "gastos",
-        });
-      }
-
-      return {
-        success: true,
-        message: "Factura guardada localmente",
-        data: updated,
-      };
-    }
-  }
-
-  return remoteUploadApiFile(endpoint, fieldName, file, options);
-}
+export const remoteUploadApiFile = uploadApiFile;

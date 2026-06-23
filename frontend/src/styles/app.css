@@ -546,6 +546,29 @@ p {
   font-weight: 650;
 }
 
+.toast-action {
+  background: rgba(12, 23, 39, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  justify-self: start;
+  margin-top: 4px;
+  min-height: 28px;
+  padding: 5px 10px;
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.toast-action:hover,
+.toast-action:focus-visible {
+  background: rgba(12, 23, 39, 1);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .toast-close {
   align-items: center;
   background: rgba(255, 255, 255, 0.36);
@@ -1778,6 +1801,69 @@ input[type="checkbox"]:focus-visible {
   gap: 10px;
   justify-content: space-between;
   padding: 10px 12px;
+}
+
+.table-filter-grid {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(140px, 0.6fr) minmax(170px, 0.8fr) auto;
+}
+
+.table-filter-check {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  font-weight: 750;
+  min-height: 38px;
+}
+
+.duplicate-review {
+  display: grid;
+  gap: 10px;
+}
+
+.duplicate-group {
+  background:
+    var(--frost-noise),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.64), rgba(205, 222, 219, 0.54));
+  background-blend-mode: soft-light, normal;
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  border-radius: 14px;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.82),
+    inset -1px -1px 0 rgba(65, 81, 84, 0.18),
+    0 8px 18px rgba(2, 20, 22, 0.08);
+  padding: 10px;
+}
+
+.duplicate-group header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.duplicate-group header span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.duplicate-items {
+  display: grid;
+  gap: 6px;
+}
+
+.duplicate-item {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 11px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 95px minmax(140px, 1fr) 100px auto;
+  padding: 7px 9px;
 }
 
 .muted-text {
@@ -3195,11 +3281,22 @@ input[type="checkbox"]:focus-visible {
   .dashboard-control-panel,
   .metric-grid-wide,
   .expense-filters,
+  .table-filter-grid,
   .bulk-actions,
   .form-grid,
   .content-grid,
   .debt-view-controls {
     grid-template-columns: 1fr;
+  }
+
+  .duplicate-group header,
+  .duplicate-item {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .duplicate-group header {
+    display: grid;
   }
 
   .page-header h1 {

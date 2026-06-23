@@ -10,13 +10,10 @@ import { ImportExpenses } from "./pages/ImportExpenses";
 import { AccountExpenses } from "./pages/AccountExpenses";
 import { Profile } from "./pages/Profile";
 import { Register } from "./pages/Register";
-import { LocalData } from "./pages/LocalData";
 import { Settings } from "./pages/Settings";
 import { ToastHost } from "./components/ToastHost";
-import { pullCloudChangesOnce } from "./components/SyncStatusPanel";
 import { getToken } from "./services/api";
 import { applyTheme, loadSavedTheme } from "./utils/theme";
-import { showToast } from "./utils/toast";
 import "./styles/app.css";
 
 const legacyPathRoutes = {
@@ -78,7 +75,6 @@ function SessionExpiredModal() {
 function App() {
   const [route, setRoute] = useState(getRouteFromLocation);
   const [authVersion, setAuthVersion] = useState(0);
-  const [localDataVersion, setLocalDataVersion] = useState(0);
   const [sessionExpired, setSessionExpired] = useState(false);
   const routeBase = getRouteBase(route);
   const routeParams = getRouteParams(route);
@@ -96,14 +92,6 @@ function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  useEffect(() => {
-    function handleLocalDataPulled() {
-      setLocalDataVersion((value) => value + 1);
-    }
-
-    window.addEventListener("local-data-pulled", handleLocalDataPulled);
-    return () => window.removeEventListener("local-data-pulled", handleLocalDataPulled);
-  }, []);
 
   useEffect(() => {
     let redirectTimer;
@@ -125,31 +113,6 @@ function App() {
     };
   }, [routeBase]);
 
-  useEffect(() => {
-    if (!getToken()) return undefined;
-
-    let cancelled = false;
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        const result = await pullCloudChangesOnce();
-        if (cancelled || result?.skipped) return;
-        if (Number(result?.downloaded || 0) > 0 || Number(result?.changed || 0) > 0) {
-          showToast({
-            title: "Datos actualizados",
-            message: `Se descargaron ${result.downloaded || result.changed || 0} registro(s) desde la nube.`,
-            type: "success",
-          });
-        }
-      } catch {
-        // La app debe seguir funcionando localmente si la nube no responde.
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [authVersion]);
 
   function navigate(nextRoute) {
     window.location.hash = nextRoute;
@@ -167,7 +130,7 @@ function App() {
 
     return (
       <>
-        <div key={shouldPreservePageState ? routeBase : `${routeBase}-${localDataVersion}`}>
+        <div key={routeBase}>
           {content}
         </div>
         {sessionExpired ? <SessionExpiredModal /> : null}
@@ -204,7 +167,6 @@ function App() {
     routeBase === "#/importar-excel" ||
     routeBase === "#/importar-excel-personal" ||
     routeBase === "#/gastos-cuenta" ||
-    routeBase === "#/datos-locales" ||
     routeBase === "#/settings" ||
     routeBase === "#/perfil"
   ) {
@@ -266,9 +228,6 @@ function App() {
       return renderWithToasts(<Profile onLogout={() => navigate("#/login")} />);
     }
 
-    if (routeBase === "#/datos-locales") {
-      return renderWithToasts(<LocalData onLogout={() => navigate("#/login")} />);
-    }
 
     if (routeBase === "#/settings") {
       return renderWithToasts(<Settings onLogout={() => navigate("#/login")} />);

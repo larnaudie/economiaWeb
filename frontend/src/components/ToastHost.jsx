@@ -39,6 +39,12 @@ export function ToastHost() {
 
   if (!toasts.length) return null;
 
+  function handleAction(toast) {
+    if (!toast.actionTarget) return;
+    window.location.hash = toast.actionTarget;
+    removeToast(toast.id);
+  }
+
   return (
     <div className="toast-stack" aria-live="polite" aria-atomic="true">
       {toasts.map((toast) => (
@@ -49,6 +55,15 @@ export function ToastHost() {
           <div className="toast-content">
             <strong>{toast.title || toastLabels[toast.type] || toastLabels.info}</strong>
             <span>{toast.message}</span>
+            {toast.actionLabel && toast.actionTarget ? (
+              <button
+                className="toast-action"
+                onClick={() => handleAction(toast)}
+                type="button"
+              >
+                {toast.actionLabel}
+              </button>
+            ) : null}
           </div>
           <button
             aria-label="Cerrar mensaje"

@@ -17,6 +17,19 @@ function idValue(value) {
   return "";
 }
 
+function parseDecimalInput(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const normalized = String(value).trim().replace(",", ".");
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function roundDecimal(value, decimals = 2) {
+  if (value === null || value === undefined) return null;
+  return Number(value.toFixed(decimals));
+}
+
 function dataUrlToFile(dataUrl, fileName = "factura.jpg") {
   const [header, data] = dataUrl.split(",");
   const mime = header.match(/data:(.*?);/)?.[1] || "image/jpeg";
@@ -79,10 +92,10 @@ export function ExpenseForm({
       return "";
     }
 
-    const flujo = Number(form.flujoBancario);
-    const porcentaje = Number(form.porcentajeEconomiaReal);
+    const flujo = parseDecimalInput(form.flujoBancario);
+    const porcentaje = parseDecimalInput(form.porcentajeEconomiaReal);
 
-    if (Number.isNaN(flujo) || Number.isNaN(porcentaje)) return "";
+    if (flujo === null || porcentaje === null) return "";
 
     return (flujo * (porcentaje / 100)).toFixed(2);
   }, [form.flujoBancario, form.porcentajeEconomiaReal]);
@@ -111,6 +124,30 @@ export function ExpenseForm({
 
   function handleSubmit(event) {
     event.preventDefault();
+    const descripcion = form.descripcion.trim();
+    const flujoBancario = parseDecimalInput(form.flujoBancario);
+    const porcentajeEconomiaReal = parseDecimalInput(form.porcentajeEconomiaReal);
+    const economiaRealValue = parseDecimalInput(economiaReal);
+
+    if (descripcion.length < 2) {
+      setFormError("La descripcion debe tener al menos 2 caracteres.");
+      return;
+    }
+
+    if (!form.fecha) {
+      setFormError("La fecha es obligatoria.");
+      return;
+    }
+
+    if (form.flujoBancario !== "" && flujoBancario === null) {
+      setFormError("El gasto bancario debe ser un numero valido.");
+      return;
+    }
+
+    if (form.porcentajeEconomiaReal !== "" && porcentajeEconomiaReal === null) {
+      setFormError("El porcentaje de gasto real debe ser un numero valido.");
+      return;
+    }
 
     if (requireAccounting) {
       const missing = [];
@@ -125,20 +162,22 @@ export function ExpenseForm({
       }
     }
 
+    const normalizedFlujoBancario = roundDecimal(flujoBancario);
+    const normalizedEconomiaReal = roundDecimal(economiaRealValue);
+    const normalizedPorcentajeEconomiaReal = roundDecimal(porcentajeEconomiaReal);
+
     onSubmit({
       fecha: form.fecha,
-      descripcion: form.descripcion.trim(),
-      flujoBancario: form.flujoBancario === "" ? null : Number(form.flujoBancario),
-      economiaReal: economiaReal === "" ? null : Number(economiaReal),
-      porcentajeEconomiaReal:
-        form.porcentajeEconomiaReal === ""
-          ? null
-          : Number(form.porcentajeEconomiaReal),
+      descripcion,
+      flujoBancario: normalizedFlujoBancario,
+      economiaReal: normalizedEconomiaReal,
+      porcentajeEconomiaReal: normalizedPorcentajeEconomiaReal,
       categoria: form.categoria || null,
       cuenta: form.cuenta || null,
       incluirEnGastoBancario:
-        Number(form.flujoBancario) !== 0 && form.incluirEnGastoBancario,
-      incluirEnGastoReal: Number(economiaReal) !== 0 && form.incluirEnGastoReal,
+        Number(normalizedFlujoBancario) !== 0 && form.incluirEnGastoBancario,
+      incluirEnGastoReal:
+        Number(normalizedEconomiaReal) !== 0 && form.incluirEnGastoReal,
       facturaFile,
     });
   }
@@ -201,7 +240,7 @@ export function ExpenseForm({
   }
 
   return (
-    <form className="stack-form" onSubmit={handleSubmit}>
+    <form className="stack-form" noValidate onSubmit={handleSubmit}>
       <FormField id="expenseDescripcion" label="Descripcion">
         <textarea
           id="expenseDescripcion"
@@ -290,17 +329,19 @@ export function ExpenseForm({
           <div className="form-grid">
             <FormField id="expenseFlujo" label="Gasto bancario">
               <input
+                inputMode="decimal"
                 id="expenseFlujo"
                 onChange={(event) =>
                   updateField("flujoBancario", event.target.value)
                 }
                 step="0.01"
-                type="number"
+                type="text"
                 value={form.flujoBancario}
               />
             </FormField>
             <FormField id="expensePorcentaje" label="Porcentaje gasto real">
               <input
+                inputMode="decimal"
                 id="expensePorcentaje"
                 max="100"
                 min="0"
@@ -308,13 +349,13 @@ export function ExpenseForm({
                   updateField("porcentajeEconomiaReal", event.target.value)
                 }
                 step="0.01"
-                type="number"
+                type="text"
                 value={form.porcentajeEconomiaReal}
               />
             </FormField>
 
             <FormField id="expenseEconomia" label="Gasto real">
-              <input id="expenseEconomia" readOnly type="number" value={economiaReal} />
+              <input id="expenseEconomia" readOnly type="text" value={economiaReal} />
             </FormField>
           </div>
 

@@ -31,6 +31,13 @@ const hasReactBuild = hasPublicReactBuild || fs.existsSync(reactIndexPath);
 const staticFrontendPath = hasPublicReactBuild ? publicPath : frontendDistPath;
 const staticIndexPath = hasPublicReactBuild ? publicIndexPath : reactIndexPath;
 
+function sendReactIndex(res) {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  return res.sendFile(staticIndexPath);
+}
+
 const legacyHtmlRoutes = [
   "/index.html",
   "/login.html",
@@ -143,10 +150,24 @@ app.use(limiter);
 app.use("/imagenes", express.static(path.join(publicPath, "imagenes")));
 app.use("/uploads", express.static(path.join(publicPath, "uploads")));
 
+const staticOptions = {
+  index: false,
+  setHeaders(res, filePath) {
+    if (path.basename(filePath) === "index.html") {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      return;
+    }
+
+    if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    }
+  },
+};
+
 if (hasReactBuild) {
-  app.use(express.static(staticFrontendPath));
+  app.use(express.static(staticFrontendPath, staticOptions));
 } else {
-  app.use(express.static(publicPath));
+  app.use(express.static(publicPath, staticOptions));
 }
 
 app.use(express.json({ limit: "1mb" }));
@@ -157,7 +178,7 @@ app.use("/v1", v1Router);
 
 if (hasReactBuild) {
   app.get(["/", ...legacyHtmlRoutes], (req, res) => {
-    res.sendFile(staticIndexPath);
+    sendReactIndex(res);
   });
 
   app.use((req, res, next) => {
@@ -173,7 +194,7 @@ if (hasReactBuild) {
       return res.status(404).send("Asset no encontrado");
     }
 
-    return res.sendFile(staticIndexPath);
+    return sendReactIndex(res);
   });
 } else {
   app.get("/", (req, res) => {

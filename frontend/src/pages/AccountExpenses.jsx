@@ -24,6 +24,7 @@ import { buildDateRange, currentMonthPeriod } from "../utils/periodFilters";
 import { showToast } from "../utils/toast";
 
 const ACCOUNT_COMPARE_DIFFS_KEY = "accountExcelComparisonDiffs";
+const ACCOUNT_DUPLICATE_OMISSIONS_KEY = "accountDuplicateOmissions";
 
 function normalizeItems(response) {
   const data = getApiData(response);
@@ -79,6 +80,14 @@ function comparisonKey(item) {
   ].join("|");
 }
 
+function duplicateKey(item) {
+  return [
+    dateKey(item.fecha).slice(0, 7),
+    amountKey(item.flujoBancario),
+    normalizeCompareText(item.descripcion),
+  ].join("|");
+}
+
 export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   const compareFileInputRef = useRef(null);
   const [cuentas, setCuentas] = useState([]);
@@ -86,6 +95,13 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   const [selectedCuenta, setSelectedCuenta] = useState("");
   const [filters, setFilters] = useState(currentAccountFilters);
   const [appliedFilters, setAppliedFilters] = useState(currentAccountFilters);
+  const [tableFilters, setTableFilters] = useState({
+    search: "",
+    categoria: "",
+    amount: "",
+    onlyDuplicates: false,
+  });
+  const [omittedDuplicateKeys, setOmittedDuplicateKeys] = useState(() => new Set());
   const [gastos, setGastos] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [draggedId, setDraggedId] = useState("");
@@ -214,6 +230,46 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
       .sort((a, b) => b.total - a.total);
   }, [gastos]);
 
+  const duplicateGroups = useMemo(() => {
+    const map = new Map();
+
+    gastos.forEach((gasto) => {
+      if (gasto.gastoRepetidoConfirmado) return;
+      const normalizedDescription = normalizeCompareText(gasto.descripcion);
+      if (!normalizedDescription) return;
+      const key = duplicateKey(gasto);
+      map.set(key, [...(map.get(key) || []), gasto]);
+    });
+
+    return Array.from(map.values())
+      .filter((group) => group.length > 1 && !omittedDuplicateKeys.has(duplicateKey(group[0])))
+      .sort((a, b) => b.length - a.length);
+  }, [gastos, omittedDuplicateKeys]);
+
+  const duplicateIds = useMemo(() => {
+    const ids = new Set();
+    duplicateGroups.forEach((group) => {
+      group.forEach((gasto) => ids.add(gasto._id));
+    });
+    return ids;
+  }, [duplicateGroups]);
+
+  const visibleGastos = useMemo(() => {
+    const search = normalizeCompareText(tableFilters.search);
+    const amount = tableFilters.amount.trim();
+    const amountFilter = amount ? amountKey(amount.replace(",", ".")) : "";
+
+    return gastos.filter((gasto) => {
+      if (search && !normalizeCompareText(gasto.descripcion).includes(search)) return false;
+      if (tableFilters.categoria && idValue(gasto.categoria) !== tableFilters.categoria) {
+        return false;
+      }
+      if (amountFilter && amountKey(gasto.flujoBancario) !== amountFilter) return false;
+      if (tableFilters.onlyDuplicates && !duplicateIds.has(gasto._id)) return false;
+      return true;
+    });
+  }, [duplicateIds, gastos, tableFilters]);
+
   function updateFilter(field, value) {
     setFilters((current) => ({ ...current, [field]: value }));
   }
@@ -229,6 +285,30 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     setAppliedFilters(next);
   }
 
+  function updateTableFilter(field, value) {
+    setTableFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function duplicateOmissionsStorageKey() {
+    return `${ACCOUNT_DUPLICATE_OMISSIONS_KEY}:${user?.id || "anon"}:${selectedCuenta || "all"}`;
+  }
+
+  function persistOmittedDuplicateKeys(nextKeys) {
+    window.localStorage.setItem(
+      duplicateOmissionsStorageKey(),
+      JSON.stringify(Array.from(nextKeys)),
+    );
+  }
+
+  function resetTableFilters() {
+    setTableFilters({
+      search: "",
+      categoria: "",
+      amount: "",
+      onlyDuplicates: false,
+    });
+  }
+
   function toggleSelected(id) {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -239,8 +319,32 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
   }
 
   function toggleAllSelected(checked) {
-    setSelectedIds(checked ? new Set(gastos.map((gasto) => gasto._id)) : new Set());
+    setSelectedIds(checked ? new Set(visibleGastos.map((gasto) => gasto._id)) : new Set());
   }
+
+  function selectDuplicateCandidates() {
+    const candidates = [];
+    duplicateGroups.forEach((group) => {
+      candidates.push(...group.slice(1).map((gasto) => gasto._id));
+    });
+    setSelectedIds(new Set(candidates));
+  }
+
+  useEffect(() => {
+    if (!selectedCuenta) {
+      setOmittedDuplicateKeys(new Set());
+      return;
+    }
+
+    try {
+      const stored = JSON.parse(
+        window.localStorage.getItem(duplicateOmissionsStorageKey()) || "[]",
+      );
+      setOmittedDuplicateKeys(new Set(Array.isArray(stored) ? stored : []));
+    } catch {
+      setOmittedDuplicateKeys(new Set());
+    }
+  }, [selectedCuenta, user?.id]);
 
   async function handleCreate(payload) {
     const { facturaFile, ...gastoPayload } = payload;
@@ -486,6 +590,42 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
     }
   }
 
+  async function confirmDuplicateGroup(group) {
+    const groupKey = duplicateKey(group[0]);
+    setOmittedDuplicateKeys((current) => {
+      const next = new Set(current);
+      next.add(groupKey);
+      persistOmittedDuplicateKeys(next);
+      return next;
+    });
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const gasto of group) {
+      try {
+        await apiRequest(`/gastos/${gasto._id}`, {
+          method: "PATCH",
+          body: {
+            gastoRepetidoConfirmado: true,
+          },
+        });
+        updated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setStatus({
+      type: failed ? "warning" : "success",
+      title: "Duplicado omitido",
+      message: failed
+        ? `El aviso se oculto localmente. Guardados en nube: ${updated}. Errores: ${failed}.`
+        : "Este grupo ya no aparecera como posible duplicado.",
+    });
+    await loadExpenses(selectedCuenta, appliedFilters);
+  }
+
   function reorderExpenses(sourceId, targetId) {
     if (!sourceId || !targetId || sourceId === targetId) return;
 
@@ -615,7 +755,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
       key: "select",
       header: (
         <input
-          checked={gastos.length > 0 && selectedIds.size === gastos.length}
+          checked={visibleGastos.length > 0 && visibleGastos.every((gasto) => selectedIds.has(gasto._id))}
           onChange={(event) => toggleAllSelected(event.target.checked)}
           type="checkbox"
         />
@@ -862,6 +1002,113 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
         )}
       </Card>
 
+      <Card className="expenses-table-card" title="Filtrar tabla visible">
+        <div className="table-filter-grid">
+          <FormField id="visibleExpenseSearch" label="Descripcion">
+            <input
+              id="visibleExpenseSearch"
+              onChange={(event) => updateTableFilter("search", event.target.value)}
+              placeholder="Ej: Uber, Tata, Pago tarjeta"
+              value={tableFilters.search}
+            />
+          </FormField>
+          <FormField id="visibleExpenseAmount" label="Monto bancario">
+            <input
+              id="visibleExpenseAmount"
+              onChange={(event) => updateTableFilter("amount", event.target.value)}
+              placeholder="Ej: -120 o 410,12"
+              value={tableFilters.amount}
+            />
+          </FormField>
+          <FormField id="visibleExpenseCategory" label="Categoria">
+            <select
+              id="visibleExpenseCategory"
+              onChange={(event) => updateTableFilter("categoria", event.target.value)}
+              value={tableFilters.categoria}
+            >
+              <option value="">Todas</option>
+              {categorias.map((categoria) => (
+                <option key={categoria._id} value={categoria._id}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <label className="table-filter-check">
+            <input
+              checked={tableFilters.onlyDuplicates}
+              onChange={(event) => updateTableFilter("onlyDuplicates", event.target.checked)}
+              type="checkbox"
+            />
+            Ver solo posibles duplicados
+          </label>
+        </div>
+        <div className="button-row">
+          <Button onClick={resetTableFilters} variant="secondary">
+            Limpiar filtro de tabla
+          </Button>
+        </div>
+        <p className="selection-note">
+          Mostrando {visibleGastos.length} de {gastos.length} gasto(s) visibles por cuenta.
+        </p>
+      </Card>
+
+      <Card className="expenses-table-card" title="Posibles duplicados">
+        {duplicateGroups.length ? (
+          <div className="duplicate-review">
+            <div className="local-data-toolbar">
+              <div>
+                <strong>{duplicateGroups.length} grupo(s) para revisar</strong>
+                <p>
+                  La busqueda no usa fecha: compara descripcion normalizada y monto
+                  bancario. Te muestra todas las coincidencias para decidir.
+                </p>
+              </div>
+              <div className="inline-actions">
+                <Button onClick={() => updateTableFilter("onlyDuplicates", true)} variant="secondary">
+                  Ver en tabla
+                </Button>
+                <Button onClick={selectDuplicateCandidates} variant="warning">
+                  Seleccionar repetidos
+                </Button>
+              </div>
+            </div>
+            {duplicateGroups.map((group) => (
+              <article className="duplicate-group" key={duplicateKey(group[0])}>
+                <header>
+                  <strong>{group[0].descripcion}</strong>
+                  <span>
+                    {dateKey(group[0].fecha).slice(0, 7)} · {formatCurrency(group[0].flujoBancario)} · {group.length} coincidencias
+                  </span>
+                </header>
+                <div className="duplicate-items">
+                  {group.map((gasto) => (
+                    <div className="duplicate-item" key={gasto._id}>
+                      <span>{formatDate(gasto.fecha)}</span>
+                      <span>{gasto.categoria?.nombre || "Sin categoria"}</span>
+                      <strong>{formatCurrency(gasto.flujoBancario)}</strong>
+                      <div className="table-actions">
+                        <EditIconButton onClick={() => setEditingExpense(gasto)} />
+                        <DeleteIconButton onClick={() => deleteExpense(gasto)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="button-row button-row-end duplicate-actions">
+                  <Button onClick={() => confirmDuplicateGroup(group)} variant="secondary">
+                    Omitir este aviso
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">
+            No encontre coincidencias por descripcion y monto bancario en la vista actual.
+          </p>
+        )}
+      </Card>
+
       <Card className="expenses-table-card" title="Edicion Multiple">
         <div className="bulk-actions">
           <FormField id="accountBulkCategoria" label="Categoria">
@@ -975,7 +1222,7 @@ export function AccountExpenses({ initialCuentaId = "", onLogout }) {
               },
               onDragEnd: () => setDraggedId(""),
             })}
-            items={gastos}
+            items={visibleGastos}
             rowKey={(gasto) => gasto._id}
           />
         </div>

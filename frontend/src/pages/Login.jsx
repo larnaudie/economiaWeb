@@ -4,8 +4,6 @@ import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { FormField } from "../components/FormField";
 import { apiRequest, getApiData, saveAuth } from "../services/api";
-import { pullCloudChangesOnce } from "../components/SyncStatusPanel";
-import { showToast } from "../utils/toast";
 
 export function Login({ onAuthenticated, onGoToRegister }) {
   const [username, setUsername] = useState("");
@@ -31,20 +29,6 @@ export function Login({ onAuthenticated, onGoToRegister }) {
       const usuario = getApiData(perfilResponse);
 
       saveAuth(auth, usuario);
-      try {
-        const syncResult = await pullCloudChangesOnce({ force: true });
-        showToast({
-          title: "Datos descargados",
-          message: `Se revisaron ${syncResult.downloaded || 0} dato(s) de la nube.`,
-          type: "success",
-        });
-      } catch {
-        showToast({
-          title: "Modo local listo",
-          message: "No se pudo descargar la nube ahora. Podes seguir usando datos locales.",
-          type: "warning",
-        });
-      }
       onAuthenticated?.();
     } catch (requestError) {
       setError(requestError.message || "Error en el login");

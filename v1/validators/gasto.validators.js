@@ -74,6 +74,7 @@ export const gastoSchema = Joi.object({
     .optional(),
   tarjetaCredito: objectIdSchema.optional().allow(null, ""),
   movimientoTarjeta: objectIdSchema.optional().allow(null, ""),
+  gastoRepetidoConfirmado: Joi.boolean().optional(),
 });
 
 export const gastosBulkSchema = Joi.object({
@@ -113,6 +114,7 @@ export const gastoUpdateSchema = gastoSchema.fork(
     "categoria",
     "cuenta",
     "estado",
+    "gastoRepetidoConfirmado",
   ],
   (schema) => schema.optional(),
 ).prefs({ noDefaults: true });

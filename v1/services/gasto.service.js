@@ -251,6 +251,9 @@ export const actualizarGastoService = async ({ id, usuarioId, data }) => {
   if (data.cuenta !== undefined) gasto.cuenta = normalizarCampoOpcional(data.cuenta);
   if (data.facturaUrl !== undefined) gasto.facturaUrl = data.facturaUrl;
   if (data.facturaPublicId !== undefined) gasto.facturaPublicId = data.facturaPublicId;
+  if (data.gastoRepetidoConfirmado !== undefined) {
+    gasto.gastoRepetidoConfirmado = data.gastoRepetidoConfirmado;
+  }
 
   if (data.incluirEnGastoBancario !== undefined) {
     gasto.incluirEnGastoBancario = data.incluirEnGastoBancario;

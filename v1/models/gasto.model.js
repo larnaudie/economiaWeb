@@ -93,6 +93,11 @@ const gastoSchema = new mongoose.Schema({
     ref: "MovimientoTarjeta",
     default: null,
   },
+
+  gastoRepetidoConfirmado: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 gastoSchema.index(

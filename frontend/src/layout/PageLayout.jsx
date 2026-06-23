@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { apiRequest, getApiData } from "../services/api";
-import { SyncStatusPanel } from "../components/SyncStatusPanel";
 
 const navGroups = [
   {
@@ -126,7 +125,7 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
 
     try {
       if (!ratesPromise) {
-        ratesPromise = apiRequest("/cotizaciones", { localFirst: false }).finally(() => {
+        ratesPromise = apiRequest("/cotizaciones").finally(() => {
           ratesPromise = null;
         });
       }
@@ -283,8 +282,6 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
           </button>
         </div>
 
-        <SyncStatusPanel />
-
         {user ? (
           <div className="sidebar-user">
             <div className="sidebar-user-profile">
@@ -308,9 +305,6 @@ export function PageLayout({ title, subtitle, children, user, onLogout }) {
       </aside>
 
       <main className="app-main">
-        <div className="mobile-sync-card">
-          <SyncStatusPanel />
-        </div>
 
         <header className="page-header">
           <div>
